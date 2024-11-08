@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34309.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "FChassis Installer", "FChassis-Installer\FChassis-Installer.vdproj", "{6E3843A4-187C-4F6B-9F70-950599A82BB8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FChassis", "FChassis\FChassis.csproj", "{02B78A70-58D9-47F1-A90A-B5F946A9DD96}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassisTest", "FChassisTest\FChassisTest.csproj", "{B8A66AE2-1F2A-4832-ACE5-FA4153A44F33}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6E3843A4-187C-4F6B-9F70-950599A82BB8}.Debug|Any CPU.ActiveCfg = Debug
+		{6E3843A4-187C-4F6B-9F70-950599A82BB8}.Debug|Any CPU.Build.0 = Debug
+		{6E3843A4-187C-4F6B-9F70-950599A82BB8}.Release|Any CPU.ActiveCfg = Release
+		{6E3843A4-187C-4F6B-9F70-950599A82BB8}.Release|Any CPU.Build.0 = Release
+		{02B78A70-58D9-47F1-A90A-B5F946A9DD96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02B78A70-58D9-47F1-A90A-B5F946A9DD96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02B78A70-58D9-47F1-A90A-B5F946A9DD96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02B78A70-58D9-47F1-A90A-B5F946A9DD96}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8A66AE2-1F2A-4832-ACE5-FA4153A44F33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8A66AE2-1F2A-4832-ACE5-FA4153A44F33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8A66AE2-1F2A-4832-ACE5-FA4153A44F33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8A66AE2-1F2A-4832-ACE5-FA4153A44F33}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3D1F4E69-AD6C-4223-B2EE-D7A4D7A79327}
+	EndGlobalSection
+EndGlobal

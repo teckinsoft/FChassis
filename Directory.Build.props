@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="IBM437"?>
+<Project DefaultTargets="Build">
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(SolutionDir)\output\obj\$(MSBuildProjectName)\$(Configuration)</BaseIntermediateOutputPath>
+  </PropertyGroup>
+ </Project>

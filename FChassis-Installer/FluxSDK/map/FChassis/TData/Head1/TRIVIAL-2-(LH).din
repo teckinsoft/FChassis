@@ -1,0 +1,177 @@
+1(TRIVIAL-2-(LH).din)
+N1
+CNC_ID=1
+Job_Length = 1000
+Job_Width = 265.8
+Job_Height = 82.9
+Job_Thickness = 4
+X_Partition = 300
+Job_O_Radius = 29
+Job_Type  = 1
+Marking_X_Pos = 700.4
+Marking_Y_Pos = 10
+Marking_Angle = 0
+G253 F="ModelTag:Deluxe" E0
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+
+(---Don't alter above Parameters---)
+
+M50
+M15
+H=LaserTableID
+G61
+G40 E0
+
+(Cutting with head 1)
+(N1001 to N1001 in Bottom flange)
+(N2001 to N2001 in Top flange)
+(N3001 to N3001 in Web flange)
+(N4001 to N4001 for notches)
+
+
+(( Tooling Name : Tooling-2 - Bottom - Hole ))
+
+G253 E0 F="0=1:TRIVIAL-2:2416.29,0"
+G20 X=BlockID
+
+
+( Tool Block Initialization )
+START_X=150 END_X=240
+N1001
+BlockID=1001
+PathLength=230.61
+
+(( Machining on the Bottom Flange ))
+S1
+G93 Z=-Head_Height T1
+G18
+G61
+PM=Flange_PM CM=Flange_CM EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=2
+PlaneTransfer
+G0 X246 Y-10 Z28 A0
+G1 X246 Y-10 Z-57.92 A90 F8000
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+( Machining Block )
+M14
+G1 X246 Y-0 Z-57.92 F8000 ((Linear move to the start of tooling))
+G3 I0 K4 X250 Z-53.92
+G3 I-10 K0 X240 Z-43.92
+G1 X150 Z-43.92 
+G1 X150 Z-63.92 
+G1 X240 Z-63.92 
+G3 I0 K10 X250 Z-53.92
+M15
+
+( Tool Block Finalization )
+G253 E0 F="2=1:1:10"
+G40 E1
+
+
+(( Tooling Name : Tooling-3 - Top - Hole ))
+
+G4 X2
+
+( Tool Block Initialization )
+START_X=150 END_X=240
+N2001
+BlockID=2001
+PathLength=230.61
+
+(( Machining on the Top Flange ))
+S2
+G93 Z=-Head_Height T1
+G18
+G61
+PM=Flange_PM CM=Flange_CM EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=2
+PlaneTransfer
+G1 X250 Y-10 Z28 A0 F8000
+G0 X246 Y275.84 Z28 A0
+G1 X246 Y275.84 Z-37.92 A-90 F8000
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+( Machining Block )
+M14
+G1 X246 Y265.84 Z-37.92 F8000 ((Linear move to the start of tooling))
+G3 I-0 K-4 X250 Z-41.92
+G3 I-10 K0 X240 Z-51.92
+G1 X150 Z-51.92 
+G1 X150 Z-31.92 
+G1 X240 Z-31.92 
+G3 I0 K-10 X250 Z-41.92
+M15
+
+( Tool Block Finalization )
+G253 E0 F="2=1:1:19"
+G40 E1
+
+
+(( Tooling Name : Tooling-1 - Web - Hole ))
+
+G4 X2
+
+( Tool Block Initialization )
+START_X=100 END_X=300
+N3001
+BlockID=3001
+PathLength=577.65
+
+(( Machining on the Web Flange ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=2
+PlaneTransfer
+G1 X250 Y275.84 Z28 A0 F8000
+G0 X123.335 Y165.242 Z28 A0
+G1 X123.335 Y165.242 Z14 A0 F8000
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+( Machining Block )
+M14
+G1 X123.335 Y165.242 Z4 F8000 ((Linear move to the start of tooling))
+G3 I-2.828 J-2.828 X117.678 Y165.242
+G2 I-17.678 J17.678 X100 Y157.92
+G1 X100 Y82.92 
+G1 X275 Y82.92 
+G3 I-0 J25 X300 Y107.92
+G1 X300 Y182.92 
+G1 X125 Y182.92 
+G2 I-25 J0 X117.678 Y165.242
+M15
+
+( Tool Block Finalization )
+G253 E0 F="2=1:1:43"
+G40 E1
+
+N10000
+EndOfJob
+G99

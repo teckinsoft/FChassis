@@ -1,0 +1,524 @@
+%1(TRIVIAL-2-2(LH).din)
+N1
+CNC_ID=2
+Job_Length = 1000
+Job_Width = 265.8
+Job_Height = 82.9
+Job_Thickness = 4
+X_Partition = 500
+Job_O_Radius = 29
+Job_Type  = 1
+Marking_X_Pos = 700.4
+Marking_Y_Pos = 10
+Marking_Angle = 0
+G253 F="ModelTag:Deluxe" E0
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+(Multipass = False) 
+
+(---Don't alter above Parameters---)
+
+M50
+M15
+H=LaserTableID
+G61	(( Stop Block Preparation ))
+G40 E0
+((Cutting with head 2))
+G20 X=BlockID
+
+(N1001 to N1001 in Bottom flange)
+(N2001 to N2001 in Top flange)
+(N3001 to N3009 in Web flange)
+(N8001 to N8008 for markings)
+G253 E0 F="0=1:TRIVIAL-2:1283.62,305.39"
+
+(-----CUTTING ON BOTTOM FLANGE-----)
+
+( ** Tool Block Initialization ** )
+N1001	((** Tooling Name : Tooling-3 - Bottom - Hole **))
+BlockID=1001
+CutScopeNo=1
+BlockType=0
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=750.000 END_X=850.000 PathLength=230.61
+X_Correction=0 YZ_Correction=0
+S1	( ** Machining on the Bottom Flange ** )
+G93 Z=-Head_Height T1
+G18	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Flange_PM CM=Flange_CM EM=Flange_EM ZRH=Flange_YRH	( Block Process Specific Parametes )
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+PlaneTransfer	( Enable Plane Transformation for Tool TurnOver )
+G0 X754.000 Y-20.000 Z28.000 A0.000
+G1 X754.000 Y-20.000 Z-37.920 A90.000 F8000 (Move to Piercing Position)
+EndPlaneTransfer	( Disable Plane Transformation after Tool TurnOver)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G3 I-0.000 K-4.000 X750.000 Z-41.920
+G3 I10.000 K0.000 X760.000 Z-51.920
+G1 X850.000 Z-51.920 
+G1 X850.000 Z-31.920 
+G1 X760.000 Z-31.920 
+G3 I-0.000 K-10.000 X750.000 Z-41.920
+M15	( ** End Of Cut ** )
+
+G253 E0 F="2=1:1:18"
+G40 E1	( Cancel Tool Dia Compensation )
+
+G4 X2
+
+(-----CUTTING ON TOP FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N2001	((** Tooling Name : Tooling-2 - Top - Hole **))
+BlockID=2001
+CutScopeNo=1
+BlockType=0
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=750.000 END_X=850.000 PathLength=230.61
+X_Correction=0 YZ_Correction=0
+S2	( ** Machining on the Top Flange ** )
+G93 Z=-Head_Height T1
+G18	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Flange_PM CM=Flange_CM EM=Flange_EM ZRH=Flange_YRH	( Block Process Specific Parametes )
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+PlaneTransfer	( Enable Plane Transformation for Tool TurnOver )
+G1 X750.000 Y-20.000 Z28.000 A0.000 F8000 ()
+G0 X754.000 Y285.840 Z28.000 A0.000
+G1 X754.000 Y285.840 Z-57.920 A-90.000 F8000 (Move to Piercing Position)
+EndPlaneTransfer	( Disable Plane Transformation after Tool TurnOver)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G3 I0.000 K4.000 X750.000 Z-53.920
+G3 I10.000 K0.000 X760.000 Z-43.920
+G1 X850.000 Z-43.920 
+G1 X850.000 Z-63.920 
+G1 X760.000 Z-63.920 
+G3 I0.000 K10.000 X750.000 Z-53.920
+M15	( ** End Of Cut ** )
+
+G253 E0 F="2=1:1:36"
+G40 E1	( Cancel Tool Dia Compensation )
+
+G4 X2
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N3001	((** Tooling Name : Tooling-1 - Web - Hole **))
+BlockID=3001
+CutScopeNo=1
+BlockType=1
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=700.000 END_X=900.000 PathLength=577.65
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+PlaneTransfer	( Enable Plane Transformation for Tool TurnOver )
+G1 X750.000 Y285.840 Z28.000 A0.000 F8000 ()
+G0 X876.665 Y100.598 Z28.000 A0.000
+G1 X876.665 Y100.598 Z24.000 A0.000 F8000 (Move to Piercing Position)
+EndPlaneTransfer	( Disable Plane Transformation after Tool TurnOver)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G3 I2.828 J2.828 X882.322 Y100.598
+G2 I17.678 J-17.678 X900.000 Y107.920
+G1 X900.000 Y182.920 
+G1 X725.000 Y182.920 
+G3 I-0.000 J-25.000 X700.000 Y157.920
+G1 X700.000 Y82.920 
+G1 X875.000 Y82.920 
+G2 I25.000 J0.000 X882.322 Y100.598
+M15	( ** End Of Cut ** )
+
+G253 E0 F="2=1:1:81"
+G40 E1	( Cancel Tool Dia Compensation )
+
+G4 X2
+
+
+( ** Tool Block Initialization ** )
+N5003	((** Tooling Name : Tooling-4 - Flex - Hole **))
+BlockID=5003
+CutScopeNo=1
+BlockType=0
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=550.000 END_X=650.000 PathLength=244.75
+X_Correction=0 YZ_Correction=0
+S0	
+G93 Z=-Head_Height T1
+	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Flange_PM CM=Flange_CM EM=Flange_EM ZRH=Flange_YRH	( Block Process Specific Parametes )
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+PlaneTransfer	( Enable Plane Transformation for Tool TurnOver )
+G1 X882.322 Y100.598 Z28.000 A0.000 F8000 ()
+G0 X572.448 Y10.114 Z28.000 A0.000
+G1 X572.448 Y10.114 Z20.372 A18.208 F8000 (Move to Piercing Position)
+EndPlaneTransfer	( Disable Plane Transformation after Tool TurnOver)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G3 I-3.978 J-0.399 X568.049 Y19.743
+G1 X566.098 Y19.548 Z2.416 A19.023 
+G1 X562.346 Y18.401 Z1.994 A21.438 
+G1 X558.889 Y16.579 Z1.205 A25.360 
+G1 X557.373 Y15.386 Z0.606 A27.999 
+G1 X555.858 Y14.221 Z-0.048 A30.638 
+G1 X554.614 Y12.845 Z-0.917 A33.854 
+G1 X553.371 Y11.519 Z-1.861 A37.070 
+G1 X552.447 Y10.074 Z-3.027 A40.738 
+G1 X551.522 Y8.707 Z-4.283 A44.407 
+G1 X550.953 Y7.318 Z-5.742 A48.388 
+G1 X550.384 Y6.033 Z-7.293 A52.369 
+G1 X550.192 Y4.815 Z-8.998 A56.509 
+G1 X550.000 Y3.723 Z-10.785 A60.649 
+G1 X550.000 Y2.894 Z-12.372 A64.186 
+G1 X550.000 Y2.165 Z-14.006 A67.722 
+G1 X550.000 Y1.538 Z-15.683 A71.259 
+G1 X650.000 Y1.538 Z-15.683 A71.259 
+G1 X650.000 Y2.418 Z-13.407 A66.436 
+G1 X650.000 Y3.487 Z-11.213 A61.613 
+G1 X650.000 Y4.736 Z-9.117 A56.791 
+G1 X650.000 Y6.158 Z-7.133 A51.968 
+G1 X650.000 Y7.741 Z-5.276 A47.145 
+G1 X650.000 Y9.474 Z-3.558 A42.322 
+G1 X650.000 Y11.346 Z-1.992 A37.499 
+G1 X650.000 Y13.343 Z-0.590 A32.676 
+G1 X650.000 Y15.451 Z0.640 A27.853 
+G1 X650.000 Y17.655 Z1.689 A23.030 
+G1 X650.000 Y19.939 Z2.548 A18.208 
+G1 X570.000 Y19.939 Z2.548 A18.208 
+G1 X568.049 Y19.743 Z2.482 A19.023 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="2=1:1:100"
+G40 E1	( Cancel Tool Dia Compensation )
+
+G4 X2
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8001	((** Tooling Name : Tooling-5 - Web - Mark **))
+BlockID=8001
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=700.400 END_X=717.150 PathLength=74.63
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+PlaneTransfer	( Enable Plane Transformation for Tool TurnOver )
+G1 X568.049 Y13.224 Z28.000 A0.000 F8000 ()
+G0 X700.400 Y167.920 Z28.000 A0.000
+G1 X700.400 Y167.920 Z24.000 A0.000 F8000 (Move to Piercing Position)
+EndPlaneTransfer	( Disable Plane Transformation after Tool TurnOver)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X708.650 Y167.920 A0.000 
+G1 X712.400 Y166.670 
+G1 X714.650 Y164.170 
+G1 X715.650 Y161.920 
+G1 X717.150 Y158.170 
+G1 X717.150 Y152.670 
+G1 X715.650 Y148.920 
+G1 X714.650 Y146.670 
+G1 X712.400 Y144.170 
+G1 X708.650 Y142.920 
+G1 X700.400 Y142.920 
+G1 X700.400 Y167.920 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:24"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8002	((** Tooling Name : Tooling-6 - Web - Mark **))
+BlockID=8002
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=725.400 END_X=739.650 PathLength=58.52
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X739.650 Y146.670 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X737.400 Y144.170 A0.000 
+G1 X735.150 Y142.920 
+G1 X731.400 Y142.920 
+G1 X729.150 Y144.170 
+G1 X726.650 Y146.670 
+G1 X725.400 Y149.920 
+G1 X725.400 Y152.670 
+G1 X739.650 Y152.670 
+G1 X739.650 Y154.920 
+G1 X738.400 Y157.170 
+G1 X737.400 Y158.170 
+G1 X735.150 Y159.670 
+G1 X731.400 Y159.670 
+G1 X729.150 Y158.170 
+G1 X726.650 Y155.920 
+G1 X725.400 Y152.670 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:44"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8003	((** Tooling Name : Tooling-7 - Web - Mark **))
+BlockID=8003
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=746.650 END_X=746.650 PathLength=25.00
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X746.650 Y167.920 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X746.650 Y142.920 A0.000 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:52"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8004	((** Tooling Name : Tooling-8 - Web - Mark **))
+BlockID=8004
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=769.400 END_X=769.400 PathLength=16.75
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X769.400 Y142.920 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X769.400 Y159.670 A0.000 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:57"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8005	((** Tooling Name : Tooling-9 - Web - Mark **))
+BlockID=8005
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=756.400 END_X=769.400 PathLength=29.56
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X769.400 Y147.670 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X766.150 Y144.170 A0.000 
+G1 X763.400 Y142.920 
+G1 X760.150 Y142.920 
+G1 X757.650 Y144.170 
+G1 X756.400 Y147.670 
+G1 X756.400 Y159.670 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:67"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8006	((** Tooling Name : Tooling-10 - Web - Mark **))
+BlockID=8006
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=779.150 END_X=792.150 PathLength=21.20
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X792.150 Y142.920 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X779.150 Y159.670 A0.000 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:74"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8007	((** Tooling Name : Tooling-11 - Web - Mark **))
+BlockID=8007
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=779.150 END_X=792.150 PathLength=21.20
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X792.150 Y159.670 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X779.150 Y142.920 A0.000 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:81"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+(-----CUTTING ON WEB FLANGE--------)
+
+( ** Tool Block Initialization ** )
+N8008	((** Tooling Name : Tooling-12 - Web - Mark **))
+BlockID=8008
+CutScopeNo=1
+BlockType=4
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=799.400 END_X=813.650 PathLength=58.52
+X_Correction=0 YZ_Correction=0
+S3	( ** Machining on the Web Flange ** )
+G93 Z0 T1
+G17	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X813.650 Y146.670 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X811.400 Y144.170 A0.000 
+G1 X809.150 Y142.920 
+G1 X805.400 Y142.920 
+G1 X803.150 Y144.170 
+G1 X800.650 Y146.670 
+G1 X799.400 Y149.920 
+G1 X799.400 Y152.670 
+G1 X813.650 Y152.670 
+G1 X813.650 Y154.920 
+G1 X812.400 Y157.170 
+G1 X811.400 Y158.170 
+G1 X809.150 Y159.670 
+G1 X805.400 Y159.670 
+G1 X803.150 Y158.170 
+G1 X800.650 Y155.920 
+G1 X799.400 Y152.670 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="1=1:1:100"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+N10000000
+EndOfJob
+G99

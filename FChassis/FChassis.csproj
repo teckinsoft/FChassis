@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <OutDir>C:\FluxSDK\Bin</OutDir>
+    <PlatformTarget>x64</PlatformTarget>
+    
+	<Company>TeckinSoft</Company>
+
+	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+	<IntermediateOutputPath>$(SolutionDir)\output\intermediate\$(MSBuildProjectName)\</IntermediateOutputPath>
+	<BaseOutputPath>$(SolutionDir)\output\bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <PackageOutputPath>$(SolutionDir)\output\$(OutputPath)</PackageOutputPath>      
+	  
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Flux.API">
+      <HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

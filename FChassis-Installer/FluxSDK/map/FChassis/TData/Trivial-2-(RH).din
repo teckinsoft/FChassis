@@ -1,0 +1,103 @@
+1(Trivial-2-(RH).din)
+N1
+CNC_ID=2
+Job_Length = 1000
+Job_Width = 265.8
+Job_Height = 82.9
+Job_Thickness = 4
+X_Partition = 500
+Job_O_Radius = 29
+Job_Type  = 2
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+
+(---Don't alter above Parameters---)
+
+M50
+M15
+H=LaserTableID
+G61
+G40 E0
+
+(Cutting with ToolHead 2)
+ (( Tooling Name : Tooling-1 - Flex - Cutout ))
+G253 E0 F="0=1:Trivial-2:1087.4,305.39"
+G20 X=BlockID
+
+N5003(HoleShape)
+BlockID=5003
+S4
+G93 Z=-Head_Height T1
+G61
+PM=Profile_PM CM=Profile_CM
+EM=Profile_EM ZRH=Profile_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move to the safe point ))
+G0 Z50 A0
+G0 X0 Y-132.92 Z0
+PlaneTransfer
+G0 X875 Y-300.84 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON FLEX FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X1750 Y-275.84 Z-192.92 A90 8000
+BlockType=3
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+G1 X875 Y-285.84 Z-25 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G1 X1750 Y-216.892 Z-207.588 A93.809 
+G1 X1850 Y-164.646 Z-169.229 A5156.62 
+G1 X925 Y-285.84 Z-25 
+G1 X1850 Y-261.69 Z-172.469 A91.362 
+G1 X1850 Y-265.724 Z-167.822 A91.209 
+G1 X1850 Y-269.327 Z-162.855 A91.059 
+G1 X1850 Y-272.468 Z-157.605 A90.913 
+G1 X1850 Y-275.122 Z-152.115 A90.771 
+G1 X1850 Y-277.266 Z-146.428 A90.635 
+G1 X1850 Y-278.882 Z-140.589 A90.505 
+G1 X1850 Y-279.958 Z-134.644 A90.383 
+G1 X1850 Y-280.483 Z-128.642 A90.27 
+G1 X1850 Y-280.454 Z-122.631 A90.166 
+G1 X1850 Y-279.872 Z-116.659 A90.073 
+G1 X1850 Y-278.741 Z-110.774 A89.99 
+G1 X1850 Y-277.071 Z-105.023 A89.919 
+G1 X1850 Y-274.877 Z-99.452 A89.86 
+G1 X1850 Y-272.177 Z-94.105 A89.814 
+G1 X1850 Y-268.993 Z-89.025 A89.781 
+G1 X1850 Y-265.353 Z-84.249 A89.761 
+G1 X1850 Y-340.76 Z48 A0 
+G1 X925 Y-102.92 Z24 
+G1 X875 Y-102.92 Z24 
+G1 X875 Y-236.84 Z24 
+G1 X1750 Y-265.378 Z-84.243 A89.747 
+G1 X1750 Y-269.017 Z-89.019 A89.768 
+G1 X1750 Y-272.198 Z-94.101 A89.804 
+G1 X1750 Y-274.893 Z-99.449 A89.852 
+G1 X1750 Y-277.081 Z-105.022 A89.915 
+G1 X1750 Y-278.742 Z-110.774 A89.99 
+G1 X1750 Y-279.863 Z-116.66 A90.077 
+G1 X1750 Y-280.432 Z-122.633 A90.176 
+G1 X1750 Y-280.447 Z-128.645 A90.285 
+G1 X1750 Y-279.905 Z-134.646 A90.405 
+G1 X1750 Y-278.811 Z-140.59 A90.533 
+G1 X1750 Y-277.175 Z-146.427 A90.67 
+G1 X1750 Y-275.01 Z-152.111 A90.814 
+G1 X1750 Y-272.335 Z-157.596 A90.964 
+G1 X1750 Y-269.171 Z-162.839 A91.119 
+G1 X1750 Y-265.545 Z-167.799 A91.277 
+G1 X1750 Y-261.488 Z-172.437 A91.438 
+G1 X1750 Y-257.032 Z-176.716 A91.601 
+G40 E1
+
+
+N10000
+EndOfJob
+G99

@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+	  <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>
+	  <UseWPF>true</UseWPF>
+	  <OutDir>C:\FluxSDK\Bin</OutDir>
+	  <Company>TeckinSoft</Company>
+
+	  <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FChassis\FChassis.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Flux.API">
+			<HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+</Project>

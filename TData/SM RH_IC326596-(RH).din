@@ -1,0 +1,6801 @@
+1(SM RH_IC326596-(RH).din)
+N1
+CNC_ID=2
+Job_Length = 7270
+Job_Width = 210
+Job_Height = 76
+Job_Thickness = 6
+X_Partition = 3635
+Job_O_Radius = 16
+Job_Type  = 2
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+
+(---Don't alter above Parameters---)
+
+M50
+M15
+H=LaserTableID
+G61
+G40 E0
+
+(Cutting with ToolHead 2)
+(N1003 to N1029 in Bottom flange)
+(N2001 to N2026 in Top flange)
+(N3081 to N3220 in Web flange)
+(N4003 to N4006 for notches)
+ (( Tooling Name : Tooling-1 - Web - Hole ))
+G253 E0 F="0=1:SM RH_IC326596:0,305.39"
+G20 X=BlockID
+
+N3081
+BlockID=3081
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move to the safe point ))
+G0 Z50 A0
+G0 X0 Y-105 Z0
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7319 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7305.999999884043
+YZ_Coordinate=-225.0000076272123
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3659.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-2 - Web - Hole ))
+N3082
+BlockID=3082
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3659.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7319 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7305.999999961287
+YZ_Coordinate=14.999992368609341
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3659.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-3 - Web - Hole ))
+N3083
+BlockID=3083
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3659.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7429 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7415.999999997158
+YZ_Coordinate=-225.0000076292592
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3714.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-4 - Web - Hole ))
+N3084
+BlockID=3084
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3714.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7529 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7516.00000010171
+YZ_Coordinate=-225.0000076326594
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3764.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-5 - Web - Hole ))
+N3085
+BlockID=3085
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3764.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7529 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7515.999999992625
+YZ_Coordinate=-105.00000763047717
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3764.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-6 - Web - Hole ))
+N3086
+BlockID=3086
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3764.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7529 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7516.00000004825
+YZ_Coordinate=14.999992370275606
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3764.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-7 - Web - Hole ))
+N3087
+BlockID=3087
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3764.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7679 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7665.999999941524
+YZ_Coordinate=-225.00000762958064
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3839.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-8 - Web - Hole ))
+N3088
+BlockID=3088
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3839.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7679 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7665.999999886954
+YZ_Coordinate=14.999992368279479
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3839.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-9 - Web - Hole ))
+N3089
+BlockID=3089
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3839.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7779 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7765.9999999242655
+YZ_Coordinate=-225.0000076271616
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3889.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-10 - Web - Hole ))
+N3090
+BlockID=3090
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3889.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X7779 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=7766.000000002493
+YZ_Coordinate=14.999992372220973
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X3889.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-11 - Web - Hole ))
+N3091
+BlockID=3091
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X3889.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8079 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8066.000000010729
+YZ_Coordinate=-225.00000762897162
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4039.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-12 - Web - Hole ))
+N3092
+BlockID=3092
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4039.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8079 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8066.000000078953
+YZ_Coordinate=14.99999237282151
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4039.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-13 - Web - Hole ))
+N3093
+BlockID=3093
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4039.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8179 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8165.999999980506
+YZ_Coordinate=-225.000007630215
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4089.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-14 - Web - Hole ))
+N3094
+BlockID=3094
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4089.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8179 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8165.999999924401
+YZ_Coordinate=14.999992368913837
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4089.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-15 - Web - Hole ))
+N3095
+BlockID=3095
+PathLength=108.16
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4089.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8201 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8166.000000003221
+YZ_Coordinate=-105.00000762805027
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4100.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-17.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-16 - Web - Hole ))
+N3096
+BlockID=3096
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4100.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8279 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8265.999999962718
+YZ_Coordinate=-225.00000762833724
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4139.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-17 - Web - Hole ))
+N3097
+BlockID=3097
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4139.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8279 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8265.999999991102
+YZ_Coordinate=-105.00000762993585
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4139.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-18 - Web - Hole ))
+N3098
+BlockID=3098
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4139.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8279 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8265.999999890639
+YZ_Coordinate=14.999992368533213
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4139.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-19 - Web - Hole ))
+N3099
+BlockID=3099
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4139.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8379 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8365.999999880243
+YZ_Coordinate=14.999992368279479
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4189.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-20 - Web - Hole ))
+N3100
+BlockID=3100
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4189.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8469 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8455.999999987685
+YZ_Coordinate=-105.00000763047717
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4234.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-21 - Web - Hole ))
+N3101
+BlockID=3101
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4234.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8479 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8466.000000066922
+YZ_Coordinate=-225.00000763256634
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4239.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-22 - Web - Hole ))
+N3102
+BlockID=3102
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4239.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8579 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8566.00000005389
+YZ_Coordinate=-225.00000763068863
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4289.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-23 - Web - Hole ))
+N3103
+BlockID=3103
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4289.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8679 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8665.999999893835
+YZ_Coordinate=-225.00000762732225
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4339.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-24 - Web - Hole ))
+N3104
+BlockID=3104
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4339.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8679 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8665.999999999452
+YZ_Coordinate=-105.00000762777057
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4339.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-25 - Web - Hole ))
+N3105
+BlockID=3105
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4339.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8679 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8666.000000100237
+YZ_Coordinate=14.999992370909965
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4339.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-26 - Web - Hole ))
+N3106
+BlockID=3106
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4339.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8779 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8766.000000017284
+YZ_Coordinate=-225.0000076284303
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4389.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-27 - Web - Hole ))
+N3107
+BlockID=3107
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4389.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8779 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8766.000000069169
+YZ_Coordinate=14.999992371070661
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4389.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-28 - Web - Hole ))
+N3108
+BlockID=3108
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4389.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8879 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8865.999999989885
+YZ_Coordinate=-225.0000076298005
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4439.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-29 - Web - Hole ))
+N3109
+BlockID=3109
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4439.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8975 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8965.999999991327
+YZ_Coordinate=-105.00000762995924
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4487.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-30 - Web - Hole ))
+N3110
+BlockID=3110
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4487.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X8979 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=8965.999999970722
+YZ_Coordinate=-225.00000763008813
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4489.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-31 - Web - Hole ))
+N3111
+BlockID=3111
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4489.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9079 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9066.00000000865
+YZ_Coordinate=14.999992370182554
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4539.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-32 - Web - Hole ))
+N3112
+BlockID=3112
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4539.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9179 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9166.000000086184
+YZ_Coordinate=-225.0000076326932
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4589.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-33 - Web - Hole ))
+N3113
+BlockID=3113
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4589.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9179 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9165.999999984944
+YZ_Coordinate=-105.00000762993585
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4589.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-34 - Web - Hole ))
+N3114
+BlockID=3114
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4589.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9179 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9165.999999984944
+YZ_Coordinate=14.999992367222205
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4589.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-35 - Web - Hole ))
+N3115
+BlockID=3115
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4589.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9279 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9266.000000053318
+YZ_Coordinate=-225.00000763122995
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4639.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-36 - Web - Hole ))
+N3116
+BlockID=3116
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4639.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9279 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9265.999999994538
+YZ_Coordinate=-105.00000762939453
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4639.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-37 - Web - Hole ))
+N3117
+BlockID=3117
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4639.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9479 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9465.999999867221
+YZ_Coordinate=-225.00000762760988
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4739.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-38 - Web - Hole ))
+N3118
+BlockID=3118
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4739.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9479 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9465.99999992727
+YZ_Coordinate=14.999992370664671
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4739.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-39 - Web - Hole ))
+N3119
+BlockID=3119
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4739.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9575 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9566.000000012464
+YZ_Coordinate=-105.00000763052395
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4787.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-40 - Web - Hole ))
+N3120
+BlockID=3120
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4787.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9579 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9565.999999841086
+YZ_Coordinate=-225.00000762735613
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4789.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-41 - Web - Hole ))
+N3121
+BlockID=3121
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4789.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9579 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9566.000000210968
+YZ_Coordinate=14.999992369472068
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4789.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-42 - Web - Hole ))
+N3122
+BlockID=3122
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4789.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9679 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9665.999999818858
+YZ_Coordinate=-225.0000076276437
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4839.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-43 - Web - Hole ))
+N3123
+BlockID=3123
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4839.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9679 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9666.000000188322
+YZ_Coordinate=14.999992373007586
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4839.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-44 - Web - Hole ))
+N3124
+BlockID=3124
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4839.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9779 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9766.00000011196
+YZ_Coordinate=-225.0000076275337
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4889.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-45 - Web - Hole ))
+N3125
+BlockID=3125
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4889.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9779 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9766.000000167918
+YZ_Coordinate=14.999992372626977
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4889.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-46 - Web - Hole ))
+N3126
+BlockID=3126
+PathLength=76.54
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4889.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9791 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9766.000000000922
+YZ_Coordinate=-105.00000762968727
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4895.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-12.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-47 - Web - Hole ))
+N3127
+BlockID=3127
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4895.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9879 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9866.000000087834
+YZ_Coordinate=-225.0000076326932
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4939.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-48 - Web - Hole ))
+N3128
+BlockID=3128
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4939.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9879 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9865.999999983524
+YZ_Coordinate=-105.00000763264248
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4939.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-49 - Web - Hole ))
+N3129
+BlockID=3129
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4939.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9879 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9866.00000014432
+YZ_Coordinate=14.999992370749254
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4939.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-50 - Web - Hole ))
+N3130
+BlockID=3130
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4939.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9979 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9966.000000071945
+YZ_Coordinate=-225.00000762919154
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4989.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-51 - Web - Hole ))
+N3131
+BlockID=3131
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4989.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9979 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9965.999999998188
+YZ_Coordinate=-105.00000763155981
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4989.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-52 - Web - Hole ))
+N3132
+BlockID=3132
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4989.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X9979 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=9965.999999783122
+YZ_Coordinate=14.999992365894272
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X4989.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-53 - Web - Hole ))
+N3133
+BlockID=3133
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X4989.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10077 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10065.999999996544
+YZ_Coordinate=-14.00000762881271
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5038.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-54 - Web - Hole ))
+N3134
+BlockID=3134
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5038.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10079 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10066.000000055634
+YZ_Coordinate=-225.00000763110307
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5039.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-55 - Web - Hole ))
+N3135
+BlockID=3135
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5039.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10079 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10066.000000004402
+YZ_Coordinate=-105.00000762885321
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5039.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-56 - Top - Hole ))
+G4 X2
+N2001
+BlockID=2001
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5039.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5039.5 Y-105 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5077.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10155 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10166.000000144479
+YZ_Coordinate=-139.00000000021257
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5077.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-57 - Web - Hole ))
+G4 X2
+N3136
+BlockID=3136
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5077.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5077.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5088.5 Y-179.5 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10177 Y-254 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10166.000000078382
+YZ_Coordinate=-173.50000763167748
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5088.5 Y-179.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-58 - Web - Hole ))
+N3137
+BlockID=3137
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5088.5 Y-179.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10177 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10165.999999898238
+YZ_Coordinate=-14.000007629618992
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5088.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-59 - Top - Hole ))
+G4 X2
+N2002
+BlockID=2002
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5088.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5088.5 Y-59.5 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5107.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10215 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10226.000000107804
+YZ_Coordinate=-139.00000000162427
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5107.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-60 - Web - Hole ))
+G4 X2
+N3138
+BlockID=3138
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5107.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5107.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5118.5 Y-179.5 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10237 Y-254 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10226.000000189355
+YZ_Coordinate=-173.50000763131348
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5118.5 Y-179.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-61 - Web - Hole ))
+N3139
+BlockID=3139
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5118.5 Y-179.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10237 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10226.000000008149
+YZ_Coordinate=-14.000007629434407
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5118.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-62 - Web - Hole ))
+N3140
+BlockID=3140
+PathLength=108.16
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5118.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10341 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10306.000000007009
+YZ_Coordinate=-105.00000762999198
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5170.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-17.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-63 - Top - Hole ))
+G4 X2
+N2003
+BlockID=2003
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5170.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5170.5 Y-105 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5227.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10455 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10465.999999895073
+YZ_Coordinate=-139.00000000054337
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5227.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-64 - Web - Hole ))
+G4 X2
+N3141
+BlockID=3141
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5227.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5227.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5238.5 Y-59.5 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10477 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10465.999999901122
+YZ_Coordinate=-53.50000762912873
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5238.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-65 - Top - Hole ))
+G4 X2
+N2004
+BlockID=2004
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5238.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5238.5 Y-59.5 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5257.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10515 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10525.999999883734
+YZ_Coordinate=-138.99999999973707
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5257.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-66 - Web - Hole ))
+G4 X2
+N3142
+BlockID=3142
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5257.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5257.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5268.5 Y-59.5 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10537 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10525.999999986492
+YZ_Coordinate=-53.50000762985969
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5268.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-67 - Web - Hole ))
+N3143
+BlockID=3143
+PathLength=108.16
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5268.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10641 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10605.999999997533
+YZ_Coordinate=-105.00000762909582
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5320.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-17.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-68 - Web - Hole ))
+N3144
+BlockID=3144
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5320.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10717 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10705.999999777036
+YZ_Coordinate=-14.000007634339951
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5358.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-69 - Web - Hole ))
+N3145
+BlockID=3145
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5358.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10777 Y-254 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10766.00000008873
+YZ_Coordinate=-254.00000762866802
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5388.5 Y-179.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-70 - Web - Hole ))
+N3146
+BlockID=3146
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5388.5 Y-179.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10777 Y-144 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10766.00000001529
+YZ_Coordinate=-144.0000076290534
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5388.5 Y-124.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-71 - Web - Hole ))
+N3147
+BlockID=3147
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5388.5 Y-124.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10777 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10765.999999904003
+YZ_Coordinate=-14.000007628106857
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5388.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-72 - Web - Hole ))
+N3148
+BlockID=3148
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5388.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10837 Y-254 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10826.00000018387
+YZ_Coordinate=-254.00000763452454
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5418.5 Y-179.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-73 - Web - Hole ))
+N3149
+BlockID=3149
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5418.5 Y-179.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10837 Y-144 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10825.999999985983
+YZ_Coordinate=-144.0000076274837
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5418.5 Y-124.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-74 - Web - Hole ))
+N3150
+BlockID=3150
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5418.5 Y-124.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10837 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10826.000000253865
+YZ_Coordinate=-14.00000762968692
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5418.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-75 - Web - Hole ))
+N3151
+BlockID=3151
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5418.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10975 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10965.99999946077
+YZ_Coordinate=-14.000007636418161
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5487.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-76 - Web - Hole ))
+N3152
+BlockID=3152
+PathLength=108.16
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5487.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10979 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10944.000000005452
+YZ_Coordinate=-105.00000762849837
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5489.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-17.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-77 - Web - Hole ))
+N3153
+BlockID=3153
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5489.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10997 Y-254 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10985.999999939866
+YZ_Coordinate=-254.0000076281999
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5498.5 Y-179.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-78 - Web - Hole ))
+N3154
+BlockID=3154
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5498.5 Y-179.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X10997 Y-199 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=10986.000000097969
+YZ_Coordinate=-199.0000076286267
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5498.5 Y-152 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-79 - Web - Hole ))
+N3155
+BlockID=3155
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5498.5 Y-152 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11057 Y-254 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11045.999999514192
+YZ_Coordinate=-254.00000762550349
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5528.5 Y-179.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-80 - Web - Hole ))
+N3156
+BlockID=3156
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5528.5 Y-179.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11057 Y-144 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11045.999999970913
+YZ_Coordinate=-144.0000076274261
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5528.5 Y-124.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-81 - Web - Hole ))
+N3157
+BlockID=3157
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5528.5 Y-124.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11175 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11165.999999779347
+YZ_Coordinate=-14.000007633607822
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5587.5 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-82 - Web - Hole ))
+N3158
+BlockID=3158
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5587.5 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11228 Y-14 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11218.999999960679
+YZ_Coordinate=-14.000007634461511
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5614 Y-59.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-83 - Top - Hole ))
+G4 X2
+N2005
+BlockID=2005
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5614 Y-59.5 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5614 Y-59.5 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5621 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11242 Y-219 Z-166 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11255.00000001546
+YZ_Coordinate=-131.00000000117143
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5621 Y-230 Z-26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-84 - Web - Hole ))
+G4 X2
+N3159
+BlockID=3159
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5621 Y-245 Z-26 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5621 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5634 Y-170 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11268 Y-235 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11254.999999860765
+YZ_Coordinate=-164.00000762872315
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5634 Y-170 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-85 - Web - Hole ))
+N3160
+BlockID=3160
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5634 Y-170 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11268 Y-135 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11255.00000000789
+YZ_Coordinate=-135.0000076297984
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5634 Y-120 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-86 - Web - Hole ))
+N3161
+BlockID=3161
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5634 Y-120 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11358 Y-135 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11344.999999980782
+YZ_Coordinate=-135.00000762540438
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5679 Y-120 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-87 - Web - Hole ))
+N3162
+BlockID=3162
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5679 Y-120 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11402 Y-31 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11390.999999820548
+YZ_Coordinate=-31.000007628626662
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5701 Y-68 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-88 - Top - Hole ))
+G4 X2
+N2006
+BlockID=2006
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5701 Y-68 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5701 Y-68 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5711 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11422 Y-219 Z-166 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11434.999999868664
+YZ_Coordinate=-130.9999999975936
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5711 Y-230 Z-26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-89 - Web - Hole ))
+G4 X2
+N3163
+BlockID=3163
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5711 Y-245 Z-26 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5711 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5724 Y-170 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11448 Y-235 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11434.999999803884
+YZ_Coordinate=-164.00000762898958
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5724 Y-170 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-90 - Web - Hole ))
+N3164
+BlockID=3164
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5724 Y-170 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11448 Y-135 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11435.000000001652
+YZ_Coordinate=-135.0000076297984
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5724 Y-120 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-91 - Web - Hole ))
+N3165
+BlockID=3165
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5724 Y-120 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11459 Y16 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11449.999999759768
+YZ_Coordinate=15.999992370526058
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5729.5 Y-44.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-92 - Bottom - Hole ))
+G4 X2
+N1003
+BlockID=1003
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5729.5 Y-44.5 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5729.5 Y-44.5 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5789.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11579 Y5 Z-170 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11590.000000085281
+YZ_Coordinate=-134.99999999696396
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5789.5 Y20 Z-30 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-93 - Web - Hole ))
+G4 X2
+N3166
+BlockID=3166
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5789.5 Y35 Z-30 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5789.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5799 Y-170 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11598 Y-235 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11585.000000341555
+YZ_Coordinate=-176.00000763208212
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5799 Y-170 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-94 - Web - Hole ))
+N3167
+BlockID=3167
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5799 Y-170 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11691 Y-36 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11680.000000055665
+YZ_Coordinate=-36.00000763079738
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5845.5 Y-70.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-95 - Web - Hole ))
+N3168
+BlockID=3168
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5845.5 Y-70.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11762 Y-136 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11748.999999983642
+YZ_Coordinate=-136.000007627686
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5881 Y-120.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-96 - Web - Hole ))
+N3169
+BlockID=3169
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5881 Y-120.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11762 Y4 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11749.000000199714
+YZ_Coordinate=3.9999923740902403
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5881 Y-50.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-97 - Web - Hole ))
+N3170
+BlockID=3170
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5881 Y-50.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11819 Y-177 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11808.000000044654
+YZ_Coordinate=-177.0000076257205
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5909.5 Y-141 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-98 - Bottom - Hole ))
+G4 X2
+N1004
+BlockID=1004
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5909.5 Y-141 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5909.5 Y-141 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5914.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11829 Y-17 Z-192 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11840.000000315373
+YZ_Coordinate=-156.99999999941525
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5914.5 Y20 Z-52 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-99 - Bottom - Hole ))
+N1005
+BlockID=1005
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5914.5 Y35 Z-52 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11829 Y13 Z-162 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11840.000000007372
+YZ_Coordinate=-43.99999999873596
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5914.5 Y20 Z-22 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-100 - Web - Hole ))
+G4 X2
+N3171
+BlockID=3171
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5914.5 Y35 Z-22 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5914.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5934.5 Y-141 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11869 Y-177 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11858.000000107142
+YZ_Coordinate=-147.00000763160364
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5934.5 Y-141 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-101 - Bottom - Hole ))
+G4 X2
+N1006
+BlockID=1006
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5934.5 Y-141 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5934.5 Y-141 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5942.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11885 Y-3 Z-178 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11895.99999995108
+YZ_Coordinate=-142.99999999699645
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5942.5 Y20 Z-38 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-102 - Web - Hole ))
+G4 X2
+N3172
+BlockID=3172
+PathLength=108.16
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5942.5 Y35 Z-38 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5942.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X5948.5 Y-66.5 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11897 Y-28 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11862.000000023323
+YZ_Coordinate=-72.500007628973
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5948.5 Y-66.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-17.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-103 - Web - Hole ))
+N3173
+BlockID=3173
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5948.5 Y-66.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11943 Y-177 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11929.999999917101
+YZ_Coordinate=-177.00000763301466
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5971.5 Y-141 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-104 - Web - Hole ))
+N3174
+BlockID=3174
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5971.5 Y-141 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X11943 Y33 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=11929.999999854792
+YZ_Coordinate=32.99999236226782
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X5971.5 Y-36 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-105 - Bottom - Hole ))
+G4 X2
+N1007
+BlockID=1007
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X5971.5 Y-36 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X5971.5 Y-36 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6054.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12109 Y-17 Z-192 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12119.999999810181
+YZ_Coordinate=-156.9999999971884
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6054.5 Y20 Z-52 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-106 - Bottom - Hole ))
+N1008
+BlockID=1008
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6054.5 Y35 Z-52 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12109 Y13 Z-162 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12120.000000060993
+YZ_Coordinate=-43.99999999893088
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6054.5 Y20 Z-22 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-107 - Web - Hole ))
+G4 X2
+N3175
+BlockID=3175
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6054.5 Y35 Z-22 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6054.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6071.5 Y-141 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12143 Y-177 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12130.000000065582
+YZ_Coordinate=-147.00000763216457
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6071.5 Y-141 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-108 - Web - Hole ))
+N3176
+BlockID=3176
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6071.5 Y-141 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12143 Y33 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12129.999999779275
+YZ_Coordinate=32.999992369116825
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6071.5 Y-36 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-109 - Top - Hole ))
+G4 X2
+N2007
+BlockID=2007
+PathLength=26.45
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6071.5 Y-36 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6071.5 Y-36 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6100.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12201 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12209.999999709014
+YZ_Coordinate=-139.00000000337062
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6100.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-110 - Bottom - Hole ))
+G4 X2
+N1009
+BlockID=1009
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6100.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6100.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6104.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12209 Y-17 Z-192 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12220.000000197562
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6104.5 Y20 Z-52 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-111 - Bottom - Hole ))
+N1010
+BlockID=1010
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6104.5 Y35 Z-52 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12209 Y13 Z-162 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12220.000000011163
+YZ_Coordinate=-43.99999999722383
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6104.5 Y20 Z-22 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-112 - Web - Hole ))
+G4 X2
+N3177
+BlockID=3177
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6104.5 Y35 Z-22 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6104.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6115.5 Y-165 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12231 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12220.000000444044
+YZ_Coordinate=-171.000007631899
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6115.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-113 - Web - Hole ))
+N3178
+BlockID=3178
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6115.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12231 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12219.999999999067
+YZ_Coordinate=-105.00000762637029
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6115.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-114 - Bottom - Hole ))
+G4 X2
+N1011
+BlockID=1011
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6115.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6115.5 Y-105 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6139.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12279 Y-3 Z-178 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12290.000000076183
+YZ_Coordinate=-142.99999999733313
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6139.5 Y20 Z-38 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-115 - Web - Hole ))
+G4 X2
+N3179
+BlockID=3179
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6139.5 Y35 Z-38 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6139.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6172.5 Y-185 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12345 Y-265 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12335.999999667312
+YZ_Coordinate=-191.00000762494741
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6172.5 Y-185 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-116 - Web - Hole ))
+N3180
+BlockID=3180
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6172.5 Y-185 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12345 Y5 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12336.000000048283
+YZ_Coordinate=4.999992371699605
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6172.5 Y-50 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-117 - Bottom - Hole ))
+G4 X2
+N1012
+BlockID=1012
+PathLength=26.45
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6172.5 Y-50 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6172.5 Y-50 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6198.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12397 Y5 Z-170 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12406.00000007152
+YZ_Coordinate=-135.0000015160042
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6198.5 Y20 Z-30 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-118 - Web - Hole ))
+G4 X2
+N3181
+BlockID=3181
+PathLength=42
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6198.5 Y35 Z-30 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6198.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6201 Y-117 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12402 Y-129 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12388.000000007049
+YZ_Coordinate=-123.00000763195803
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6201 Y-117 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-7 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-119 - Web - Hole ))
+N3182
+BlockID=3182
+PathLength=42
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6201 Y-117 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12402 Y31 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12387.999999875172
+YZ_Coordinate=30.999992368796796
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6201 Y-37 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-7 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-120 - Top - Hole ))
+G4 X2
+N2008
+BlockID=2008
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6201 Y-37 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6201 Y-37 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6203.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12407 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12420.00000017335
+YZ_Coordinate=-139.0000000006724
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6203.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-121 - Web - Hole ))
+G4 X2
+N3183
+BlockID=3183
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6203.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6203.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6229.5 Y-60 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12459 Y-15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12450.00000044128
+YZ_Coordinate=-54.00000762622243
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6229.5 Y-60 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-122 - Bottom - Hole ))
+G4 X2
+N1013
+BlockID=1013
+PathLength=39
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6229.5 Y-60 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6229.5 Y-60 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6233.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12467 Y1 Z-174 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12480.0000000385
+YZ_Coordinate=-139.00000151868795
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6233.5 Y20 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-123 - Top - Hole ))
+G4 X2
+N2009
+BlockID=2009
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6233.5 Y35 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6233.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6243.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12487 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12500.000000102005
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6243.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-124 - Web - Hole ))
+G4 X2
+N3184
+BlockID=3184
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6243.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6243.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6260.5 Y-165 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12521 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12509.999999857368
+YZ_Coordinate=-159.00000762973121
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6260.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-125 - Web - Hole ))
+N3185
+BlockID=3185
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6260.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12613 Y-59 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12600.000000053693
+YZ_Coordinate=-59.00000762422658
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6306.5 Y-82 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-126 - Web - Hole ))
+N3186
+BlockID=3186
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6306.5 Y-82 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12613 Y41 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12600.000000346769
+YZ_Coordinate=40.999992378306644
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6306.5 Y-32 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-127 - Top - Hole ))
+G4 X2
+N2010
+BlockID=2010
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6306.5 Y-32 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6306.5 Y-32 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6314.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12629 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12640.000000251202
+YZ_Coordinate=-139.0000000019256
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6314.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-128 - Bottom - Hole ))
+G4 X2
+N1014
+BlockID=1014
+PathLength=39
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6314.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6314.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6338.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12677 Y1 Z-174 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12689.999999939619
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6338.5 Y20 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-129 - Top - Hole ))
+G4 X2
+N2011
+BlockID=2011
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6338.5 Y35 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6338.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6373.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12747 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12759.999999960974
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6373.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-130 - Web - Hole ))
+G4 X2
+N3187
+BlockID=3187
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6373.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6373.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6376.5 Y-82 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12753 Y-59 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12739.999999995403
+YZ_Coordinate=-76.00000762904881
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6376.5 Y-82 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-131 - Web - Hole ))
+N3188
+BlockID=3188
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6376.5 Y-82 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12753 Y41 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12740.000000291735
+YZ_Coordinate=40.999992369182394
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6376.5 Y-32 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-132 - Top - Hole ))
+G4 X2
+N2012
+BlockID=2012
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6376.5 Y-32 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6376.5 Y-32 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6403.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12807 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12820.000000183352
+YZ_Coordinate=-139.0000000012497
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6403.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-133 - Bottom - Hole ))
+G4 X2
+N1015
+BlockID=1015
+PathLength=39
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6403.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6403.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6413.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12827 Y1 Z-174 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12840.000000004551
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6413.5 Y20 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-134 - Top - Hole ))
+G4 X2
+N2013
+BlockID=2013
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6413.5 Y35 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6413.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6433.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12867 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12879.999999866885
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6433.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-135 - Web - Hole ))
+G4 X2
+N3189
+BlockID=3189
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6433.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6433.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6445.5 Y-165 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12891 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12880.000000593272
+YZ_Coordinate=-159.0000076346988
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6445.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-136 - Web - Hole ))
+N3190
+BlockID=3190
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6445.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12891 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12880.000000084916
+YZ_Coordinate=14.999992376252308
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6445.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-137 - Web - Hole ))
+N3191
+BlockID=3191
+PathLength=76.54
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6445.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12905 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12879.999999995425
+YZ_Coordinate=-105.00000762822353
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6452.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-12.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-138 - Top - Hole ))
+G4 X2
+N2014
+BlockID=2014
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6452.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6452.5 Y-105 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6463.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12927 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12940.000000099637
+YZ_Coordinate=-138.9999999993741
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6463.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-139 - Bottom - Hole ))
+G4 X2
+N1016
+BlockID=1016
+PathLength=39
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6463.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6463.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6488.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X12977 Y1 Z-174 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=12989.999999942389
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6488.5 Y20 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-140 - Web - Hole ))
+G4 X2
+N3192
+BlockID=3192
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6488.5 Y35 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6488.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6516 Y-60 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13032 Y-15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13022.999999445337
+YZ_Coordinate=-66.00000763693875
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6516 Y-60 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-141 - Top - Hole ))
+G4 X2
+N2015
+BlockID=2015
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6516 Y-60 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6516 Y-60 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6523.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13047 Y-211 Z-174 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13060.00000004691
+YZ_Coordinate=-139.0000000008543
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6523.5 Y-230 Z-34 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-142 - Bottom - Hole ))
+G4 X2
+N1017
+BlockID=1017
+PathLength=26.45
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6523.5 Y-245 Z-34 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6523.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6535.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13071 Y-8 Z-183 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13080.000000017877
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6535.5 Y20 Z-43 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-143 - Web - Hole ))
+G4 X2
+N3193
+BlockID=3193
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6535.5 Y35 Z-43 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6535.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6550.5 Y-165 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13101 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13089.9999998049
+YZ_Coordinate=-171.00000762719722
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6550.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-144 - Bottom - Hole ))
+G4 X2
+N1018
+BlockID=1018
+PathLength=26.45
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6550.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6550.5 Y-165 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6565.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13131 Y-8 Z-183 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13139.99999963352
+YZ_Coordinate=-148.00000151243944
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6565.5 Y20 Z-43 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-145 - Bottom - Hole ))
+N1019
+BlockID=1019
+PathLength=26.45
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6565.5 Y35 Z-43 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13191 Y-8 Z-183 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13200.000000517877
+YZ_Coordinate=-86.00000302850098
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6595.5 Y20 Z-43 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-146 - Web - Hole ))
+G4 X2
+N3194
+BlockID=3194
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6595.5 Y35 Z-43 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6595.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6627.5 Y-165 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13255 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13244.000000101289
+YZ_Coordinate=-171.0000076293709
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6627.5 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-147 - Web - Hole ))
+N3195
+BlockID=3195
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6627.5 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13255 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13243.999999988582
+YZ_Coordinate=-105.00000762485814
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6627.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-148 - Web - Hole ))
+N3196
+BlockID=3196
+PathLength=57.71
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6627.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13263 Y-15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13243.999999845602
+YZ_Coordinate=-15.000007632219734
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6631.5 Y-60 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-9.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-149 - Top - Hole ))
+G4 X2
+N2016
+BlockID=2016
+PathLength=26.45
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6631.5 Y-60 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6631.5 Y-60 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6647.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13295 Y-213.5 Z-171.5 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13304.000000308051
+YZ_Coordinate=-136.49999999553523
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6647.5 Y-230 Z-31.5 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-150 - Bottom - Hole ))
+G4 X2
+N1020
+BlockID=1020
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6647.5 Y-245 Z-31.5 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6647.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6651.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13303 Y2.5 Z-172.5 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13314.000000035348
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6651.5 Y20 Z-32.5 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-151 - Top - Hole ))
+G4 X2
+N2017
+BlockID=2017
+PathLength=26.45
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6651.5 Y35 Z-32.5 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6651.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6685.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13371 Y-213.5 Z-171.5 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13380.000000054848
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6685.5 Y-230 Z-31.5 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-152 - Top - Hole ))
+N2018
+BlockID=2018
+PathLength=26.45
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6685.5 Y-245 Z-31.5 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13447 Y-213.5 Z-171.5 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13456.000000291957
+YZ_Coordinate=-62.999999995588176
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6723.5 Y-230 Z-31.5 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-153 - Web - Hole ))
+G4 X2
+N3197
+BlockID=3197
+PathLength=42
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6723.5 Y-245 Z-31.5 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6723.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6724 Y-117 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13448 Y-129 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13434.000000045155
+YZ_Coordinate=-111.0000076296352
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6724 Y-117 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-7 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-154 - Web - Hole ))
+N3198
+BlockID=3198
+PathLength=42
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6724 Y-117 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13448 Y31 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13434.000000378508
+YZ_Coordinate=30.99999237842357
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6724 Y-37 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-7 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-155 - Web - Hole ))
+N3199
+BlockID=3199
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6724 Y-37 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13503 Y-15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13493.999999798116
+YZ_Coordinate=-15.000007639841726
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6751.5 Y-60 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-156 - Bottom - Hole ))
+G4 X2
+N1021
+BlockID=1021
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6751.5 Y-60 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6751.5 Y-60 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6751.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13503 Y2.5 Z-172.5 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13514.000000275573
+YZ_Coordinate=-137.49999999844945
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6751.5 Y20 Z-32.5 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-157 - Top - Hole ))
+G4 X2
+N2019
+BlockID=2019
+PathLength=26.45
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6751.5 Y35 Z-32.5 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6751.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6761.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13523 Y-213.5 Z-171.5 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13532.000000054142
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6761.5 Y-230 Z-31.5 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-158 - Web - Hole ))
+G4 X2
+N3200
+BlockID=3200
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6761.5 Y-245 Z-31.5 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6761.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6785.5 Y-105 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13571 Y-105 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13560.000000001903
+YZ_Coordinate=-99.00000763166273
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6785.5 Y-105 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-159 - Web - Hole ))
+N3201
+BlockID=3201
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6785.5 Y-105 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13571 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13559.999999561378
+YZ_Coordinate=14.999992368798004
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6785.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-160 - Web - Hole ))
+N3202
+BlockID=3202
+PathLength=67.35
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6785.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13582 Y-225 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13560.000000065937
+YZ_Coordinate=-225.0000076305936
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6791 Y-165 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-11 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-161 - Web - Hole ))
+N3203
+BlockID=3203
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6791 Y-165 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13623 Y-15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13613.999999652013
+YZ_Coordinate=-15.000007638377
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6811.5 Y-60 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-162 - Web - Hole ))
+N3204
+BlockID=3204
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6811.5 Y-60 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13669 Y-255 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13660.000000255268
+YZ_Coordinate=-255.00000762866216
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6834.5 Y-180 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-163 - Web - Hole ))
+N3205
+BlockID=3205
+PathLength=26.45
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6834.5 Y-180 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13669 Y15 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13660.000000767524
+YZ_Coordinate=14.999992375423176
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6834.5 Y-45 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-4.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-164 - Top - Hole ))
+G4 X2
+N2020
+BlockID=2020
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6834.5 Y-45 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6834.5 Y-45 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6856 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13712 Y-216 Z-169 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13724.999999861464
+YZ_Coordinate=-134.00000000166628
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6856 Y-230 Z-29 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-165 - Bottom - Hole ))
+G4 X2
+N1022
+BlockID=1022
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6856 Y-245 Z-29 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6856 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6878 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13756 Y-20 Z-195 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13767.000000282902
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6878 Y20 Z-55 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-166 - Bottom - Hole ))
+N1023
+BlockID=1023
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6878 Y35 Z-55 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13756 Y10 Z-165 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13767.000000099935
+YZ_Coordinate=-49.99999999783813
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6878 Y20 Z-25 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-167 - Web - Hole ))
+G4 X2
+N3206
+BlockID=3206
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6878 Y35 Z-25 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6878 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6889 Y-170 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13778 Y-235 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13765.000000176022
+YZ_Coordinate=-176.00000763044125
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6889 Y-170 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-168 - Bottom - Hole ))
+G4 X2
+N1024
+BlockID=1024
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6889 Y-170 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6889 Y-170 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6928 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13856 Y-20 Z-195 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13867.00000007816
+YZ_Coordinate=-159.99999999920402
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6928 Y20 Z-55 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-169 - Bottom - Hole ))
+N1025
+BlockID=1025
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6928 Y35 Z-55 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13856 Y10 Z-165 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13866.999999885484
+YZ_Coordinate=-50.000000001562334
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6928 Y20 Z-25 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-170 - Web - Hole ))
+G4 X2
+N3207
+BlockID=3207
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6928 Y35 Z-25 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6928 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6929 Y-130 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13858 Y-155 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13844.99999978277
+YZ_Coordinate=-136.0000076284324
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6929 Y-130 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-171 - Web - Hole ))
+N3208
+BlockID=3208
+PathLength=39
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6929 Y-130 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13938 Y-235 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13924.999999676635
+YZ_Coordinate=-235.00000762559466
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6969 Y-170 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-6.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-172 - Top - Hole ))
+G4 X2
+N2021
+BlockID=2021
+PathLength=39
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6969 Y-170 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6969 Y-170 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6976 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13952 Y-216 Z-169 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13964.999999936235
+YZ_Coordinate=-134.00000000236093
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X6976 Y-230 Z-29 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I6.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-173 - Web - Hole ))
+G4 X2
+N3209
+BlockID=3209
+PathLength=64.29
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6976 Y-245 Z-29 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6976 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7007.5 Y-34 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14015 Y37 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=13994.000000105063
+YZ_Coordinate=-28.000007628998272
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7007.5 Y-34 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-10.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-174 - Top - Hole ))
+G4 X2
+N2022
+BlockID=2022
+PathLength=26.45
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7007.5 Y-34 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7007.5 Y-34 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7020.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14041 Y-213 Z-172 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14049.999999571064
+YZ_Coordinate=-136.9999999983059
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7020.5 Y-230 Z-32 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I4.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-175 - Top - Hole ))
+N2023
+BlockID=2023
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7020.5 Y-245 Z-32 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14114 Y-216 Z-169 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14125.000000032416
+YZ_Coordinate=-57.99999999981098
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7057 Y-230 Z-29 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-176 - Bottom - Hole ))
+G4 X2
+N1026
+BlockID=1026
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7057 Y-245 Z-29 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7057 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7057 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14114 Y6 Z-169 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14125.000000002798
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7057 Y20 Z-29 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-177 - Web - Hole ))
+G4 X2
+N3210
+BlockID=3210
+PathLength=43.5
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7057 Y35 Z-29 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7057 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7069.15 Y-80.8 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14138.3 Y-56.6 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14152.7999999105
+YZ_Coordinate=-86.80000763082295
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7069.15 Y-80.8 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I7.25 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-178 - Web - Hole ))
+N3211
+BlockID=3211
+PathLength=64.29
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7069.15 Y-80.8 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14144 Y-223 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14122.999999965788
+YZ_Coordinate=-223.00000762740757
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7072 Y-164 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-10.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-179 - Top - Hole ))
+G4 X2
+N2024
+BlockID=2024
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7072 Y-164 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7072 Y-164 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7107 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14214 Y-206 Z-179 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14224.99999996751
+YZ_Coordinate=-143.99999999727555
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7107 Y-230 Z-39 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-180 - Bottom - Hole ))
+G4 X2
+N1027
+BlockID=1027
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7107 Y-245 Z-39 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7107 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7107 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14214 Y-4 Z-179 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14225.000000105641
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7107 Y20 Z-39 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-181 - Web - Hole ))
+G4 X2
+N3212
+BlockID=3212
+PathLength=43.5
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7107 Y35 Z-39 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7107 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7114.55 Y-175.9 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14229.1 Y-246.8 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14214.599999898433
+YZ_Coordinate=-181.90000762702738
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7114.55 Y-175.9 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-7.25 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-182 - Web - Hole ))
+N3213
+BlockID=3213
+PathLength=108.16
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7114.55 Y-175.9 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14270 Y-135 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14234.999999996504
+YZ_Coordinate=-135.00000763017283
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7135 Y-120 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-17.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-183 - Top - Hole ))
+G4 X2
+N2025
+BlockID=2025
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7135 Y-120 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7135 Y-120 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7154.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14309 Y-206 Z-179 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14319.999999768952
+YZ_Coordinate=-143.99999999518755
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7154.5 Y-230 Z-39 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-184 - Bottom - Hole ))
+G4 X2
+N1028
+BlockID=1028
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7154.5 Y-245 Z-39 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7154.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7154.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14309 Y-4 Z-179 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14319.999999916974
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7154.5 Y20 Z-39 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-185 - Web - Hole ))
+G4 X2
+N3214
+BlockID=3214
+PathLength=45.56
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7154.5 Y35 Z-39 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7154.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7172.5 Y-160 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14345 Y-215 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14330.000000234315
+YZ_Coordinate=-166.00000763129884
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7172.5 Y-160 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-7.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-186 - Web - Hole ))
+N3215
+BlockID=3215
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7172.5 Y-160 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14371 Y-78 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14359.999999934082
+YZ_Coordinate=-78.00000762643526
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7185.5 Y-91.5 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-187 - Web - Hole ))
+N3216
+BlockID=3216
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7185.5 Y-91.5 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14371 Y5 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14359.999999958274
+YZ_Coordinate=4.999992370900799
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7185.5 Y-50 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-188 - Web - Hole ))
+N3217
+BlockID=3217
+PathLength=64.29
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7185.5 Y-50 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14441 Y-215 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14419.999999912945
+YZ_Coordinate=-215.00000762828273
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7220.5 Y-160 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-10.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-189 - Top - Hole ))
+G4 X2
+N2026
+BlockID=2026
+PathLength=33
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7220.5 Y-160 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7220.5 Y-160 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7244.5 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14489 Y-206 Z-179 A90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14499.99999934317
+YZ_Coordinate=-143.9999999948494
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7244.5 Y-230 Z-39 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-190 - Bottom - Hole ))
+G4 X2
+N1029
+BlockID=1029
+PathLength=33
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7244.5 Y-245 Z-39 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7244.5 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7244.5 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14489 Y-4 Z-179 A-90 8000
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14500.000000199649
+YZ_Coordinate=-1.4210854715202004E-14
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7244.5 Y20 Z-39 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I5.5 K-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-191 - Web - Hole ))
+G4 X2
+N3218
+BlockID=3218
+PathLength=45.56
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7244.5 Y35 Z-39 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7244.5 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7255.3 Y-77.7 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14510.6 Y-50.4 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14495.600000005144
+YZ_Coordinate=-83.70000762812933
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7255.3 Y-77.7 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-7.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-192 - Web - Hole ))
+N3219
+BlockID=3219
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7255.3 Y-77.7 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14511 Y-115 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14499.999999985528
+YZ_Coordinate=-115.00000762463961
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7255.5 Y-110 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-193 - Web - Hole ))
+N3220
+BlockID=3220
+PathLength=33
+S3
+G93 Z0 T1
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7255.5 Y-110 Z41 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14511 Y23 Z82 A0 8000
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+X_Coordinate=14499.999999911977
+YZ_Coordinate=22.99999236795925
+ToolCorrection
+G41 D1 R=P1300 E0
+M14
+G1 X7255.5 Y-41 Z26 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G17
+G3 I-5.5 J-0 (( Circle ))
+M15
+G253 E0 F="2=1:1:0"
+G40 E1
+
+ (( Tooling Name : Tooling-194 - Bottom - Notch ))
+G4 X2
+N4003(Notch)
+BlockID=4003
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Notch_PM CM=Notch_CM
+EM=Notch_EM ZRH=Notch_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7255.5 Y-41 Z41 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7255.5 Y-41 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X6820 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X13640 Y-35 Z-210 A-90 8000
+BlockType=2
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+G1 X6820 Y20 Z-70 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I0 K10 X6810, Z-60 (( Arc ))
+G18
+G2 I-10 K-0 X6800, Z-50 (( Arc ))
+G1 X6625 Y20 Z-50 
+G18
+G2 I0 K-10 X6615, Z-60 (( Arc ))
+G18
+G3 I-10 K0 X6605, Z-70 (( Arc ))
+G40 E1
+
+ (( Tooling Name : Tooling-195 - Top - Notch ))
+G4 X2
+N4004(Notch)
+BlockID=4004
+S2
+G93 Z=-Head_Height T1
+G61
+PM=Notch_PM CM=Notch_CM
+EM=Notch_EM ZRH=Notch_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X6605 Y35 Z-70 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X6605 Y35 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7260 Y-245 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14520 Y-175 Z-210 A90 8000
+BlockType=-2
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+G1 X7260 Y-230 Z-70 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I-0 K10 X7270, Z-60 (( Arc ))
+G40 E1
+
+ (( Tooling Name : Tooling-196 - Bottom - Notch ))
+G4 X2
+N4005(Notch)
+BlockID=4005
+S1
+G93 Z=-Head_Height T1
+G61
+PM=Notch_PM CM=Notch_CM
+EM=Notch_EM ZRH=Notch_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7270 Y-245 Z-60 ((Rapid Move to retracted position of tooling end point))
+PlaneTransfer
+ (( Rapid Move: From current tooling retracted end position to next tooling retracted Z position through Safe Z ))
+G0 X7270 Y-245 Z50 A0 ((Rapid Move from prev tooling end - retracted position to prev Tooling End Safe Z position))
+G0 X7270 Y35 Z50 A0 ((Rapid Move from prev tooling safeZ position to current tooling start safeZ position))
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14540 Y-25 Z-200 A-90 8000
+BlockType=2
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+G1 X7270 Y20 Z-60 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G18
+G3 I-10 K-0 X7260, Z-70 (( Arc ))
+G40 E1
+
+ (( Tooling Name : Tooling-197 - Flex - Notch ))
+G4 X2
+N4006(HoleShape)
+BlockID=4006
+S0
+G93 Z=-Head_Height T1
+G61
+PM=Notch_PM CM=Notch_CM
+EM=Notch_EM ZRH=Notch_YRH
+Update_Param
+Lead_In=0
+(( Rapid Move: Retracting from machining point of previous tooling End Point ))
+G0 X7260 Y35 Z-70 ((Rapid Move to retracted position of tooling end point))
+ToolPlane
+(( Rapid Move: Current tooling Safe Z position to current tooling retract position with angle ))
+G0 X14540 Y36.9 Z-146.848 A-86.3999379725909 8000
+BlockType=2
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+G1 X7270 Y19.929 Z-7.74 F8000 (( Machine4Tooling Linear move to the start of tooling))
+G61
+G1 X14540 Y14.741 Z-129.35 A-90.06 
+G1 X14540 Y17.161 Z-125.827 A-90.05 
+G1 X14540 Y19.277 Z-122.114 A-90.04 
+G1 X14540 Y21.074 Z-118.239 A-90.03 
+G1 X14540 Y22.539 Z-114.227 A-90.02 
+G1 X14540 Y23.662 Z-110.108 A-90.011 
+G1 X14540 Y24.435 Z-105.91 A-90.003 
+G1 X14540 Y24.853 Z-101.663 A-89.994 
+G1 X14540 Y24.913 Z-97.397 A-89.987 
+G1 X14540 Y24.613 Z-93.142 A-89.98 
+G1 X14540 Y23.957 Z-88.928 A-89.974 
+G1 X14540 Y22.949 Z-84.784 A-89.968 
+G1 X14540 Y21.596 Z-80.74 A-89.964 
+G1 X14540 Y19.908 Z-76.825 A-89.96 
+G1 X14540 Y17.896 Z-73.065 A-89.957 
+G1 X14540 Y15.575 Z-69.488 A-89.954 
+G1 X14540 Y12.961 Z-66.117 A-89.953 
+G1 X14540 Y73 Z52 A0 
+G40 E1
+
+
+N10000
+EndOfJob
+G99

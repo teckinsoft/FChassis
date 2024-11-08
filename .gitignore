@@ -1,0 +1,11 @@
+*.tmp
+*.bak
+*.obj
+**/bin/
+**/obj/
+.vs/
+*.user
+Sample/Head1/
+Sample/Head2/
+/output
+/FChassis-Installer/Thumbs.db

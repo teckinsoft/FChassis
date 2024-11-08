@@ -1,0 +1,275 @@
+%1(TRIVIAL-2-1(LH).din)
+N1
+CNC_ID=1
+Job_Length = 1000
+Job_Width = 265.8
+Job_Height = 82.9
+Job_Thickness = 4
+X_Partition = 500
+Job_O_Radius = 29
+Job_Type  = 1
+Marking_X_Pos = 700.4
+Marking_Y_Pos = 10
+Marking_Angle = 0
+G253 F="ModelTag:Deluxe" E0
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+(Multipass = False) 
+
+(---Don't alter above Parameters---)
+
+M50
+M15
+H=LaserTableID
+G61	(( Stop Block Preparation ))
+G40 E0
+((Cutting with head 1))
+G20 X=BlockID
+
+(N4001 to N4001 for notches)
+G253 E0 F="0=1:TRIVIAL-2:1132.67,305.39"
+
+
+( ** Tool Block Initialization ** )
+N4001	((** Tooling Name : Tooling-13 - Flex - Notch **))
+BlockID=4001
+CutScopeNo=1
+BlockType=2
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=0.000 END_X=0.000 PathLength=45.27
+X_Correction=0 YZ_Correction=0
+S0	
+G93 Z=-Head_Height T1
+	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=5.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+PlaneTransfer	( Enable Plane Transformation for Tool TurnOver )
+G0 X0.000 Y285.838 Z28.000 A0.000
+G1 X0.000 Y285.838 Z-24.544 A-89.467 F8000 (Move to Piercing Position)
+EndPlaneTransfer	( Disable Plane Transformation after Tool TurnOver)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G1 X0.000 Z-22.219 A84.496 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-19.728 A79.526 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-17.277 A74.556 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-14.884 A69.585 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-12.568 A64.615 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-10.344 A59.644 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-8.231 A54.674 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-6.245 A49.704 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Z-4.399 A44.733 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y255.389 A39.763 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y253.387 A34.793 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y251.262 A29.822 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y249.028 A24.852 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y246.702 A19.881 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y244.302 A14.911 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y241.846 A9.941 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y239.352 A4.970 
+M15	( ** End Of Cut ** )
+M14	( ** Start of Cut **)
+G1 X0.000 Y236.840 A0.000 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="2=1:1:4"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+
+( ** Tool Block Initialization ** )
+N5001	((** Tooling Name : Tooling-14 - Flex - Cutout **))
+BlockID=5001
+CutScopeNo=1
+BlockType=3
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=75.000 END_X=125.000 PathLength=526.22
+X_Correction=0 YZ_Correction=0
+S0	
+G93 Z=-Head_Height T1
+	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Profile_PM CM=Profile_CM EM=Profile_EM ZRH=Profile_YRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X79.000 Y173.880 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G3 I0.000 J-4.000 X75.000 Y169.880
+G1 X75.000 Y102.920 Z4.000 A0.000 
+G1 X125.000 Y102.920 Z4.000 
+G1 X125.000 Y236.840 Z4.000 
+G1 X125.000 Y239.352 Z3.891 A-4.970 
+G1 X125.000 Y241.846 Z3.565 A-9.941 
+G1 X125.000 Y244.302 Z3.023 A-14.911 
+G1 X125.000 Y246.702 Z2.272 A-19.881 
+G1 X125.000 Y249.028 Z1.315 A-24.852 
+G1 X125.000 Y251.262 Z0.160 A-29.822 
+G1 X125.000 Y253.387 Z-1.185 A-34.793 
+G1 X125.000 Y255.389 Z-2.708 A-39.763 
+G1 X125.000 Y257.250 Z-4.399 A-44.733 
+G1 X125.000 Y258.958 Z-6.245 A-49.704 
+G1 X125.000 Y260.500 Z-8.231 A-54.674 
+G1 X125.000 Y261.864 Z-10.344 A-59.644 
+G1 X125.000 Y263.040 Z-12.568 A-64.615 
+G1 X125.000 Y264.018 Z-14.884 A-69.585 
+G1 X125.000 Y264.793 Z-17.277 A-74.556 
+G1 X125.000 Y265.357 Z-19.728 A-79.526 
+G1 X125.000 Y265.706 Z-22.219 A-84.496 
+G1 X125.000 Y265.839 Z-24.730 A-89.467 
+G1 X125.000 Y265.840 Z-58.920 A-90.000 
+G1 X75.000 Y265.840 Z-58.920 
+G1 X75.000 Y265.840 Z-25.000 
+G1 X75.000 Y265.706 Z-22.219 A-84.496 
+G1 X75.000 Y265.357 Z-19.728 A-79.526 
+G1 X75.000 Y264.793 Z-17.277 A-74.556 
+G1 X75.000 Y264.018 Z-14.884 A-69.585 
+G1 X75.000 Y263.040 Z-12.568 A-64.615 
+G1 X75.000 Y261.864 Z-10.344 A-59.644 
+G1 X75.000 Y260.500 Z-8.231 A-54.674 
+G1 X75.000 Y258.958 Z-6.245 A-49.704 
+G1 X75.000 Y257.250 Z-4.399 A-44.733 
+G1 X75.000 Y255.389 Z-2.708 A-39.763 
+G1 X75.000 Y253.387 Z-1.185 A-34.793 
+G1 X75.000 Y251.262 Z0.160 A-29.822 
+G1 X75.000 Y249.028 Z1.315 A-24.852 
+G1 X75.000 Y246.702 Z2.272 A-19.881 
+G1 X75.000 Y244.302 Z3.023 A-14.911 
+G1 X75.000 Y241.846 Z3.565 A-9.941 
+G1 X75.000 Y239.352 Z3.891 A-4.970 
+G1 X75.000 Y236.840 Z4.000 A0.000 
+G1 X75.000 Y169.880 Z4.000 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="2=1:1:50"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+
+( ** Tool Block Initialization ** )
+N5002	((** Tooling Name : Tooling-15 - Flex - Cutout **))
+BlockID=5002
+CutScopeNo=1
+BlockType=3
+SplitStartX=0.000 SplitPartitionX=575.000 SplitEndX=900.000
+START_X=440.000 END_X=600.000 PathLength=561.18
+X_Correction=0 YZ_Correction=0
+S0	
+G93 Z=-Head_Height T1
+	(( Plane Selection : G17-XY Plane, G18-XZ Plane ))
+G61	( Stop Block Preparation )
+PM=Profile_PM CM=Profile_CM EM=Profile_EM ZRH=Profile_YRH
+Update_Param	( Update Cutting Parameters )
+Lead_In=2.000	( Approach Length )
+( ** End - Tool Block Initialization ** )
+
+ToolPlane	( Confirm Cutting Plane )
+G0 X444.000 Y221.380 (Move to Piercing Position)
+ToolCorrection	( Correct Tool Position based on Job )
+
+M14	( ** Start of Cut **)
+G3 I0.000 J-4.000 X440.000 Y217.380
+G1 X440.000 Y197.920 Z4.000 A0.000 
+G1 X490.718 Y197.920 Z4.000 
+G2 I-0.000 J-40.000 X525.359 Y177.920
+G3 I34.641 J20.000 X580.000 Y232.561
+G2 I20.000 J34.641 X573.959 Y236.840
+G1 X572.193 Y238.680 Z3.942 A-3.637 
+G1 X570.427 Y240.512 Z3.767 A-7.274 
+G1 X568.885 Y242.544 Z3.433 A-11.344 
+G1 X567.343 Y244.548 Z2.957 A-15.414 
+G1 X566.048 Y246.689 Z2.276 A-19.855 
+G1 X564.754 Y248.772 Z1.432 A-24.296 
+G1 X563.726 Y250.917 Z0.354 A-29.041 
+G1 X562.698 Y252.966 Z-0.897 A-33.786 
+G1 X561.952 Y254.996 Z-2.387 A-38.762 
+G1 X561.207 Y256.890 Z-4.048 A-43.739 
+G1 X560.905 Y258.105 Z-5.282 A-47.161 
+G1 X560.604 Y259.244 Z-6.586 A-50.584 
+G1 X560.303 Y260.303 Z-7.957 A-54.006 
+G1 X560.202 Y261.293 Z-9.410 A-57.481 
+G1 X560.101 Y262.193 Z-10.921 A-60.956 
+G1 X560.000 Y263.000 Z-12.483 A-64.430 
+G1 X560.000 Y263.841 Z-14.420 A-68.603 
+G1 X560.000 Y264.539 Z-16.413 A-72.776 
+G1 X560.000 Y265.091 Z-18.451 A-76.949 
+G1 X560.000 Y265.492 Z-20.524 A-81.121 
+G1 X560.000 Y265.742 Z-22.621 A-85.294 
+G1 X560.000 Y265.839 Z-24.730 A-89.467 
+G1 X560.000 Y265.840 Z-63.920 A-90.000 
+G1 X475.000 Y265.840 Z-63.920 
+G3 I0.000 K35.000 X440.000 Z-28.920
+G1 X440.000 Y265.840 Z-25.000 
+G1 X440.000 Y265.706 Z-22.219 A-84.496 
+G1 X440.000 Y265.357 Z-19.728 A-79.526 
+G1 X440.000 Y264.793 Z-17.277 A-74.556 
+G1 X440.000 Y264.018 Z-14.884 A-69.585 
+G1 X440.000 Y263.040 Z-12.568 A-64.615 
+G1 X440.000 Y261.864 Z-10.344 A-59.644 
+G1 X440.000 Y260.500 Z-8.231 A-54.674 
+G1 X440.000 Y258.958 Z-6.245 A-49.704 
+G1 X440.000 Y257.250 Z-4.399 A-44.733 
+G1 X440.000 Y255.389 Z-2.708 A-39.763 
+G1 X440.000 Y253.387 Z-1.185 A-34.793 
+G1 X440.000 Y251.262 Z0.160 A-29.822 
+G1 X440.000 Y249.028 Z1.315 A-24.852 
+G1 X440.000 Y246.702 Z2.272 A-19.881 
+G1 X440.000 Y244.302 Z3.023 A-14.911 
+G1 X440.000 Y241.846 Z3.565 A-9.941 
+G1 X440.000 Y239.352 Z3.891 A-4.970 
+G1 X440.000 Y236.840 Z4.000 A0.000 
+G1 X440.000 Y217.380 Z4.000 
+M15	( ** End Of Cut ** )
+
+G253 E0 F="2=1:1:100"
+G40 E1	( Cancel Tool Dia Compensation )
+
+
+N10000000
+EndOfJob
+G99
