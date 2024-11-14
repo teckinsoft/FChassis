@@ -375,7 +375,7 @@ class CutScope {
                ToSplit = true,
                Tooling = ts.Tooling.Clone ()
             };
-            ts1.Tooling.Name = ts.Tooling.Name + " Split - 1";
+            ts1.Tooling.FeatType = ts.Tooling.FeatType + "- Split - 1";
 
             // Split segments of ts1.Tooling
             ts1.Tooling.Segs = Utils.SplitNotchToScope (ts1, ts1.mIsLeftToRight);
@@ -386,7 +386,7 @@ class CutScope {
                ToSplit = true,
                Tooling = ts.Tooling.Clone()
             };
-            ts2.Tooling.Name = ts.Tooling.Name + " Split - 2";
+            ts2.Tooling.FeatType = ts.Tooling.FeatType + "- Split - 2";
 
             // Split segments of ts2.Tooling
             ts2.Tooling.Segs = Utils.SplitNotchToScope (ts2, ts2.mIsLeftToRight);

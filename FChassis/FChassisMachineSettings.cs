@@ -42,6 +42,7 @@ public class MCSettings : INotifyPropertyChanged {
       MinThresholdForPartition = 585.0;
       MinNotchLengthThreshold = 210;
       DINFilenameSuffix = "";
+      WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
    }
    #endregion
 
@@ -167,6 +168,8 @@ public class MCSettings : INotifyPropertyChanged {
    bool mOptimizePartition;
    public bool RotateX180 { get=> mRotateX180; set => SetProperty (ref mRotateX180, value); }
    bool mRotateX180;
+   public bool ShowToolingNames { get => mShowToolingNames; set => SetProperty(ref mShowToolingNames, value); }
+   bool mShowToolingNames;
    public bool IncludeFlange { get=>mIncludeFlange; set => SetProperty (ref mIncludeFlange, value); }
    bool mIncludeFlange;
    public bool IncludeCutout { get=> mIncludeCutout; set => SetProperty (ref mIncludeCutout, value); }
@@ -207,6 +210,8 @@ public class MCSettings : INotifyPropertyChanged {
    double mMinNotchLengthThreshold;
    public string DINFilenameSuffix { get => mDINFilenameSuffix; set => SetProperty (ref mDINFilenameSuffix, value); }
    string mDINFilenameSuffix;
+   public string WorkpieceOptionsFilename { get => mWorkpieceOptionsFilename; set => SetProperty (ref mWorkpieceOptionsFilename, value); }
+   string mWorkpieceOptionsFilename;
    public MachineType Machine { get; set; }
    MachineType mMachine;
    #endregion

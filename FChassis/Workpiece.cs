@@ -90,9 +90,11 @@ public class Workpiece : INotifyPropertyChanged {
 
             Tooling cut = new (this, ep, shape, EKind.Hole);
             Cuts.Add (cut);
-            var name = $"Tooling-{cutIndex++} - {Utils.GetFlangeType (Cuts[^1],
+            var name = $"Tooling-{cutIndex++}";
+            var featType = $"{Utils.GetFlangeType (Cuts[^1],
                MCSettings.It.PartConfig == PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys)} - {Cuts[^1].Kind}";
             Cuts[^1].Name = name;
+            Cuts[^1].FeatType = featType;
          }
       }
       foreach (var ef in mModel.Entities.OfType<E3Flex> ()) {
@@ -104,7 +106,8 @@ public class Workpiece : INotifyPropertyChanged {
             var shape = con.Clone ().Cleanup (threshold: 1e-3);
             if (shape.Winding == EWinding.CW) shape.Reverse ();
             Cuts.Add (new Tooling (this, ef, shape, EKind.Hole));
-            Cuts[^1].Name = $"Tooling-{cutIndex++} - {Utils.GetFlangeType (Cuts[^1],
+            Cuts[^1].Name = $"Tooling-{cutIndex++}";
+            Cuts[^1].FeatType = $"{Utils.GetFlangeType (Cuts[^1],
                MCSettings.It.PartConfig == PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys)} - {Cuts[^1].Kind}";
          }
       }
@@ -160,7 +163,8 @@ public class Workpiece : INotifyPropertyChanged {
       foreach (var pline in e2t.Plines) {
          Pline p2 = pline.Xformed (xfm);
          Cuts.Add (new Tooling (this, mModel.Baseplane, p2, EKind.Mark));
-         Cuts[^1].Name = $"Tooling-{cutIndex++} - {Utils.GetFlangeType (Cuts[^1],
+         Cuts[^1].Name = $"Tooling-{cutIndex++}";
+         Cuts[^1].FeatType = $"{Utils.GetFlangeType (Cuts[^1],
             MCSettings.It.PartConfig == PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys)} - {Cuts[^1].Kind}";
          // Calculate the bound3 for each cut
          Cuts[^1].Bound3 = Utils.CalculateBound3 ([.. Cuts[^1].Segs], Model.Bound);
@@ -264,7 +268,8 @@ public class Workpiece : INotifyPropertyChanged {
       foreach (var cut in cuts) {
          if (cut != null) {
             cut.IdentifyCutout ();
-            cut.Name = $"Tooling-{cutIndex++} - {Utils.GetFlangeType (cut,
+            cut.Name = $"Tooling-{cutIndex++}";
+            cut.FeatType = $"{Utils.GetFlangeType (cut,
                MCSettings.It.PartConfig == PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys)} - {cut.Kind}";
             var cutSegs = cut.Segs.ToList ();
             //bool YNegPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Y + 1.0).EQ (0));

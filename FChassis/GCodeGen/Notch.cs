@@ -241,7 +241,7 @@ public class Notch {
       if (Notch.IsEdgeNotch (mGCodeGen.Process.Workpiece.Bound, toolingItem, percentlength, notchApproachLength, curveLeastLength))
          EdgeNotch = true;
       else {
-         if (mToolingItem.Name.Contains ("Split"))
+         if (mToolingItem.FeatType.Contains ("Split"))
             mSplit = true;
          mToolingPerimeter = 0;
          mSegments.Sum (t => mToolingPerimeter += t.Curve.Length);

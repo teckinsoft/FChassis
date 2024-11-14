@@ -44,6 +44,7 @@ public partial class SettingsDlg : Window {
       cbCutCutouts.Bind (() => Settings.CutCutouts, b => { Settings.CutCutouts = b; IsModified = true; });
       cbCutMarks.Bind (() => Settings.CutMarks, b => { Settings.CutMarks = b; IsModified = true; });
       cbRotate180AbZ.Bind (() => Settings.RotateX180, b => { Settings.RotateX180 = b; IsModified = true; });
+      cbShowTlgNames.Bind (() => Settings.ShowToolingNames, b => { Settings.ShowToolingNames = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind(()=>Settings.DINFilenameSuffix, b=>{ Settings.DINFilenameSuffix = b; IsModified = true; });
       chbMPC.Bind (() => {
@@ -79,6 +80,14 @@ public partial class SettingsDlg : Window {
             Settings.Machine = selectedType;
             IsModified = true;
          });
+      tbWPOptions.Bind (() => {
+         return Settings.WorkpieceOptionsFilename;
+      }, b => {
+         if (Settings.WorkpieceOptionsFilename != b) {
+            Settings.WorkpieceOptionsFilename = b;
+            IsModified = true;
+         }
+      });
       btnOK.Bind (OnOk);
    }
    void OnOk () {
@@ -104,4 +113,22 @@ public partial class SettingsDlg : Window {
          tbDirectoryPath.Text = selectedDirectory;
       }
    }
+
+   private void OnWorkpieceOptionsFileSelect (object sender, RoutedEventArgs e) {
+      // Create an OpenFileDialog to select a JSON file
+      var dialog = new OpenFileDialog {
+         Title = "Select a JSON File",
+         Filter = "JSON files (*.json)|*.json",
+         CheckFileExists = true,  // This ensures the user selects an existing file
+         ValidateNames = true     // Validate that a valid file name is selected
+      };
+
+      // Show the dialog and get the result
+      if (dialog.ShowDialog () == true) {
+         // Get the selected file path
+         string selectedFile = dialog.FileName;
+         tbWPOptions.Text = selectedFile;
+      }
+   }
+
 }

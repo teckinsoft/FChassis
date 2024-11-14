@@ -3,7 +3,7 @@ using Flux.API;
 using System.ComponentModel;
 namespace FChassis;
 
-public struct PointVec {
+public readonly struct PointVec {
    public PointVec (Point3 pt, Vector3 vec) => (Pt, Vec) = (pt, vec);
    public readonly Point3 Pt;
    public readonly Vector3 Vec;
@@ -73,6 +73,7 @@ public class Tooling {
    public Bound3 Bound3 { get => mBound3.Value; set => mBound3 = value; }
    string mName;
    public string Name { get => mName; set => mName = value; }
+   public string FeatType { get; set; }
    public bool IsSingleHead1 { get; set; }
    public bool IsSingleHead2 { get; set; }
    int mHead = -1;

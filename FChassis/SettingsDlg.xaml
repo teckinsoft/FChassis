@@ -77,6 +77,8 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
                 <Label Grid.Row="0">Standoff</Label>
                 <TextBox Grid.Row="0" Grid.Column="1" Name="tbStandoff"></TextBox>
@@ -194,11 +196,19 @@
                 <Label Grid.Row="23">DIN Filename Suffix</Label>
                 <TextBox Grid.Row="23" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
 
-                <Label Grid.Row="24">LCM Machine</Label>
-                <ComboBox Grid.Row="24" Grid.Column="1" Name="cbLCMMachine" SelectedIndex="1">
+                <Label Grid.Row="24">Workpiece Options</Label>
+                <TextBox Name="tbWPOptions" Grid.Row="24" Grid.Column="1" IsReadOnly="False"/>
+                <Button Name="btnWPOptionsSelOpFile" Grid.Row="24" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+                Width="60" Height="20" Margin="5 0" Click="OnWorkpieceOptionsFileSelect"/>
+
+                <Label Grid.Row="25">LCM Machine</Label>
+                <ComboBox Grid.Row="25" Grid.Column="1" Name="cbLCMMachine" SelectedIndex="1">
                     <!--<ComboBoxItem Content="LCM Legacy" />
                     <ComboBoxItem Content="LCM Multipass 2H" />-->
                 </ComboBox>
+
+                <Label Grid.Row="26">Show Tooling Names</Label>
+                <CheckBox Grid.Row="26" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
             </Grid>
         </ScrollViewer>
     </DockPanel>

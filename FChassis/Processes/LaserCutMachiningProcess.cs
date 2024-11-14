@@ -47,8 +47,10 @@ public class Processor : INotifyPropertyChanged {
    public Workpiece Workpiece {
       get => mWorkpiece;
       set {
-         mWorkpiece = value;
-         mGCodeGenerator.OnNewWorkpiece ();
+         if (mWorkpiece != value) {
+            mWorkpiece = value;
+            mGCodeGenerator.OnNewWorkpiece ();
+         }
       }
    }
    Nozzle mMachiningTool;

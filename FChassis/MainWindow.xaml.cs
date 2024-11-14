@@ -295,6 +295,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                if (cut.Head == 0) cut.DrawSegs (Utils.LHToolColor, 10);
                else if (cut.Head == 1) cut.DrawSegs (Utils.RHToolColor, 10);
                else cut.DrawSegs (Color32.Yellow, 10);
+
+               if (MCSettings.It.ShowToolingNames) {
+                  // Draw the tool names
+                  var tName = cut.Name;
+                  var pt = cut.Segs[0].Curve.Start;
+                  Lux.Color = new Color32 (128, 0, 128);
+                  Lux.DrawBillboardText (tName, pt, (float)12);
+               }
             }
          }
       }
@@ -408,7 +416,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       return false;
    }
 
-   void SaveSettings () => SettingServices.It.SaveSettings ();
+   void SaveSettings () {
+      SettingServices.It.SaveSettings ();
+   }
 
    void LoadGCode (string filename) => mProcess.LoadGCode (filename);
    #endregion

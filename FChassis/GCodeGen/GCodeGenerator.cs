@@ -3,6 +3,9 @@ using Flux.API;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System;
 
 namespace FChassis.GCodeGen;
 
@@ -238,7 +241,7 @@ public class GCodeGenerator {
    double[] mPercentLengths = [0.25, 0.5, 0.75];
    int mProgramNumber;
    int mCutScopeNo = 0;
-   string NCName => Path.GetFileNameWithoutExtension (Process.Workpiece.NCFileName);
+   string NCName;
    #endregion
 
    #region Properties
@@ -298,6 +301,7 @@ public class GCodeGenerator {
       FxFilePath = mcs.NCFilePath;
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
+      WorkpieceOptionsFilename = mcs.WorkpieceOptionsFilename;
 
       // Following ovverriders
       if (Heads == EHeads.Left || Heads == EHeads.Right) PartitionRatio = 1.0;
@@ -349,6 +353,8 @@ public class GCodeGenerator {
    public string FxFilePath { get; set; }
    public string DINFileNameHead1 { get; set; }
    public string DINFileNameHead2 { get; set; }
+   public string WorkpieceOptionsFilename { get; set; }
+   public Dictionary<string,WorkpieceOptions> WPOptions { get; set; }
    #endregion
 
    #region GCode BookKeepers
@@ -530,6 +536,7 @@ public class GCodeGenerator {
       FxFilePath = MCSettings.It.NCFilePath;
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
+      WorkpieceOptionsFilename = MCSettings.It.WorkpieceOptionsFilename;
 
       // Following ovverriders
       if (Heads == EHeads.Left || Heads == EHeads.Right) PartitionRatio = 1.0;
@@ -541,6 +548,7 @@ public class GCodeGenerator {
          mPlanes = Process.Workpiece.Model.Entities.OfType<E3Plane> ().ToList ();
          mThickness = mPlanes[0].ThickVector.Length;
          mWebFlangeOnly = mFlexes.Count == 0;
+         NCName = Process.Workpiece.NCFileName;
       }
    }
    #endregion
@@ -1624,13 +1632,15 @@ public class GCodeGenerator {
    }
 
    void WriteBlockType (Tooling toolingItem) {
-      int blockType = 0;
-      if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web)
-         blockType = toolingItem.ShouldConsiderReverseRef ? -1 : 1;
-      if (toolingItem.IsNotch ()) blockType = Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Top ? -2 : 2;
-      if (toolingItem.IsCutout ())
-         blockType = Utils.GetFlangeType (toolingItem, GetXForm ()) is Utils.EFlange.Top or Utils.EFlange.Top ? -3 : 3;
-      if (toolingItem.IsMark ()) blockType = 4;
+      int blockType;
+      bool oppositeRef = IsOppositeReference (toolingItem.Name);
+      if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web) blockType = oppositeRef ? -2 : 2;
+      else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Bottom) blockType = 0;
+      else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Top) blockType = 1;
+      else if (toolingItem.IsNotch ()) blockType = 3;
+      else if (toolingItem.IsCutout ()) blockType = 4;
+      else if (toolingItem.IsMark ()) blockType = 5;
+      else throw new Exception ("GCodeGenerator.WriteBlockType() Unrecognized feature type in gcode generation");
       sw.WriteLine ($"BlockType={blockType}");
    }
 
@@ -1648,7 +1658,7 @@ public class GCodeGenerator {
       double xStart, double xPartition, double xEnd,
       Tooling prevToolingItem = null, bool isNotchTooling = false,
       int startIndex = -1, int endIndex = -1) {
-      string comment = $"** Tooling Name : {toolingItem.Name} **";
+      string comment = $"** Tooling Name : {toolingItem.Name} - {toolingItem.FeatType} **";
       OutN (sw, mProgramNumber, comment);
       sw.WriteLine ("CutScopeNo={0}", mCutScopeNo);
       if (isNotchTooling) mProgramNumber++;
@@ -1662,7 +1672,7 @@ public class GCodeGenerator {
    public void WriteProgramHeader (Tooling toolingItem, List<Point3> pts, /*double frameFeed,*/
       double xStart, double xPartition, double xEnd,
       Tooling prevToolingItem = null, bool isNotchTooling = false) {
-      string comment = $"** Tooling Name : {toolingItem.Name} **";
+      string comment = $"** Tooling Name : {toolingItem.Name} - {toolingItem.FeatType} **";
       OutN (sw, mProgramNumber, comment);
       if (isNotchTooling) mProgramNumber++;
       WriteBlockType (toolingItem);
@@ -1853,7 +1863,7 @@ public class GCodeGenerator {
       // Output X tool compensation
       if (Utils.GetArcPlaneType (segmentNormal, GetXForm ()) == Utils.EPlane.Top) sw.WriteLine ($"G93 Z0 T1");
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
-      
+
       sw.WriteLine ("G61\t( Stop Block Preparation )");
       sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parametes )");
       sw.WriteLine ("Update_Param\t( Update Cutting Parameters )");
@@ -2262,4 +2272,39 @@ public class GCodeGenerator {
    Tuple<int, int> GetSerialDigitToOutput () => Tuple.Create (0, (int)SerialNumber);
    static int GetDigitProgNo (int digitNo) => DigitProg + digitNo;
    #endregion
+
+   public bool IsOppositeReference (string toolingName) {
+      if (WPOptions == null) {
+         if (string.IsNullOrEmpty (WorkpieceOptionsFilename)) return false;
+         try {
+            string json = File.ReadAllText (WorkpieceOptionsFilename);
+            var data = JsonSerializer.Deserialize<List<WorkpieceOptions>> (json);
+            WPOptions = [];
+            foreach (var item in data) {
+               WPOptions[item.FileName] = item;
+            }
+         } catch (Exception) {
+            return false;
+         }
+      }
+      var WPOptionsForTooling = GetWorkpieceOptions ();
+      return WPOptionsForTooling?.IsOppositeReference (toolingName) ?? false;
+   }
+
+   public WorkpieceOptions? GetWorkpieceOptions () {
+      if (WPOptions.TryGetValue (NCName, out var workpieceOptions)) return workpieceOptions;
+      return null;
+   }
+}
+
+public struct WorkpieceOptions {
+   [JsonPropertyName ("FileName")]
+   public string FileName { get; set; }
+
+   [JsonPropertyName ("OppositeReference")]
+   public string[] OppositeReference { get; set; }
+   public readonly bool IsOppositeReference (string input) {
+      if (Array.Exists (OppositeReference, element => element == input)) return true;
+      return false;
+   }
 }
