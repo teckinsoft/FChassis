@@ -1072,23 +1072,23 @@ public class GCodeGenerator {
          case Utils.EFlange.Web:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType);
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, arcFlangeType);
             break;
          case Utils.EFlange.Bottom:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType);
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
             break;
          case Utils.EFlange.Top:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType);
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
             break;
          default:
             throw new ArgumentException ("Arc is ill-defined perhaps on the flex");
@@ -1135,23 +1135,23 @@ public class GCodeGenerator {
          case Utils.EFlange.Web:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType);
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, arcFlangeType);
             break;
          case Utils.EFlange.Bottom:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType);
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
             break;
          case Utils.EFlange.Top:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType);
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
             break;
          default:
             throw new ArgumentException ("Arc is ill-defined perhaps on the flex");

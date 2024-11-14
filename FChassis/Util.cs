@@ -1474,14 +1474,26 @@ public static class Utils {
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
    public static void CircularMachining (StreamWriter sw, Utils.EArcSense arcSense, double i, OrdinateAxis oaxis, double val,
-      MachineType machine = MachineType.LCMMultipass2H, bool slaveRun = false) {
+      EFlange flange, MachineType machine = MachineType.LCMMultipass2H, bool slaveRun = false) {
       if (machine == MachineType.LCMMultipass2H && slaveRun) return;
-      if (oaxis == OrdinateAxis.Y)
-         sw.Write ("G{0} I{1} J{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
+
+      // LCMMultipass2H machine's G2 and G3 functions are reversed in sense for BOTTOM flange. So
+      // CW is G3 and counter-clockwise is G2
+      if (oaxis == OrdinateAxis.Y) {
+         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+            sw.Write ("G{0} I{1} J{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
                   val.ToString ("F3"));
-      else if (oaxis == OrdinateAxis.Z)
-         sw.Write ("G{0} I{1} K{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
+         else
+            sw.Write ("G{0} I{1} J{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
+                     val.ToString ("F3"));
+      } else if (oaxis == OrdinateAxis.Z) {
+         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+            sw.Write ("G{0} I{1} K{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
                   val.ToString ("F3"));
+         else
+            sw.Write ("G{0} I{1} K{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
+                  val.ToString ("F3"));
+      }
       sw.WriteLine ();
    }
 
@@ -1500,14 +1512,25 @@ public static class Utils {
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
    public static void ArcMachining (StreamWriter sw, Utils.EArcSense arcSense, double i, OrdinateAxis oaxis, double val,
-      double x, double y, MachineType machine = MachineType.LCMMultipass2H, bool slaveRun = false) {
+      double x, double y, EFlange flange, MachineType machine = MachineType.LCMMultipass2H, bool slaveRun = false) {
       if (machine == MachineType.LCMMultipass2H && slaveRun) return;
+
+      // LCMMultipass2H machine's G2 and G3 functions are reversed in sense for BOTTOM flange. So
+      // CW is G3 and counter-clockwise is G2
       if (oaxis == OrdinateAxis.Y) {
-         sw.Write ("G{0} I{1} J{2}", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
+         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+            sw.Write ("G{0} I{1} J{2}", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
+                  val.ToString ("F3"));
+         else
+            sw.Write ("G{0} I{1} J{2}", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                   val.ToString ("F3"));
          sw.Write (" X{0} Y{1}", x.ToString ("F3"), y.ToString ("F3"));
       } else if (oaxis == OrdinateAxis.Z) {
-         sw.Write ("G{0} I{1} K{2}", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
+         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+            sw.Write ("G{0} I{1} K{2}", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
+                  val.ToString ("F3"));
+         else
+            sw.Write ("G{0} I{1} K{2}", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                   val.ToString ("F3"));
          sw.Write (" X{0} Z{1}", x.ToString ("F3"), y.ToString ("F3"));
       }
@@ -1525,7 +1548,7 @@ public static class Utils {
    /// For a single pass legacy, the wrapper list holds only one Cut Scope's G Codes for Head 1 and Head 2</returns>
    public static List<List<GCodeSeg>> ComputeGCode (GCodeGenerator gcodeGen, bool testing = false) {
       List<List<GCodeSeg>> traces = [[], []];
-      
+
       // Check if the workpiece needs a multipass cutting
       if (MCSettings.It.EnableMultipassCut && gcodeGen.Process.Workpiece.Model.Bound.XMax - gcodeGen.Process.Workpiece.Model.Bound.XMin >= gcodeGen.MaxFrameLength)
          gcodeGen.EnableMultipassCut = true;
@@ -1536,7 +1559,7 @@ public static class Utils {
          gcodeGen.ResetBookKeepers ();
       }
       if (MCSettings.It.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
-         var mpc = new MultiPassCuts(gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
+         var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
             MCSettings.It.MaxFrameLength, MCSettings.It.MaximizeFrameLengthInMultipass);
          mpc.ComputeQuasiOptimalCutScopes ();
          mpc.GenerateGCode ();
