@@ -1,0 +1,26 @@
+[
+  {
+    "FileName": "SM LH 7101AAS02450N_C.igs",
+    "OppositeReference": [
+      "Tooling-230",
+      "Tooling-67",
+      "Tooling-45"
+    ]
+  },
+  {
+    "FileName": "SM LH 7101AAS02450N_D.igs",
+    "OppositeReference": [
+      "Tooling-230",
+      "Tooling-67",
+      "Tooling-45"
+    ]
+  },
+  {
+    "FileName": "SM LH 7101AAS02450N_E.igs",
+    "OppositeReference": [
+      "Tooling-230",
+      "Tooling-67",
+      "Tooling-45"
+    ]
+  }
+]
