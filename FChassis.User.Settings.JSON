@@ -21,6 +21,7 @@
   "PartConfig": "LHComponent",
   "OptimizePartition": false,
   "RotateX180": false,
+  "ShowToolingNames": false,
   "IncludeFlange": false,
   "IncludeCutout": false,
   "IncludeWeb": false,
@@ -30,9 +31,9 @@
   "ApproachLength": 2,
   "NotchWireJointDistance": 2,
   "FlexOffset": 0,
-  "StepLength": 1,
+  "StepLength": 0.5,
   "EnableMultipassCut": true,
-  "MaxFrameLength": 3500,
+  "MaxFrameLength": 2900,
   "MaximizeFrameLengthInMultipass": true,
   "CutHoles": true,
   "CutNotches": true,
@@ -41,5 +42,7 @@
   "MinThresholdForPartition": 585,
   "MinNotchLengthThreshold": 210,
   "DINFilenameSuffix": "",
-  "Machine": "LCMMultipass2H"
+  "WorkpieceOptionsFilename": "W:\\FChassis\\LCM2HWorkpieceOptions.json",
+  "Machine": "LCMMultipass2H",
+  "DeadbandWidth": 600
 }
