@@ -29,20 +29,16 @@ public class SettingServices {
       LeftToRightMachining = true;
    }
 
-   public void SaveSettings (bool backupNew = false) {
-      if (backupNew) MCSettings.It.SaveToJson (settingsFilePath+".bckup");
-      else MCSettings.It.SaveToJson (settingsFilePath);
+   public void SaveSettings (MCSettings settings, bool backupNew = false) {
+      if (backupNew) settings.SaveToJson (settingsFilePath+".bckup");
+      else settings.SaveToJson (settingsFilePath);
    }
 
-   public void LoadSettings () {
+   public void LoadSettings (MCSettings settings) {
       if (File.Exists (settingsFilePath)) {
          try {
-            MCSettings.It.LoadFromJson (settingsFilePath);
-         } catch (Exception ex) {
-            Console.WriteLine ($"Error loading settings: {ex.Message}");
-         }
-      } else {
-         Console.WriteLine ("Settings file not found. Using default settings.");
+            settings.LoadFromJson (settingsFilePath);
+         } catch (Exception) {}
       }
    }
 }

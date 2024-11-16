@@ -302,6 +302,7 @@ public class GCodeGenerator {
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
       WorkpieceOptionsFilename = mcs.WorkpieceOptionsFilename;
+      DeadbandWidth = mcs.DeadbandWidth;
 
       // Following ovverriders
       if (Heads == EHeads.Left || Heads == EHeads.Right) PartitionRatio = 1.0;
@@ -354,7 +355,8 @@ public class GCodeGenerator {
    public string DINFileNameHead1 { get; set; }
    public string DINFileNameHead2 { get; set; }
    public string WorkpieceOptionsFilename { get; set; }
-   public Dictionary<string,WorkpieceOptions> WPOptions { get; set; }
+   public Dictionary<string, WorkpieceOptions> WPOptions { get; set; }
+   public double DeadbandWidth { get; set; }
    #endregion
 
    #region GCode BookKeepers
@@ -537,6 +539,7 @@ public class GCodeGenerator {
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
       WorkpieceOptionsFilename = MCSettings.It.WorkpieceOptionsFilename;
+      DeadbandWidth = MCSettings.It.DeadbandWidth;
 
       // Following ovverriders
       if (Heads == EHeads.Left || Heads == EHeads.Right) PartitionRatio = 1.0;
@@ -1632,52 +1635,61 @@ public class GCodeGenerator {
    }
 
    void WriteBlockType (Tooling toolingItem, bool validNotch = false) {
-      int blockType;
+      int blockType = 0;
       bool oppositeRef = IsOppositeReference (toolingItem.Name);
-      string comment="";
-      if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web) {
-         if (oppositeRef) {
-            blockType = -2;
-            comment += " Web - Top Flange - Opposite reference ";
-         } else {
-            blockType = 2;
-            comment += " Web - Bottom Flange ";
-         }
-      } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Bottom) {
-         blockType = 0;
-         comment = " Bottom Flange ";
-      } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Top) {
-         blockType = 1;
-         comment = " Top Flange ";
-      } else if (toolingItem.IsNotch ()) {
-         if (validNotch) {
-            var endVec = toolingItem.End.Vec.Normalized ();
-            var flange = GetArcPlaneFlangeType (endVec, GetXForm ());
-            if (flange == EFlange.Web)
-               throw new Exception ("GCodeGenerator.WriteBlockType: The end normal of Notch is a Web flange. Th should be Bottom or top ones");
-            if (flange == EFlange.Bottom) {
+      string comment = "";
+
+      // If a valid notch or a cutout
+      if (validNotch || toolingItem.IsCutout ()) {
+         ECutKind notchCutKind;
+         if (toolingItem.IsCutout ())
+            notchCutKind = toolingItem.CutoutKind;
+         else
+            notchCutKind = toolingItem.NotchKind;
+         switch (notchCutKind) {
+            case ECutKind.YNegFlex: // Web flange to Bottom Flange 
+               if (validNotch) comment += "Web Flange -> Bottom Flange Notch";
+               else comment += "Web -> Bottom Flange Cutout";
+               blockType = 5;
+               break;
+            case ECutKind.YPosFlex: // Web flange to Top flange
+               blockType = -5;
+               if (validNotch) comment += "Web Flange -> Top Flange Notch";
+               else comment += "Web -> Top Flange Cutout";
+               break;
+            case ECutKind.Top: // Web flange
                blockType = 3;
-               comment += " Web to Bottom flange Notch ";
-               if (toolingItem.NotchKind != ECutKind.YNegFlex) throw new Exception ("Bottom flange computation conflicts with the tooling's flange");
-            } else {
-               blockType = -3;
-               comment += " Web to Top flange Notch ";
-               if (toolingItem.NotchKind != ECutKind.YPosFlex) throw new Exception ("Top flange computation conflicts with the tooling's flange");
-            }
+               comment += "Web Flange Notch";
+               break;
+            case ECutKind.YPos: // Top Flange
+               blockType = -4;
+               comment += "Top Flange Notch";
+               break;
+            case ECutKind.YNeg: // Bottom Flange
+               blockType = 4;
+               comment += "Bottom Flange Notch";
+               break;
+            default:
+               break;
+         };
+      } else if (toolingItem.IsNotch () || !validNotch) { // If an edge notch
+         blockType = 7; //Edge notches, G Code should not be generated
+         comment += "Edge Notch";
+      } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web) { // If any feature confined to only one flange
+         if (oppositeRef) {
+            blockType = -3;
+            comment += " Web Flange - Opposite reference ";
          } else {
             blockType = 3;
-            comment += " Edge Notch ";
+            comment += " Web Flange ";
          }
-      } else if (toolingItem.IsCutout ()) {
-         if (toolingItem.CutoutKind == ECutKind.YPosFlex) {
-            blockType = -4; // Top Flange
-            comment += " Web to Top flange Cutout ";
-         } else if (toolingItem.CutoutKind == ECutKind.YNegFlex) {
-            blockType = 4; // Bottom Flange
-            comment += " Web to Bottom flange Cutout ";
-         } else throw new Exception ("GCodeGenerator.WriteBlockType: Unsupported cutout");
-      } else if (toolingItem.IsMark ()) blockType = 5;
-      else throw new Exception ("GCodeGenerator.WriteBlockType() Unrecognized feature type in gcode generation");
+      } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Bottom) {
+         blockType = 1;
+         comment += " Bottom Flange ";
+      } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Top) {
+         blockType = 2;
+         comment += " Top Flange ";
+      } else throw new Exception ("GCodeGenerator.WriteBlockType() Unrecognized feature type in gcode generation");
       sw.WriteLine ($"BlockType={blockType} ({comment})");
    }
 
@@ -1984,6 +1996,10 @@ public class GCodeGenerator {
       double prevCutToolingsLength = 0, prevMarkToolingsLength = 0;
       for (int i = 0; i < toolingItems.Count; i++) {
          Tooling toolingItem = toolingItems[i];
+#if !DEBUG
+         if (Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths, NotchApproachLength, mCurveLeastLength))
+            continue;
+#endif
          var pr = PartitionRatio;
          var nwjDist = NotchWireJointDistance;
          var nApproachDist = NotchApproachLength;

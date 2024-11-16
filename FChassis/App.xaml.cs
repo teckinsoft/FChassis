@@ -4,6 +4,7 @@ using System.Windows.Threading;
 namespace FChassis;
 
 public partial class App : Application {
+   bool AbnormalTermination { get; set; } = false;
    protected override void OnStartup (StartupEventArgs e) {
       base.OnStartup (e);
       // Set the current culture to "en-US"
@@ -22,17 +23,20 @@ public partial class App : Application {
    }
 
    void TaskScheduler_UnobservedTaskException (object sender, UnobservedTaskExceptionEventArgs e) {
+      AbnormalTermination = true;
       OnExitHandler ();
-      
+
       // Mark the exception as handled
       e.SetObserved (); 
    }
 
    private void CurrentDomain_UnhandledException (object sender, UnhandledExceptionEventArgs e) {
+      AbnormalTermination = true;
       OnExitHandler ();
    }
 
    void Current_DispatcherUnhandledException (object sender, DispatcherUnhandledExceptionEventArgs e) {
+      AbnormalTermination = true;
       OnExitHandler ();
       e.Handled = true; 
    }
@@ -42,7 +46,9 @@ public partial class App : Application {
       base.OnExit (e);
    }
 
-   public void BeforeExit ()  => SettingServices.It.SaveSettings (backupNew:true); 
+   public void BeforeExit () {
+      if ( AbnormalTermination ) SettingServices.It.SaveSettings (MCSettings.It, backupNew: true);
+   }
 
    public void OnAppStart () { }// => SettingServices.It.LoadSettings ();
 }

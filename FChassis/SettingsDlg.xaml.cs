@@ -13,8 +13,8 @@ public partial class SettingsDlg : Window {
    public bool IsModified { get; private set; }
    public SettingsDlg (MCSettings set) {
       InitializeComponent ();
+      SettingServices.It.LoadSettings (set);
       Bind (set);
-      SettingServices.It.LoadSettings ();
    }
    
    /// <summary>
@@ -57,16 +57,17 @@ public partial class SettingsDlg : Window {
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
       chbMPC.Bind (() => {
-         tbMaxFrameLength.IsEnabled = rbMaxFrameLength.IsEnabled =
+         tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
          rbMinNotchCuts.IsEnabled = Settings.EnableMultipassCut;
          return Settings.EnableMultipassCut;
       },
        b => {
           Settings.EnableMultipassCut = b; // Update the value
-          tbMaxFrameLength.IsEnabled = rbMaxFrameLength.IsEnabled = rbMinNotchCuts.IsEnabled = b; // Enable/disable based on the value
+          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled = rbMinNotchCuts.IsEnabled = b; // Enable/disable based on the value
           IsModified = true;
        });
       tbMaxFrameLength.Bind (() => Settings.MaxFrameLength, b => { Settings.MaxFrameLength = b; IsModified = true; });
+      tbDeadBandWidth.Bind (() => Settings.DeadbandWidth, b => { Settings.DeadbandWidth = b; IsModified = true; });
       rbMaxFrameLength.Bind (() => Settings.MaximizeFrameLengthInMultipass,
          () => { Settings.MaximizeFrameLengthInMultipass = true; IsModified = true; });
       rbMinNotchCuts.Bind (() => !Settings.MaximizeFrameLengthInMultipass,
@@ -79,12 +80,12 @@ public partial class SettingsDlg : Window {
       });
       cbLCMMachine.ItemsSource = Enum.GetValues (typeof (MachineType)).Cast<MachineType> ();
       cbLCMMachine.Bind (() => {
-         chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = rbMaxFrameLength.IsEnabled =
+         chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
             rbMinNotchCuts.IsEnabled = (Settings.Machine == MachineType.LCMMultipass2H);
          return Settings.Machine;
       },
          (MachineType selectedType) => {
-            chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = rbMaxFrameLength.IsEnabled =
+            chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
             rbMinNotchCuts.IsEnabled = Settings.EnableMultipassCut = (selectedType == MachineType.LCMMultipass2H);
             Settings.Machine = selectedType;
             IsModified = true;

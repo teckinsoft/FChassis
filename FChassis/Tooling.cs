@@ -12,7 +12,7 @@ public readonly struct PointVec {
 }
 
 public enum EKind { Hole, Notch, Mark, Cutout };
-public enum ECutKind { TopToYPos, YNegFlex, YNegToYPos, Top, YPos, YNeg, YPosFlex, None };
+public enum ECutKind { YNegFlex, YNegToYPos, Top, YPos, YNeg, YPosFlex, None };
 public struct ToolingSegment {
    Curve3 mCurve;
    Vector3 mVec0;
@@ -220,7 +220,7 @@ public class Tooling {
       }
       
       if (TopPlaneFeat && YNegPlaneFeat) return ECutKind.YNegFlex;
-      else if (TopPlaneFeat && YPosPlaneFeat) return ECutKind.TopToYPos;
+      else if (TopPlaneFeat && YPosPlaneFeat) return ECutKind.YPosFlex;
       else if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat) return ECutKind.YNegToYPos;
       else if (TopPlaneFeat) return ECutKind.Top;
       else if (YNegPlaneFeat) return ECutKind.YNeg;
@@ -243,7 +243,7 @@ public class Tooling {
       }
       if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat) return ECutKind.YNegToYPos;
       else if (TopPlaneFeat && YNegPlaneFeat) return ECutKind.YNegFlex;
-      else if (TopPlaneFeat && YPosPlaneFeat) return ECutKind.TopToYPos;
+      else if (TopPlaneFeat && YPosPlaneFeat) return ECutKind.YPosFlex;
       else if (TopPlaneFeat) return ECutKind.Top;
       else if (YNegPlaneFeat) return ECutKind.YNeg;
       else if (YPosPlaneFeat) return ECutKind.YPos;

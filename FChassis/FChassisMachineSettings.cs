@@ -43,6 +43,7 @@ public class MCSettings : INotifyPropertyChanged {
       MinNotchLengthThreshold = 210;
       DINFilenameSuffix = "";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
+      DeadbandWidth = 600.0;
    }
    #endregion
 
@@ -112,6 +113,7 @@ public class MCSettings : INotifyPropertyChanged {
       Machine = other.Machine;
       WorkpieceOptionsFilename = other.WorkpieceOptionsFilename;
       ShowToolingNames = other.ShowToolingNames;
+      DeadbandWidth = other.DeadbandWidth;
    }
    // Helper method to set a property and raise the event
    private void SetProperty<T> (ref T field, T value) {
@@ -184,7 +186,7 @@ public class MCSettings : INotifyPropertyChanged {
    double mProbeMinDistance;
    public double NotchApproachLength { get=> mNotchApproachLength; set => SetProperty (ref mNotchApproachLength, value); }
    double mNotchApproachLength;
-   public double ApproachLength { get => mApproachLength; set => mApproachLength = value; }
+   public double ApproachLength { get => mApproachLength; set => SetProperty (ref mApproachLength, value); }
    double mApproachLength;
    public double NotchWireJointDistance { get=> mNotchWireDistance; set => SetProperty (ref mNotchWireDistance, value); }
    double mNotchWireDistance;
@@ -192,19 +194,19 @@ public class MCSettings : INotifyPropertyChanged {
    double mFlexOffset;
    public double StepLength { get => mLengthPerStep; set => SetProperty (ref mLengthPerStep, value); }
    double mLengthPerStep = 1.0;
-   public bool EnableMultipassCut { get=> mEnableMultipassCut; set=> mEnableMultipassCut=value; }
+   public bool EnableMultipassCut { get=> mEnableMultipassCut; set => SetProperty (ref mEnableMultipassCut, value); }
    bool mEnableMultipassCut;
-   public double MaxFrameLength { get => mMaxFrameLength; set => mMaxFrameLength = value; }
+   public double MaxFrameLength { get => mMaxFrameLength; set => SetProperty (ref mMaxFrameLength, value); }
    double mMaxFrameLength;
-   public bool MaximizeFrameLengthInMultipass { get=> mMazimizeFrameLengthInMultipass; set=> mMazimizeFrameLengthInMultipass=value; }
+   public bool MaximizeFrameLengthInMultipass { get=> mMazimizeFrameLengthInMultipass; set => SetProperty (ref mMazimizeFrameLengthInMultipass, value); }
    bool mMazimizeFrameLengthInMultipass;
-   public bool CutHoles { get => mCutHoles; set => mCutHoles = value; }
+   public bool CutHoles { get => mCutHoles; set => SetProperty (ref mCutHoles, value); }
    bool mCutHoles;
-   public bool CutNotches { get => mCutNotches; set => mCutNotches = value; }
+   public bool CutNotches { get => mCutNotches; set => SetProperty (ref mCutNotches, value); }
    bool mCutNotches;
-   public bool CutCutouts { get => mCutCutouts; set => mCutCutouts = value; }
+   public bool CutCutouts { get => mCutCutouts; set => SetProperty (ref mCutCutouts, value); }
    bool mCutCutouts;
-   public bool CutMarks { get => mCutMarks; set => mCutMarks = value; }
+   public bool CutMarks { get => mCutMarks; set => SetProperty (ref mCutMarks, value); }
    bool mCutMarks;
    public double MinThresholdForPartition { get => mMinThresholdForPartition; set => SetProperty (ref mMinThresholdForPartition, value); }
    double mMinThresholdForPartition;
@@ -214,8 +216,10 @@ public class MCSettings : INotifyPropertyChanged {
    string mDINFilenameSuffix;
    public string WorkpieceOptionsFilename { get => mWorkpieceOptionsFilename; set => SetProperty (ref mWorkpieceOptionsFilename, value); }
    string mWorkpieceOptionsFilename;
-   public MachineType Machine { get; set; }
+   public MachineType Machine { get => mMachine; set => SetProperty (ref mMachine, value); }
    MachineType mMachine;
+   public double DeadbandWidth { get => mDeadbandWidth; set=>SetProperty(ref mDeadbandWidth, value); }
+   double mDeadbandWidth;
    #endregion
 
    #region Data Members

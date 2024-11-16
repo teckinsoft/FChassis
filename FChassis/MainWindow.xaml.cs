@@ -66,7 +66,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          InitialDirectory = @"W:\FChassis\Sample"
       };
       if (openFileDialog.ShowDialog () == true) {
-         
+
          // Handle file opening, e.g., load the file into your application
          if (!string.IsNullOrEmpty (openFileDialog.FileName))
             LoadPart (openFileDialog.FileName);
@@ -78,7 +78,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          InitialDirectory = @"W:\FChassis\Sample"
       };
       if (openFileDialog.ShowDialog () == true) {
-         
+
          // Handle file opening, e.g., load the file into your application
          if (!string.IsNullOrEmpty (openFileDialog.FileName)) {
             var extension = SPath.GetExtension (openFileDialog.FileName).ToLower ();
@@ -92,10 +92,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
          DefaultExt = "dxf",
       };
-      
+
       // Show save file dialog box
       bool? result = saveFileDialog.ShowDialog ();
-      
+
       // Process save file dialog box results
       if (result == true) {
          string filePath = saveFileDialog.FileName;
@@ -111,7 +111,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void OnUnbendExport2D (object sender, RoutedEventArgs e) {
       if (mPart == null) return;
-      
+
       // Get the original file name (assuming mPart.FileName gives you the file name with extension)
       string originalFileName = System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName);
       string originalFileDir = System.IO.Path.GetDirectoryName (mPart.Info.FileName);
@@ -145,7 +145,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             // Perform unfolding operation
             mPart.UnfoldTo2D ();
             var dwg = mPart.Dwg;
-            
+
             // Determine the file type by checking the extension
             if (extension == ".dxf") {
                dwg.SaveDXF (filePath);
@@ -416,9 +416,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       return false;
    }
 
-   void SaveSettings () {
-      SettingServices.It.SaveSettings ();
-   }
+   void SaveSettings () => SettingServices.It.SaveSettings (MCSettings.It);
+
 
    void LoadGCode (string filename) => mProcess.LoadGCode (filename);
    #endregion

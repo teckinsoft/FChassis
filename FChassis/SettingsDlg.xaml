@@ -79,6 +79,7 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
                 <Label Grid.Row="0">Standoff</Label>
                 <TextBox Grid.Row="0" Grid.Column="1" Name="tbStandoff"></TextBox>
@@ -166,14 +167,18 @@
                 <TextBox Grid.Row="18" Grid.Column="1" Name="tbMaxFrameLength"></TextBox>
                 <Label Grid.Row="18" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="19" VerticalAlignment="Top" >Flow Optim Criterion</Label>
-                <StackPanel Grid.Row="19" Grid.Column="1" Margin="0,7,0,0">
+                <Label Grid.Row="19">Dead Band Width</Label>
+                <TextBox Grid.Row="19" Grid.Column="1" Name="tbDeadBandWidth"></TextBox>
+                <Label Grid.Row="19" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+
+                <Label Grid.Row="20" VerticalAlignment="Top" >Flow Optim Criterion</Label>
+                <StackPanel Grid.Row="20" Grid.Column="1" Margin="0,7,0,0">
                     <RadioButton GroupName="OptimCriterion" Name="rbMaxFrameLength">Maximize Frame length</RadioButton>
                     <RadioButton GroupName="OptimCriterion" Name="rbMinNotchCuts">Minimize Notch Cuts</RadioButton>
                 </StackPanel>
 
-                <Label Grid.Row="20">Rotate 180 degrees</Label>
-                <CheckBox Grid.Row="20" Grid.Column="1" Name="cbRotate180AbZ"></CheckBox>
+                <Label Grid.Row="21">Rotate 180 degrees</Label>
+                <CheckBox Grid.Row="21" Grid.Column="1" Name="cbRotate180AbZ"></CheckBox>
 
                 <!--<Label Grid.Row="20">Output Directory</Label>
                 <StackPanel Grid.Row="20" Grid.Column="1" Orientation="Horizontal">
@@ -184,31 +189,31 @@
                 <!--<TextBox x:Name="tbOutputDir" Grid.Row="20" Grid.Column="1" Text="{Binding OutputDirectory, UpdateSourceTrigger=PropertyChanged}" />
                 <Button Grid.Row="20" Grid.Column="2" Content="Browse" Command="{Binding BrowseCommand}" />-->
 
-                <Label Grid.Row="21">Output Directory</Label>
-                <TextBox Name="tbDirectoryPath" Grid.Row="21" Grid.Column="1" IsReadOnly="False"/>
-                <Button Name="btnSelOpDir" Grid.Row="21" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+                <Label Grid.Row="22">Output Directory</Label>
+                <TextBox Name="tbDirectoryPath" Grid.Row="22" Grid.Column="1" IsReadOnly="False"/>
+                <Button Name="btnSelOpDir" Grid.Row="22" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
                         Width="60" Height="20" Margin="5 0" Click="OnOutputFolderSelect"/>
 
-                <Label Grid.Row="22">Min Partition Length Threshold</Label>
-                <TextBox Grid.Row="22" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
-                <Label Grid.Row="22" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+                <Label Grid.Row="23">Min Partition Length Threshold</Label>
+                <TextBox Grid.Row="23" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
+                <Label Grid.Row="23" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="23">DIN Filename Suffix</Label>
-                <TextBox Grid.Row="23" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
+                <Label Grid.Row="24">DIN Filename Suffix</Label>
+                <TextBox Grid.Row="24" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
 
-                <Label Grid.Row="24">Workpiece Options</Label>
-                <TextBox Name="tbWPOptions" Grid.Row="24" Grid.Column="1" IsReadOnly="False"/>
-                <Button Name="btnWPOptionsSelOpFile" Grid.Row="24" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+                <Label Grid.Row="25">Workpiece Options</Label>
+                <TextBox Name="tbWPOptions" Grid.Row="25" Grid.Column="1" IsReadOnly="False"/>
+                <Button Name="btnWPOptionsSelOpFile" Grid.Row="25" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
                 Width="60" Height="20" Margin="5 0" Click="OnWorkpieceOptionsFileSelect"/>
 
-                <Label Grid.Row="25">LCM Machine</Label>
-                <ComboBox Grid.Row="25" Grid.Column="1" Name="cbLCMMachine" SelectedIndex="1">
+                <Label Grid.Row="26">LCM Machine</Label>
+                <ComboBox Grid.Row="26" Grid.Column="1" Name="cbLCMMachine" SelectedIndex="1">
                     <!--<ComboBoxItem Content="LCM Legacy" />
                     <ComboBoxItem Content="LCM Multipass 2H" />-->
                 </ComboBox>
 
-                <Label Grid.Row="26">Show Tooling Names</Label>
-                <CheckBox Grid.Row="26" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
+                <Label Grid.Row="27">Show Tooling Names</Label>
+                <CheckBox Grid.Row="27" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
             </Grid>
         </ScrollViewer>
     </DockPanel>

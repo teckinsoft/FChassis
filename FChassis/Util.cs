@@ -163,7 +163,8 @@ public static class Utils {
       Bottom,
       Top,
       Web,
-      Flex
+      Flex,
+      None
    }
    public enum EArcSense {
       CW, CCW
@@ -578,7 +579,7 @@ public static class Utils {
                res = bdyPtXMax - pt;
                proxBdy = XForm4.EAxis.X;
             }
-            if (profileKind == ECutKind.TopToYPos || profileKind == ECutKind.YNegFlex) {
+            if (profileKind == ECutKind.YPosFlex || profileKind == ECutKind.YNegFlex) {
                Vector3 p1p2;
                if (seg.Curve is Arc3 arc) {
                   (var _, p1p2) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0);
