@@ -42,8 +42,8 @@ public partial class App : Application {
       base.OnExit (e);
    }
 
-   public void BeforeExit () { /* => SettingServices.It.SaveSettings ();*/ }
+   public void BeforeExit ()  => SettingServices.It.SaveSettings (backupNew:true); 
 
-   public void OnAppStart () => SettingServices.It.LoadSettings ();
+   public void OnAppStart () { }// => SettingServices.It.LoadSettings ();
 }
 

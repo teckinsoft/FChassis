@@ -299,13 +299,12 @@ public class Workpiece : INotifyPropertyChanged {
                var NotchEndFlType = Utils.GetArcPlaneFlangeType (cutSegs.Last ().Vec1,
                   MCSettings.It.PartConfig == PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys);
                if (NotchStFlType != Utils.EFlange.Flex && NotchEndFlType != Utils.EFlange.Flex) {
-                  if (cutSegs.First ().Curve.Start.X > cutSegs.Last ().Curve.End.X)
-                     cut.Reverse ();
+                  var endX = cutSegs.Last ().Curve.End.X;
+                  if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX) cut.Reverse ();
+                  else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX) cut.Reverse ();
                }
                if (cut.ProfileKind == ECutKind.Top) {
-                  if (cutSegs.First ().Curve.Start.Y > cutSegs.Last ().Curve.End.Y) {
-                     cut.Reverse ();
-                  }
+                  if (cutSegs.First ().Curve.Start.Y > cutSegs.Last ().Curve.End.Y) cut.Reverse ();
                }
             }
             // Calculate the bound3 for each cut

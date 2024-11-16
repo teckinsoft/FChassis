@@ -110,6 +110,8 @@ public class MCSettings : INotifyPropertyChanged {
       MinNotchLengthThreshold = other.MinNotchLengthThreshold;
       DINFilenameSuffix = other.DINFilenameSuffix;
       Machine = other.Machine;
+      WorkpieceOptionsFilename = other.WorkpieceOptionsFilename;
+      ShowToolingNames = other.ShowToolingNames;
    }
    // Helper method to set a property and raise the event
    private void SetProperty<T> (ref T field, T value) {

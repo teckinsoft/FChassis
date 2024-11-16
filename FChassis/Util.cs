@@ -568,9 +568,8 @@ public static class Utils {
       Point3 bdyPtXMin, bdyPtXMax, bdyPtZMin;
       switch (profileKind) {
          case ECutKind.Top:
-         case ECutKind.TopToYPos:
-         case ECutKind.TopToYNeg:
-         case ECutKind.Flex:
+         case ECutKind.YPosFlex:
+         case ECutKind.YNegFlex:
             if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z)) <
             pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
                res = bdyPtXMin - pt;
@@ -579,7 +578,7 @@ public static class Utils {
                res = bdyPtXMax - pt;
                proxBdy = XForm4.EAxis.X;
             }
-            if (profileKind == ECutKind.TopToYPos || profileKind == ECutKind.TopToYNeg) {
+            if (profileKind == ECutKind.TopToYPos || profileKind == ECutKind.YNegFlex) {
                Vector3 p1p2;
                if (seg.Curve is Arc3 arc) {
                   (var _, p1p2) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0);

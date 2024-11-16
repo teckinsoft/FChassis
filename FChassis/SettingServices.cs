@@ -29,9 +29,9 @@ public class SettingServices {
       LeftToRightMachining = true;
    }
 
-   public void SaveSettings () {
-      MCSettings.It.SaveToJson (settingsFilePath);
-      Console.WriteLine ($"Settings file created at: {settingsFilePath}");
+   public void SaveSettings (bool backupNew = false) {
+      if (backupNew) MCSettings.It.SaveToJson (settingsFilePath+".bckup");
+      else MCSettings.It.SaveToJson (settingsFilePath);
    }
 
    public void LoadSettings () {

@@ -12,8 +12,7 @@ public readonly struct PointVec {
 }
 
 public enum EKind { Hole, Notch, Mark, Cutout };
-public enum ECutKind { TopToYPos, TopToYNeg, YNegToYPos, Top, YPos, YNeg, Flex, None };
-
+public enum ECutKind { TopToYPos, YNegFlex, YNegToYPos, Top, YPos, YNeg, YPosFlex, None };
 public struct ToolingSegment {
    Curve3 mCurve;
    Vector3 mVec0;
@@ -209,24 +208,23 @@ public class Tooling {
 
    public static ECutKind GetCutKind (Tooling cut) {
       var segs = cut.Segs.ToList ();
-      bool YNegPlaneFeat = segs.Any (cutSeg => Math.Abs (
-         ((MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys) *
-         cut.Segs[0].Vec0.Normalized ()).Y + 1.0).EQ (0));
-      bool YPosPlaneFeat = segs.Any (cutSeg => Math.Abs (
-         ((MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys) *
-         cut.Segs[0].Vec0.Normalized ()).Y - 1.0).EQ (0));
-      bool TopPlaneFeat = segs.Any (cutSeg => Math.Abs (
-         ((MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys) *
-         cut.Segs[0].Vec0.Normalized ()).Z - 1.0).EQ (0));
-      bool FlexPlaneFeat = !YNegPlaneFeat && !YPosPlaneFeat && !TopPlaneFeat;
-
-      if (TopPlaneFeat && YNegPlaneFeat) return ECutKind.TopToYNeg;
+      bool YNegPlaneFeat = false, YPosPlaneFeat = false, TopPlaneFeat = false;
+      var trf = (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys);
+      foreach (var seg in segs) {
+         var nn = trf * seg.Vec0.Normalized ();
+         if (Math.Abs (nn.Y - 1.0).EQ (0) && !YPosPlaneFeat) YPosPlaneFeat = true;
+         else if (Math.Abs (nn.Y + 1.0).EQ (0) && !YNegPlaneFeat) YNegPlaneFeat = true;
+         else if (Math.Abs (nn.Z - 1.0).EQ (0) && !TopPlaneFeat) TopPlaneFeat = true;
+         else if (nn.Y < -0.1) return ECutKind.YNegFlex;
+         else if ( nn.Y > 0.1 ) return ECutKind.YPosFlex;
+      }
+      
+      if (TopPlaneFeat && YNegPlaneFeat) return ECutKind.YNegFlex;
       else if (TopPlaneFeat && YPosPlaneFeat) return ECutKind.TopToYPos;
       else if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat) return ECutKind.YNegToYPos;
       else if (TopPlaneFeat) return ECutKind.Top;
       else if (YNegPlaneFeat) return ECutKind.YNeg;
       else if (YPosPlaneFeat) return ECutKind.YPos;
-      else if (FlexPlaneFeat) return ECutKind.Flex;
       else {
          // Unsupported type
          throw new Exception ("Unsupported Notch Type");
@@ -238,15 +236,17 @@ public class Tooling {
       bool YNegPlaneFeat = segs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Dot (XForm4.mYAxis)).EQ (-1.0));
       bool YPosPlaneFeat = segs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Dot (XForm4.mYAxis)).EQ (1.0));
       bool TopPlaneFeat = segs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Dot (XForm4.mZAxis)).EQ (1.0));
-      bool FlexPlaneFeat = !YNegPlaneFeat && !YPosPlaneFeat && !TopPlaneFeat;
-
+      foreach (var seg in segs) {
+         var nn = (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys) * seg.Vec0.Normalized ();
+         if (nn.Y < -0.1) return ECutKind.YNegFlex;
+         else if (nn.Y > 0.2) return ECutKind.YPosFlex;
+      }
       if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat) return ECutKind.YNegToYPos;
-      else if (TopPlaneFeat && YNegPlaneFeat) return ECutKind.TopToYNeg;
+      else if (TopPlaneFeat && YNegPlaneFeat) return ECutKind.YNegFlex;
       else if (TopPlaneFeat && YPosPlaneFeat) return ECutKind.TopToYPos;
       else if (TopPlaneFeat) return ECutKind.Top;
       else if (YNegPlaneFeat) return ECutKind.YNeg;
       else if (YPosPlaneFeat) return ECutKind.YPos;
-      else if (FlexPlaneFeat) return ECutKind.Flex;
       else {
          // Unsupported type
          throw new Exception ("Unsupported Notch Type");
@@ -258,11 +258,8 @@ public class Tooling {
          PointVec? prevpvb = null;
          foreach (var (ent, pline0) in Traces) {
             var pline = pline0;
-            if (ent is E3Flex) {
-               pline = pline.DiscretizeP (0.1);
-            }
+            if (ent is E3Flex) pline = pline.DiscretizeP (0.1);
             var seggs = pline.Segs.ToList ();
-
             foreach (var seg in pline.Segs) {
                PointVec pva = Project (ent, seg.A), pvb = Project (ent, seg.B);
                if (prevpvb != null) {
