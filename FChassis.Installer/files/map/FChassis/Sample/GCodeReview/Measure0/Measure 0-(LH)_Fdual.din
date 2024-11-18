@@ -1,0 +1,129 @@
+%1(trial_FSM_1200-(LH).din)
+N1
+CNC_ID=1
+Job_Length = 1200
+Job_Width = 286.3
+Job_Height = 88
+Job_Thickness = 8
+X_Partition = 1200
+Job_O_Radius = 20
+Job_Type  = 1	(LH JOB)
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+
+M15		
+H=LaserTableID		(Cutting Data based on type of Job will be data will be assigned by PLC)
+G61
+G40 E0			(Deactivating any Active Tool Compensation)
+
+(Cutting with head 1)
+(N1001 to N1001 in Bottom flange)
+(N2001 to N2001 in Top flange)
+(N3001 to N3001 in Web flange)
+G253 E0 F="0=1:trial_FSM_1200:659.28,0"
+G20 X=BlockID
+
+N1001
+BlockID=1001
+PathLength=166.43
+S1
+G93 Z=-Head_Height T1	(Tool Height Compensation during Flange cutting as the Head Rotates)
+G18			(ZX Plane selection)
+G61	
+PM=Flange_PM CM=Flange_CM		(Cutting process specification done internally in CNC)
+EM=Flange_EM ZRH=Flange_YRH		(End of Cutting process specification done internally in CNC)
+Update_Param				(Updating Cutting data for the Block)
+Lead_In=5
+PlaneTransfer				(Here G114 is Activated - 6 Axis Transformation here we use only 3)
+G0 X20 Y-4.8 Z28			(20mmof clerance is maintained in the program generation,Job Bottom as reference (8mm thickness + 20mm Clerance = 28mm (Z position). Web - Head Turn over position, X Position of Bottom Flange's 1st Cut Block's Pierce) 
+G1 X20 Y-19.8 Z-52.5 A90 F8000		(Head Rotating over from Web to Bottom Flange's Cut Clock's Pierce Z Position)
+EndPlaneTransfer			(G114 Cancelation)
+(-----CUTTING ON BOTTOM FLANGE-----)
+BlockType=0			
+X_Correction=0
+YZ_Correction=0
+ToolCorrection				(Internal SubProgram for corrcting Head position based upon job position)
+M14					(Tool Down Command - To Pierce & Cutting Height, Actual height of process maintainded by controller)
+G1 X17.5 Z-52.5				(Lead In from Pierce Point to the start of radial entry)
+G2 I0 K-2.5 X15 Z-55			(Radial Entry into actual Contur/cutting)
+G1 X15 Z-70				(Start of Contur)
+G1 X65 Z-70
+G1 X65 Z-40
+G1 X15 Z-40
+G1 X15 Z-55				(End of contur)
+M15
+G253 E0 F="2=1:1:25"			(Cut Length for Log)
+G40 E1					(Cancelation of Tool Correction)
+	
+G4 X2
+N2001
+BlockID=2001
+PathLength=186.43
+S2
+G93 Z=-Head_Height T1			(Tool Height Compensation during Flange cutting as the Head Rotates)
+G18
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=5
+PlaneTransfer				(G114 Activation)
+G1 X15 Y-4.8 Z28 A0 F8000		(Head turn over from Bottom Falnge to Web Plane)
+G0 X225 Y291.2				(XY position on the Web Plane to Top Flange's First Cut Block's Pierce X Position and Y position to start Head turn over)
+G1 X225 Y306.2 Z-57.5 A-90 F8000	(Head Rotating over from Web to Top Flange's Cut Clock's Pierce Z Position)
+EndPlaneTransfer			(G114 Deactivation)
+(-----CUTTING ON TOP FLANGE-----)
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+M14
+G1 X227.5 Z-57.5
+G2 I0 K2.5 X230 Z-55
+G1 X230 Z-40
+G1 X170 Z-40
+G1 X170 Z-70
+G1 X230 Z-70
+G1 X230 Z-55
+M15
+G253 E0 F="2=1:1:54"
+G40 E1
+
+G4 X2
+N3001
+BlockID=3001
+PathLength=306.43
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=5
+PlaneTransfer				(G114 Activation)
+G1 X230 Y291.2 Z28 A0 F8000		(Head turn over from Top Falnge to Web Plane)
+G0 X145 Y67.538				(XY position of Web's First Cut Block's Pierce X Position and Y position)
+EndPlaneTransfer			(G114 Deactivation)
+(-----CUTTING ON WEB FLANGE-----)
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+M14
+G1 X147.5 Y67.538
+G3 I0 J2.5 X150 Y70.038
+G1 X150 Y95.038
+G1 X50 Y95.038
+G1 X50 Y45.038
+G1 X150 Y45.038
+G1 X150 Y70.038
+M15
+G253 E0 F="2=1:1:100"
+G40 E1
+
+
+N10000
+EndOfJob
+G99

@@ -12,9 +12,8 @@
 	<Company>TeckinSoft</Company>
 
 	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
-	<IntermediateOutputPath>$(SolutionDir)\output\intermediate\$(MSBuildProjectName)\</IntermediateOutputPath>
-	<BaseOutputPath>$(SolutionDir)\output\bin\$(MSBuildProjectName)\</BaseOutputPath>
-    <PackageOutputPath>$(SolutionDir)\output\$(OutputPath)</PackageOutputPath>      
+	<BaseOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\</BaseOutputPath>
+    <PackageOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\Packages</PackageOutputPath>      
 	  
   </PropertyGroup>
   <ItemGroup>

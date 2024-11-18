@@ -1,0 +1,389 @@
+1(FH124213 --B-(LH).din)
+N1
+CNC_ID=1
+Job_Length = 7463
+Job_Width = 228.5
+Job_Height = 75
+Job_Thickness = 6
+X_Partition = 3732
+Job_O_Radius = 15.4
+Job_Type  = 1
+Marking_X_Pos = 700.4
+Marking_Y_Pos = 10
+Marking_Angle = 0
+G253 F="ModelTag:Deluxe" E0
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+
+(---Don't alter above Parameters---)
+
+M15
+H=LaserTableID
+G61
+G40 E0
+
+(Cutting with head 1)
+(N3001 to N3008 in Web flange)
+(N8001 to N8008 for markings)
+
+
+(( **Tooling Name : Tooling-1 - Web - Mark** ))
+G253 E0 F="0=1:FH124213 --B:0,305.39"
+G20 X=BlockID
+
+
+
+(( ** Tool Block Initialization ** ))
+START_X=700.400 END_X=717.150
+N8001
+BlockID=8001
+PathLength=74.63
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X700.400 Y149.250 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X700.400 Y149.250 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X708.650 Y149.250 A0.000 
+G1 X712.400 Y148.000 
+G1 X714.650 Y145.500 
+G1 X715.650 Y143.250 
+G1 X717.150 Y139.500 
+G1 X717.150 Y134.000 
+G1 X715.650 Y130.250 
+G1 X714.650 Y128.000 
+G1 X712.400 Y125.500 
+G1 X708.650 Y124.250 
+G1 X700.400 Y124.250 
+G1 X700.400 Y149.250 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:24"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-2 - Web - Mark** ))
+
+
+(( ** Tool Block Initialization ** ))
+START_X=725.400 END_X=739.650
+N8002
+BlockID=8002
+PathLength=58.52
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X739.650 Y128.000 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X739.650 Y128.000 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X737.400 Y125.500 A0.000 
+G1 X735.150 Y124.250 
+G1 X731.400 Y124.250 
+G1 X729.150 Y125.500 
+G1 X726.650 Y128.000 
+G1 X725.400 Y131.250 
+G1 X725.400 Y134.000 
+G1 X739.650 Y134.000 
+G1 X739.650 Y136.250 
+G1 X738.400 Y138.500 
+G1 X737.400 Y139.500 
+G1 X735.150 Y141.000 
+G1 X731.400 Y141.000 
+G1 X729.150 Y139.500 
+G1 X726.650 Y137.250 
+G1 X725.400 Y134.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:19"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-3 - Web - Mark** ))
+
+
+(( ** Tool Block Initialization ** ))
+START_X=746.650 END_X=746.650
+N8003
+BlockID=8003
+PathLength=25.00
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X746.650 Y149.250 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X746.650 Y149.250 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X746.650 Y124.250 A0.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:8"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-4 - Web - Mark** ))
+
+
+(( ** Tool Block Initialization ** ))
+START_X=769.400 END_X=769.400
+N8004
+BlockID=8004
+PathLength=16.75
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X769.400 Y124.250 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X769.400 Y124.250 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X769.400 Y141.000 A0.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:5"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-5 - Web - Mark** ))
+
+
+(( ** Tool Block Initialization ** ))
+START_X=756.400 END_X=769.400
+N8005
+BlockID=8005
+PathLength=29.56
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X769.400 Y129.000 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X769.400 Y129.000 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X766.150 Y125.500 A0.000 
+G1 X763.400 Y124.250 
+G1 X760.150 Y124.250 
+G1 X757.650 Y125.500 
+G1 X756.400 Y129.000 
+G1 X756.400 Y141.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:10"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-6 - Web - Mark** ))
+
+
+(( ** Tool Block Initialization ** ))
+START_X=779.150 END_X=792.150
+N8006
+BlockID=8006
+PathLength=21.20
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X792.150 Y124.250 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X792.150 Y124.250 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X779.150 Y141.000 A0.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:7"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-7 - Web - Mark** ))
+
+
+(( ** Tool Block Initialization ** ))
+START_X=779.150 END_X=792.150
+N8007
+BlockID=8007
+PathLength=21.20
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X792.150 Y141.000 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X792.150 Y141.000 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X779.150 Y124.250 A0.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:7"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-8 - Web - Mark** ))
+
+
+(( ** Tool Block Initialization ** ))
+START_X=799.400 END_X=813.650
+N8008
+BlockID=8008
+PathLength=58.52
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+ToolPlane
+G1 X813.650 Y128.000 Z16.000 A0 F8000
+BlockType=4
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X813.650 Y128.000 Z6.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G1 X811.400 Y125.500 A0.000 
+G1 X809.150 Y124.250 
+G1 X805.400 Y124.250 
+G1 X803.150 Y125.500 
+G1 X800.650 Y128.000 
+G1 X799.400 Y131.250 
+G1 X799.400 Y134.000 
+G1 X813.650 Y134.000 
+G1 X813.650 Y136.250 
+G1 X812.400 Y138.500 
+G1 X811.400 Y139.500 
+G1 X809.150 Y141.000 
+G1 X805.400 Y141.000 
+G1 X803.150 Y139.500 
+G1 X800.650 Y137.250 
+G1 X799.400 Y134.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="1=1:1:19"
+G40 E1
+
+
+N10000
+EndOfJob
+G99

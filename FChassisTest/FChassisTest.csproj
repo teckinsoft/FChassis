@@ -11,7 +11,16 @@
 	  <Company>TeckinSoft</Company>
 
 	  <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+	  <BaseOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\</BaseOutputPath>
+	  <PackageOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\Packages</PackageOutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="obj\**" />
+    <Page Remove="obj\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FChassis\FChassis.csproj" />
