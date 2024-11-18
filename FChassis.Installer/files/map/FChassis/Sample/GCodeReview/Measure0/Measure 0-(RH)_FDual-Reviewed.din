@@ -1,0 +1,135 @@
+%1(trial_FSM_1200-(RH).din)
+N1
+CNC_ID=1
+Job_Length = 1200
+Job_Width = 286.3
+Job_Height = 88
+Job_Thickness = 8
+X_Partition = 1200
+Job_O_Radius = 20
+Job_Type  = 2
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+
+(---Don't alter above Parameters---)
+
+M15
+H=LaserTableID
+G61
+G40 E0
+
+(Cutting with head 1)
+(N1001 to N1001 in Bottom flange)
+(N2001 to N2001 in Top flange)
+(N3001 to N3001 in Web flange)
+G253 E0 F="0=1:trial_FSM_1200:659.28,0"
+G20 X=BlockID
+
+N1001
+BlockID=1001
+PathLength=186.43
+S1
+G93 Z=-Head_Height T1
+G18
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=5
+PlaneTransfer
+G0 X225 Y4.8 Z28
+G1 X225 Y19.8 Z-57.5 A-90 F8000
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+M14
+G1 X227.5 Z-57.5
+G2 I0 K2.5 X230 Z-55
+G1 X230 Z-40
+G1 X170 Z-40
+G1 X170 Z-70
+G1 X230 Z-70
+G1 X230 Z-55
+M15
+G253 E0 F="2=1:1:28"
+G40 E1
+
+G4 X2
+N2001
+BlockID=2001
+PathLength=166.43
+S2
+G93 Z=-Head_Height T1
+G18
+G61
+PM=Flange_PM CM=Flange_CM
+EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=5
+PlaneTransfer
+G1 X230 Y4.8 Z28 A0 F8000
+G0 X20 Y-291.2
+G1 X20 Y-306.2 Z-52.5 A90 F8000
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+M14
+G1 X17.5 Z-52.5
+G2 I0 K-2.5 X15 Z-55
+G1 X15 Z-70
+G1 X65 Z-70
+G1 X65 Z-40
+G1 X15 Z-40
+G1 X15 Z-55
+M15
+G253 E0 F="2=1:1:54"
+G40 E1
+
+G4 X2
+N3001
+BlockID=3001
+PathLength=306.43
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM
+EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=5
+PlaneTransfer
+G1 X15 Y-291.2 Z28 A0 F8000
+G0 X145 Y-218.862
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+M14
+G1 X147.5 Y-218.862
+G3 I0 J2.5 X150 Y-216.362
+G1 X150 Y-191.362
+G1 X50 Y-191.362
+G1 X50 Y-241.362
+G1 X150 Y-241.362
+G1 X150 Y-216.362
+M15
+G253 E0 F="2=1:1:100"
+G40 E1
+
+
+N10000
+EndOfJob
+G99
