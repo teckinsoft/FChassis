@@ -214,8 +214,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       mProcess = new Processor (this.Dispatcher);
       mProcess.TriggerRedraw += TriggerRedraw;
       mProcess.SetSimulationStatus += status => SimulationStatus = status;
+
+      SettingServices.It.LoadSettings (MCSettings.It);
       if (String.IsNullOrEmpty (MCSettings.It.NCFilePath)) 
-         MCSettings.It.NCFilePath = Process?.Workpiece?.NCFilePath ?? "";
+        MCSettings.It.NCFilePath = Process?.Workpiece?.NCFilePath ?? "";
    }
 
    void OnSanityCheck (object sender, RoutedEventArgs e) {
