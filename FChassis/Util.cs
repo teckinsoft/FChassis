@@ -1550,7 +1550,7 @@ public static class Utils {
       List<List<GCodeSeg>> traces = [[], []];
 
       // Check if the workpiece needs a multipass cutting
-      if (MCSettings.It.EnableMultipassCut && gcodeGen.Process.Workpiece.Model.Bound.XMax - gcodeGen.Process.Workpiece.Model.Bound.XMin >= gcodeGen.MaxFrameLength)
+      if (gcodeGen.EnableMultipassCut && gcodeGen.Process.Workpiece.Model.Bound.XMax - gcodeGen.Process.Workpiece.Model.Bound.XMin >= gcodeGen.MaxFrameLength)
          gcodeGen.EnableMultipassCut = true;
       if (testing) gcodeGen.CreatePartition (gcodeGen.Process.Workpiece.Cuts, /*optimize*/false, gcodeGen.Process.Workpiece.Model.Bound);
       else {
@@ -1558,9 +1558,9 @@ public static class Utils {
          gcodeGen.SetFromMCSettings ();
          gcodeGen.ResetBookKeepers ();
       }
-      if (MCSettings.It.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
+      if (gcodeGen.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
          var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-            MCSettings.It.MaxFrameLength, MCSettings.It.MaximizeFrameLengthInMultipass);
+            gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
          mpc.ComputeQuasiOptimalCutScopes ();
          mpc.GenerateGCode ();
          traces[0] = mpc.CutScopeTraces[0][0];
@@ -1568,7 +1568,7 @@ public static class Utils {
       } else {
          var prevVal = gcodeGen.EnableMultipassCut;
          gcodeGen.EnableMultipassCut = false;
-         gcodeGen.CreatePartition (gcodeGen.Process.Workpiece.Cuts, MCSettings.It.OptimizePartition, gcodeGen.Process.Workpiece.Model.Bound);
+         gcodeGen.CreatePartition (gcodeGen.Process.Workpiece.Cuts, gcodeGen.OptimizePartition, gcodeGen.Process.Workpiece.Model.Bound);
          gcodeGen.GenerateGCode (0);
          gcodeGen.GenerateGCode (1);
          traces[0] = gcodeGen.CutScopeTraces[0][0];
