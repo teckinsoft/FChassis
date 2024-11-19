@@ -80,6 +80,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             LoadPart (openFileDialog.FileName);
       }
    }
+
    void OnMenuImportFile (object sender, RoutedEventArgs e) {
       OpenFileDialog openFileDialog = new () {
          Filter = "GCode Files (*.din)|*.din|All files (*.*)|*.*",
@@ -95,6 +96,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          }
       }
    }
+
    void OnUnbendExportDXF (object sender, RoutedEventArgs e) {
       SaveFileDialog saveFileDialog = new () {
          Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",

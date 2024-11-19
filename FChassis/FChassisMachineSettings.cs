@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.IO;
 
 namespace FChassis;
-
 /// <summary>All fields that can be set through the Options/Settings dialog</summary>
 public class MCSettings : INotifyPropertyChanged {
    #region Constructors
@@ -143,88 +142,200 @@ public class MCSettings : INotifyPropertyChanged {
    public double Standoff { get => mStandoff; set => SetProperty (ref mStandoff, value); }
    double mStandoff;
 
-   public EKind[] ToolingPriority { get => mToolingPriority; set => SetProperty (ref mToolingPriority, value); }
+   public EKind[] ToolingPriority { 
+      get => mToolingPriority; 
+      set => SetProperty (ref mToolingPriority, value); }
    EKind[] mToolingPriority;
-   public double MarkTextPosX { get => mMarkTextPosX; set => SetProperty (ref mMarkTextPosX, value); }
+
+   public double MarkTextPosX { 
+      get => mMarkTextPosX; 
+      set => SetProperty (ref mMarkTextPosX, value); }
    double mMarkTextPosX;
-   public double MarkTextPosY { get => mMarkTextPosY; set => SetProperty (ref mMarkTextPosY, value); }
+
+   public double MarkTextPosY { 
+      get => mMarkTextPosY; 
+      set => SetProperty (ref mMarkTextPosY, value); }
    double mMarkTextPosY;
-   public string MarkText { get => mMarkText; set => SetProperty (ref mMarkText, value); }
+
+   public string MarkText { 
+      get => mMarkText; 
+      set => SetProperty (ref mMarkText, value); }
    string mMarkText;
-   public ERotate MarkAngle { get => mMarkAngle;  set => SetProperty (ref mMarkAngle, value);  }
+
+   public ERotate MarkAngle { 
+      get => mMarkAngle;  
+      set => SetProperty (ref mMarkAngle, value);  }
    ERotate mMarkAngle = ERotate.Rotate0;
-   public bool OptimizeSequence { get => mOptimizeSequence; set => SetProperty (ref mOptimizeSequence, value); }
+
+   public bool OptimizeSequence { 
+      get => mOptimizeSequence; 
+      set => SetProperty (ref mOptimizeSequence, value); }
    bool mOptimizeSequence = false;
-   public int ProgNo { get => mProgNo; set => SetProperty (ref mProgNo, value); }
+   
+   public int ProgNo { 
+      get => mProgNo; 
+      set => SetProperty (ref mProgNo, value); }
    int mProgNo = 1;
+   
    public string NCFilePath {
-      get { return mNCFilePath; }
-      set {
-         SetProperty (ref mNCFilePath, value);
-      }
+      get => mNCFilePath;
+      set => SetProperty (ref mNCFilePath, value);
    }
    string mNCFilePath;
-   public double SafetyZone { get=> mSafetyZone; set => SetProperty (ref mSafetyZone, value); }
+
+   public double SafetyZone { 
+      get=> mSafetyZone; 
+      set => SetProperty (ref mSafetyZone, value); }
    double mSafetyZone;
-   public uint SerialNumber { get=> mSerialNumber; set => SetProperty (ref mSerialNumber, value); }
+
+   public uint SerialNumber { 
+      get=> mSerialNumber; 
+      set => SetProperty (ref mSerialNumber, value); }
    uint mSerialNumber;
-   public bool SyncHead { get=>mSyncHead; set => SetProperty (ref mSyncHead, value); }
+
+   public bool SyncHead { 
+      get=>mSyncHead; 
+      set => SetProperty (ref mSyncHead, value); }
    bool mSyncHead;
-   public bool UsePingPong { get=> mUsePingPong; set => SetProperty (ref mUsePingPong, value); }
+
+   public bool UsePingPong { 
+      get=> mUsePingPong; 
+      set => SetProperty (ref mUsePingPong, value); }
    bool mUsePingPong = true;
-   public PartConfigType PartConfig { get => mPartConfig; set => SetProperty (ref mPartConfig, value); }
+
+   public PartConfigType PartConfig { 
+      get => mPartConfig; 
+      set => SetProperty (ref mPartConfig, value); }
    PartConfigType mPartConfig;
-   public bool OptimizePartition { get=> mOptimizePartition; set => SetProperty (ref mOptimizePartition, value); }
+
+   public bool OptimizePartition { 
+      get=> mOptimizePartition; 
+      set => SetProperty (ref mOptimizePartition, value); }
    bool mOptimizePartition;
-   public bool RotateX180 { get=> mRotateX180; set => SetProperty (ref mRotateX180, value); }
+
+   public bool RotateX180 { 
+      get=> mRotateX180; 
+      set => SetProperty (ref mRotateX180, value); }
    bool mRotateX180;
-   public bool ShowToolingNames { get => mShowToolingNames; set => SetProperty(ref mShowToolingNames, value); }
+
+   public bool ShowToolingNames { 
+      get => mShowToolingNames; 
+      set => SetProperty(ref mShowToolingNames, value); }
    bool mShowToolingNames;
-   public bool IncludeFlange { get=>mIncludeFlange; set => SetProperty (ref mIncludeFlange, value); }
+
+   public bool IncludeFlange { 
+      get=>mIncludeFlange; 
+      set => SetProperty (ref mIncludeFlange, value); }
    bool mIncludeFlange;
-   public bool IncludeCutout { get=> mIncludeCutout; set => SetProperty (ref mIncludeCutout, value); }
+
+   public bool IncludeCutout { 
+      get=> mIncludeCutout; 
+      set => SetProperty (ref mIncludeCutout, value); }
    bool mIncludeCutout;
-   public bool IncludeWeb { get=> mIncludeWeb; set => SetProperty (ref mIncludeWeb, value); }
+
+   public bool IncludeWeb { 
+      get=> mIncludeWeb; 
+      set => SetProperty (ref mIncludeWeb, value); }
    bool mIncludeWeb;
-   public double PartitionRatio { get => mPartitionRatio; set => SetProperty (ref mPartitionRatio, value); }
+
+   public double PartitionRatio { 
+      get => mPartitionRatio; 
+      set => SetProperty (ref mPartitionRatio, value); }
    double mPartitionRatio;
-   public double ProbeMinDistance { get=>mProbeMinDistance; set => SetProperty (ref mProbeMinDistance, value); }
+
+   public double ProbeMinDistance { 
+      get=>mProbeMinDistance; 
+      set => SetProperty (ref mProbeMinDistance, value); }
    double mProbeMinDistance;
-   public double NotchApproachLength { get=> mNotchApproachLength; set => SetProperty (ref mNotchApproachLength, value); }
+
+   public double NotchApproachLength { 
+      get=> mNotchApproachLength; 
+      set => SetProperty (ref mNotchApproachLength, value); }
    double mNotchApproachLength;
-   public double ApproachLength { get => mApproachLength; set => SetProperty (ref mApproachLength, value); }
+
+   public double ApproachLength { 
+      get => mApproachLength; 
+      set => SetProperty (ref mApproachLength, value); }
    double mApproachLength;
-   public double NotchWireJointDistance { get=> mNotchWireDistance; set => SetProperty (ref mNotchWireDistance, value); }
+
+   public double NotchWireJointDistance { 
+      get=> mNotchWireDistance; 
+      set => SetProperty (ref mNotchWireDistance, value); }
    double mNotchWireDistance;
-   public double FlexOffset { get => mFlexOffset; set => SetProperty (ref mFlexOffset, value); }
+   
+   public double FlexOffset { 
+      get => mFlexOffset; 
+      set => SetProperty (ref mFlexOffset, value); }
    double mFlexOffset;
-   public double StepLength { get => mLengthPerStep; set => SetProperty (ref mLengthPerStep, value); }
+   
+   public double StepLength { 
+      get => mLengthPerStep; 
+      set => SetProperty (ref mLengthPerStep, value); }
    double mLengthPerStep = 1.0;
-   public bool EnableMultipassCut { get=> mEnableMultipassCut; set => SetProperty (ref mEnableMultipassCut, value); }
+   
+   public bool EnableMultipassCut { 
+      get=> mEnableMultipassCut; 
+      set => SetProperty (ref mEnableMultipassCut, value); }
    bool mEnableMultipassCut;
-   public double MaxFrameLength { get => mMaxFrameLength; set => SetProperty (ref mMaxFrameLength, value); }
+   
+   public double MaxFrameLength { 
+      get => mMaxFrameLength; 
+      set => SetProperty (ref mMaxFrameLength, value); }
    double mMaxFrameLength;
-   public bool MaximizeFrameLengthInMultipass { get=> mMazimizeFrameLengthInMultipass; set => SetProperty (ref mMazimizeFrameLengthInMultipass, value); }
+   
+   public bool MaximizeFrameLengthInMultipass { 
+      get=> mMazimizeFrameLengthInMultipass; 
+      set => SetProperty (ref mMazimizeFrameLengthInMultipass, value); }
    bool mMazimizeFrameLengthInMultipass;
-   public bool CutHoles { get => mCutHoles; set => SetProperty (ref mCutHoles, value); }
+   
+   public bool CutHoles { 
+      get => mCutHoles; 
+      set => SetProperty (ref mCutHoles, value); }
    bool mCutHoles;
-   public bool CutNotches { get => mCutNotches; set => SetProperty (ref mCutNotches, value); }
+
+   public bool CutNotches { 
+      get => mCutNotches; 
+      set => SetProperty (ref mCutNotches, value); }
    bool mCutNotches;
-   public bool CutCutouts { get => mCutCutouts; set => SetProperty (ref mCutCutouts, value); }
+
+   public bool CutCutouts { 
+      get => mCutCutouts; 
+      set => SetProperty (ref mCutCutouts, value); }
    bool mCutCutouts;
-   public bool CutMarks { get => mCutMarks; set => SetProperty (ref mCutMarks, value); }
+   
+   public bool CutMarks { 
+      get => mCutMarks; 
+      set => SetProperty (ref mCutMarks, value); }
    bool mCutMarks;
-   public double MinThresholdForPartition { get => mMinThresholdForPartition; set => SetProperty (ref mMinThresholdForPartition, value); }
+   
+   public double MinThresholdForPartition { 
+      get => mMinThresholdForPartition; 
+      set => SetProperty (ref mMinThresholdForPartition, value); }
    double mMinThresholdForPartition;
-   public double MinNotchLengthThreshold { get => mMinNotchLengthThreshold; set => SetProperty (ref mMinNotchLengthThreshold, value); }
+   
+   public double MinNotchLengthThreshold { 
+      get => mMinNotchLengthThreshold; 
+      set => SetProperty (ref mMinNotchLengthThreshold, value); }
    double mMinNotchLengthThreshold;
-   public string DINFilenameSuffix { get => mDINFilenameSuffix; set => SetProperty (ref mDINFilenameSuffix, value); }
+
+   public string DINFilenameSuffix { 
+      get => mDINFilenameSuffix; 
+      set => SetProperty (ref mDINFilenameSuffix, value); }
    string mDINFilenameSuffix;
-   public string WorkpieceOptionsFilename { get => mWorkpieceOptionsFilename; set => SetProperty (ref mWorkpieceOptionsFilename, value); }
+   
+   public string WorkpieceOptionsFilename { 
+      get => mWorkpieceOptionsFilename; 
+      set => SetProperty (ref mWorkpieceOptionsFilename, value); }
    string mWorkpieceOptionsFilename;
-   public MachineType Machine { get => mMachine; set => SetProperty (ref mMachine, value); }
+   
+   public MachineType Machine { 
+      get => mMachine; 
+      set => SetProperty (ref mMachine, value); }
    MachineType mMachine;
-   public double DeadbandWidth { get => mDeadbandWidth; set=>SetProperty(ref mDeadbandWidth, value); }
+
+   public double DeadbandWidth { 
+      get => mDeadbandWidth; 
+      set=>SetProperty(ref mDeadbandWidth, value); }
    double mDeadbandWidth;
    #endregion
 

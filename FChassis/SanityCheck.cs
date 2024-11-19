@@ -11,7 +11,6 @@ namespace FChassis;
 /// want to ensure that as we make changes to the code generator, the generated code does
 /// not start varying
 public class SanityCheck (Processor process) {
-
    #region Contained Entities
    public Processor Processor { get; private set; } = process;
    public Part Part { get; private set; }
@@ -19,12 +18,8 @@ public class SanityCheck (Processor process) {
    #endregion
 
    #region Properties
-   public List<SanityTestData> SanityTests { get; set; } = [];
-   public List<(string DINFileHead1, string DINFileHead2)> mDINFiles = [];
-   public List<(string DINFileHead1, string DINFileHead2)> DINFiles {
-      get => mDINFiles;
-      set => mDINFiles = value;
-   }
+   public List<SanityTestData> SanityTests = [];
+   public List<(string DINFileHead1, string DINFileHead2)> DINFiles = [];
    #endregion
 
    #region Action Methods
