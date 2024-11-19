@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.IO;
-using System.Windows;
 using FChassis.GCodeGen;
 using FChassis.Processes;
 using Flux.API;
+
 namespace FChassis;
 
 /// <summary>Implements a very basic sanity check</summary>
@@ -22,12 +22,8 @@ public class SanityCheck (Processor process) {
    public List<SanityTestData> SanityTests { get; set; } = [];
    public List<(string DINFileHead1, string DINFileHead2)> mDINFiles = [];
    public List<(string DINFileHead1, string DINFileHead2)> DINFiles {
-      get {
-         return mDINFiles;
-      }
-      set {
-         mDINFiles = value;
-      }
+      get => mDINFiles;
+      set => mDINFiles = value;
    }
    #endregion
 
@@ -39,12 +35,17 @@ public class SanityCheck (Processor process) {
    /// <exception cref="Exception">An exception is thrown if it is invalid</exception>
    public void LoadPart (string partName) {
       Part = Part.Load (partName);
-      if (Part.Info.MatlName == "NONE") Part.Info.MatlName = "1.0038";
+      if (Part.Info.MatlName == "NONE") 
+         Part.Info.MatlName = "1.0038";
+
       if (Part.Model == null) {
          if (Part.Dwg != null) Part.FoldTo3D ();
-         else if (Part.SurfaceModel != null) Part.SheetMetalize ();
-         else throw new Exception ("Invalid part");
+         else if (Part.SurfaceModel != null) 
+            Part.SheetMetalize ();
+         else 
+            throw new Exception ("Invalid part");
       }
+
       Processor.Workpiece = new Workpiece (Part.Model, Part);
    }
 
@@ -63,9 +64,15 @@ public class SanityCheck (Processor process) {
    /// <c>False</c> otherwise</returns>
    /// <exception cref="ArgumentNullException"></exception>
    /// <exception cref="Exception"></exception>
-   public List<bool> Run (List<SanityTestData> testList, string baselineDir, ArgumentNullException argumentNullException, bool forceRun = false) {
-      if (GCodeGen == null) throw argumentNullException;
-      if (testList.Count == 0) throw new Exception ("SanityCheck.Run: testList is empty");
+   public List<bool> Run (List<SanityTestData> testList, string baselineDir, 
+                          ArgumentNullException argumentNullException, 
+                          bool forceRun = false) {
+      if (GCodeGen == null) 
+         throw argumentNullException;
+
+      if (testList.Count == 0) 
+         throw new Exception ("SanityCheck.Run: testList is empty");
+
       int idx = 0;
       DINFiles = Enumerable.Repeat ((string.Empty, string.Empty), testList.Count).ToList ();
       List<bool> runStats = Enumerable.Repeat (false, testList.Count).ToList ();
@@ -78,9 +85,15 @@ public class SanityCheck (Processor process) {
             // Part loading, aligning, and cutting
             LoadPart (test.FxFileName);
             Processor.Workpiece.Align ();
-            if (test.MCSettings.CutHoles) Processor.Workpiece.DoAddHoles ();
-            if (test.MCSettings.CutMarks) Processor.Workpiece.DoTextMarking ();
-            if (test.MCSettings.CutNotches || test.MCSettings.CutCutouts) Processor.Workpiece.DoCutNotchesAndCutouts ();
+            if (test.MCSettings.CutHoles) 
+               Processor.Workpiece.DoAddHoles ();
+
+            if (test.MCSettings.CutMarks) 
+               Processor.Workpiece.DoTextMarking ();
+
+            if (test.MCSettings.CutNotches || test.MCSettings.CutCutouts) 
+               Processor.Workpiece.DoCutNotchesAndCutouts ();
+
             Processor.Workpiece.DoSorting ();
 
             // Compute G Code
@@ -88,8 +101,10 @@ public class SanityCheck (Processor process) {
             var headData = ((GCodeGen.DINFileNameHead1, GCodeGen.DINFileNameHead2));
             DINFiles[idx] = headData;
             var diff = Diff (baselineDir, idx, launchWinmerge: false);
-            if (!diff) runStats[idx] = true;
+            if (!diff) 
+               runStats[idx] = true;
          } catch (Exception) { }
+
          idx++;
       }
       return runStats;
@@ -116,10 +131,13 @@ public class SanityCheck (Processor process) {
       string head1DINBaselineAbsFile = "", head2DINBaselineAbsFile = "";
       if (!string.IsNullOrEmpty (DINFiles[index].DINFileHead1))
          head1DINBaselineAbsFile = Path.Combine (baselineDir, "Head1", DINFilenameHead1);
+
       if (!string.IsNullOrEmpty (DINFiles[index].DINFileHead2))
          head2DINBaselineAbsFile = Path.Combine (baselineDir, "Head2", DINFilenameHead2);
 
-      var res = CheckDINs (head1DINBaselineAbsFile, DINFiles[index].DINFileHead1, head2DINBaselineAbsFile, DINFiles[index].DINFileHead2, launchWinmerge);
+      var res = CheckDINs (head1DINBaselineAbsFile, DINFiles[index].DINFileHead1, 
+                           head2DINBaselineAbsFile, DINFiles[index].DINFileHead2, 
+                           launchWinmerge);
       return res;
    }
 
@@ -133,16 +151,28 @@ public class SanityCheck (Processor process) {
    /// <param name="testDINFileHead2">Test file Head2</param>
    /// <param name="launchWinmerge">Optional parameter to launch WinMerge. This is <c>False</c> by default</param>
    /// <returns>Returns <c>false</c> if there are no changes between the files and the baseline; otherwise, returns <c>true</c>. </returns>
-   bool CheckDINs (string baselineDINFileHead1, string testDINFileHead1, string baselineDINFileHead2, string testDINFileHead2, bool launchWinmerge = false) {
-      if (!System.IO.File.Exists (baselineDINFileHead1) && System.IO.File.Exists (testDINFileHead1)) System.IO.File.Copy (testDINFileHead1, baselineDINFileHead1);
-      if (!System.IO.File.Exists (baselineDINFileHead2) && System.IO.File.Exists (testDINFileHead2)) System.IO.File.Copy (testDINFileHead2, baselineDINFileHead2);
-      string reftextH1 = System.IO.File.ReadAllText (baselineDINFileHead1), testtextH1 = System.IO.File.ReadAllText (testDINFileHead1);
-      string reftextH2 = System.IO.File.ReadAllText (baselineDINFileHead2), testtextH2 = System.IO.File.ReadAllText (testDINFileHead2);
+   bool CheckDINs (string baselineDINFileHead1, string testDINFileHead1, 
+                   string baselineDINFileHead2, string testDINFileHead2, 
+                   bool launchWinmerge = false) {
+      if (!System.IO.File.Exists (baselineDINFileHead1) 
+            && System.IO.File.Exists (testDINFileHead1)) 
+         System.IO.File.Copy (testDINFileHead1, baselineDINFileHead1);
+
+      if (!System.IO.File.Exists (baselineDINFileHead2) 
+          && System.IO.File.Exists (testDINFileHead2)) 
+         System.IO.File.Copy (testDINFileHead2, baselineDINFileHead2);
+
+      string reftextH1 = System.IO.File.ReadAllText (baselineDINFileHead1), 
+             testtextH1 = System.IO.File.ReadAllText (testDINFileHead1),
+             reftextH2 = System.IO.File.ReadAllText (baselineDINFileHead2), 
+             testtextH2 = System.IO.File.ReadAllText (testDINFileHead2);
       bool res = false;
+
       if (reftextH1 != testtextH1 || reftextH2 != testtextH2) {
          res = true;
          if (launchWinmerge)
-            DoDINCompare (baselineDINFileHead1, testDINFileHead1, baselineDINFileHead2, testDINFileHead2);
+            DoDINCompare (baselineDINFileHead1, testDINFileHead1, 
+                          baselineDINFileHead2, testDINFileHead2);
       }
       return res;
    }
@@ -172,6 +202,7 @@ public class SanityCheck (Processor process) {
             RedirectStandardOutput = true,
             CreateNoWindow = true
          };
+
          try {
             using (Process process = Process.Start (startInfo)) {
                process.WaitForExit ();
@@ -187,6 +218,7 @@ public class SanityCheck (Processor process) {
          } catch (Exception) {
             throw new Exception ("WINMERGE_LAUNCH_FAILED");
          }
+
          startInfo = new () {
             FileName = winmergePath,
             Arguments = $"/e /u /dl \"Reference\" /dr \"Test\" \"{reference2}\" \"{testfile2}\"",
@@ -194,6 +226,7 @@ public class SanityCheck (Processor process) {
             RedirectStandardOutput = true,
             CreateNoWindow = true
          };
+
          try {
             using (Process process = Process.Start (startInfo)) {
                process.WaitForExit ();
@@ -209,6 +242,7 @@ public class SanityCheck (Processor process) {
             throw new Exception ("WINMERGE_LAUNCH_FAILED");
          }
       }
+
       return res;
    }
 
@@ -232,8 +266,10 @@ public class SanityCheck (Processor process) {
             break;
          }
       }
+
       if (winMergePath == null)
          throw new Exception ("WINMERGE_NOT_FOUND");
+
       return winMergePath;
    }
    #endregion

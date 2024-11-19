@@ -1,7 +1,6 @@
-using System.ComponentModel;
 using System.Windows;
-using System.Windows.Input;
 using Microsoft.Win32;
+
 namespace FChassis;
 using static MCSettings.EHeads;
 
@@ -11,6 +10,7 @@ public partial class SettingsDlg : Window {
    public event OnOkActionDelegate OnOkAction;
    public MCSettings Settings { get; private set; }
    public bool IsModified { get; private set; }
+
    public SettingsDlg (MCSettings set) {
       InitializeComponent ();
       SettingServices.It.LoadSettings (set);
@@ -32,6 +32,7 @@ public partial class SettingsDlg : Window {
       tbMarkText.Bind (() => Settings.MarkText, s => { Settings.MarkText = s; IsModified = true; });
       tbMarkTextPositionX.Bind (() => Settings.MarkTextPosX, f => { Settings.MarkTextPosX = f.Clamp (0.05, 100000); IsModified = true; });
       tbMarkTextPositionY.Bind (() => Settings.MarkTextPosY, f => { Settings.MarkTextPosY = f.Clamp (0.05, 100000); IsModified = true; });
+
       //lbPriority.Bind (btnPrioUp, btnPrioDown, () => Settings.ToolingPriority, a => Settings.ToolingPriority = [.. a.OfType<EKind> ()]);
       rbBoth.Bind (() => Settings.Heads == Both, () => { Settings.Heads = Both; IsModified = true; });
       rbLeft.Bind (() => Settings.Heads == MCSettings.EHeads.Left,
@@ -56,6 +57,7 @@ public partial class SettingsDlg : Window {
       cbShowTlgNames.Bind (() => Settings.ShowToolingNames, b => { Settings.ShowToolingNames = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
+
       chbMPC.Bind (() => {
          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
          rbMinNotchCuts.IsEnabled = Settings.EnableMultipassCut;
@@ -66,6 +68,7 @@ public partial class SettingsDlg : Window {
           tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled = rbMinNotchCuts.IsEnabled = b; // Enable/disable based on the value
           IsModified = true;
        });
+
       tbMaxFrameLength.Bind (() => Settings.MaxFrameLength, b => { Settings.MaxFrameLength = b; IsModified = true; });
       tbDeadBandWidth.Bind (() => Settings.DeadbandWidth, b => { Settings.DeadbandWidth = b; IsModified = true; });
       rbMaxFrameLength.Bind (() => Settings.MaximizeFrameLengthInMultipass,
@@ -98,8 +101,10 @@ public partial class SettingsDlg : Window {
             IsModified = true;
          }
       });
+
       btnOK.Bind (OnOk);
    }
+
    void OnOk () {
       OnOkAction?.Invoke ();
       Close ();

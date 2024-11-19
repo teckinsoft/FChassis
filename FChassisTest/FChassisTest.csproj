@@ -2,17 +2,19 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-	  <TargetFramework>net8.0-windows</TargetFramework>
+	<TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>
-	  <UseWPF>true</UseWPF>
-	  <OutDir>C:\FluxSDK\Bin</OutDir>
-	  <Company>TeckinSoft</Company>
+    <BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>	
+	<UseWPF>true</UseWPF>
+	
+	<OutDir>C:\FluxSDK\Bin</OutDir>
+	  
+	<Company>TeckinSoft</Company>
 
-	  <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
-	  <BaseOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\</BaseOutputPath>
-	  <PackageOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\Packages</PackageOutputPath>
+	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+	<BaseOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\</BaseOutputPath>
+	<PackageOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\Packages</PackageOutputPath>
   </PropertyGroup>
 
   <ItemGroup>

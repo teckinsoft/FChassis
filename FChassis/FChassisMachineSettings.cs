@@ -12,6 +12,7 @@ public class MCSettings : INotifyPropertyChanged {
    // Singleton instance
    public static MCSettings It => sIt ??= new ();
    static MCSettings sIt;
+
    // Notify event, to bind the changes with SettingsDlg
    public event PropertyChangedEventHandler PropertyChanged;
 
@@ -38,7 +39,9 @@ public class MCSettings : INotifyPropertyChanged {
       mRotateX180 = false;
       if (System.IO.Directory.Exists ("W:\\FChassis\\Sample"))
          NCFilePath = "W:\\FChassis\\Sample";
-      else NCFilePath = "";
+      else
+         NCFilePath = "";
+
       MinThresholdForPartition = 585.0;
       MinNotchLengthThreshold = 210;
       DINFilenameSuffix = "";
@@ -49,6 +52,7 @@ public class MCSettings : INotifyPropertyChanged {
 
    #region Delegates and Events
    public delegate void SettingValuesChangedEventHandler ();
+   
    // Any changes to the properties here will also change 
    // elsewhere where the OnSettingValuesChangedEvent is subscribed with
    public event SettingValuesChangedEventHandler OnSettingValuesChangedEvent;
@@ -58,12 +62,14 @@ public class MCSettings : INotifyPropertyChanged {
    public enum ERotate {
       Rotate0, Rotate90, Rotate180, Rotate270
    }
+   
    public enum EHeads {
       Left,
       Right,
       Both,
       None
    }
+
    public enum PartConfigType {
       LHComponent,
       RHComponent
@@ -236,6 +242,7 @@ public class MCSettings : INotifyPropertyChanged {
          // Converts Enums to their string representation
          Converters = { new JsonStringEnumConverter () } 
       };
+
       var json = JsonSerializer.Serialize (It, mJSONWriteOptions);
       File.WriteAllText (filePath, json);
    }
@@ -247,6 +254,7 @@ public class MCSettings : INotifyPropertyChanged {
             // Converts Enums from their string representation
             Converters = { new JsonStringEnumConverter () } 
          };
+
          var json = File.ReadAllText (filePath);
          var settings = JsonSerializer.Deserialize<MCSettings> (json, mJSONReadOptions);
          if (settings != null) {
