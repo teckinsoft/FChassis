@@ -45,6 +45,7 @@ namespace FChassis {
             }
          }
       }
+
       public string FxFilePath { get; set; } = mDefaultFxFileDir;
       public string BaselineDir { get; set; } = mDefaultBaselineDir;
       public Processor Processor { get; set; }
@@ -68,15 +69,17 @@ namespace FChassis {
          TestSuiteDir = mDefaultTestSuiteDir;
          SanityCheck = new (Processor);
       }
-      void OnPropertyChanged ([CallerMemberName] string propertyName = null) {
-         PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
-      }
+
+      void OnPropertyChanged ([CallerMemberName] string propertyName = null) 
+         => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
+
       void OnAddTestButtonClick (object sender, RoutedEventArgs e) {
          // Open file dialog to select a JSON file
          OpenFileDialog openFileDialog = new () {
             Filter = "FX files (*.fx)|*.fx|All files (*.*)|*.*",
             InitialDirectory = FxFilePath
          };
+
          if (openFileDialog.ShowDialog () == true) {
             // Create Sanity test data object 
             var sanityTestData = new SanityTestData ();
@@ -96,6 +99,7 @@ namespace FChassis {
             if (SelectAllCheckBox.IsChecked == true) {
                newCheckBox.IsChecked = true;
             }
+
             Grid.SetRow (newCheckBox, newRowIdx);
             newCheckBox.Checked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
             newCheckBox.Unchecked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
@@ -109,6 +113,7 @@ namespace FChassis {
                Text = openFileDialog.FileName,
                Width = 220
             };
+
             Grid.SetRow (filePathTextBox, newRowIdx);
             Grid.SetColumn (filePathTextBox, 1);
             MainGrid.Children.Add (filePathTextBox);
@@ -146,7 +151,9 @@ namespace FChassis {
             MainGrid.Children.Add (statusEllipse);
 
             // Cache the created controls
-            cachedControls.Add ((newCheckBox, filePathTextBox, browseButton, settingsButton, gCodeButton, diffButton, statusEllipse));
+            cachedControls.Add ((newCheckBox, filePathTextBox, browseButton, 
+                                 settingsButton, gCodeButton, diffButton, 
+                                 statusEllipse));
             SanityTests.Add (sanityTestData);
 
             // Mark as dirty since changes were made
@@ -161,9 +168,8 @@ namespace FChassis {
          this.Close ();
       }
 
-      void OnDeleteButtonClick (object sender, RoutedEventArgs e) {
-         RemoveSanityTestRows ();
-      }
+      void OnDeleteButtonClick (object sender, RoutedEventArgs e)
+         => RemoveSanityTestRows ();
 
       void OnSelectFxFileButtonClick (int rowIndex) {
          // Handle Browse button click for the given row index
@@ -171,6 +177,7 @@ namespace FChassis {
             Filter = "FX files (*.fx)|*.fx|All files (*.*)|*.*",
             InitialDirectory = FxFilePath
          };
+
          if (openFileDialog.ShowDialog () == true) {
             FxFilePath = openFileDialog.FileName;
             cachedControls[rowIndex - mNFixedTopRows].textBox.Text = FxFilePath;
@@ -185,15 +192,17 @@ namespace FChassis {
          testData.ToRun = cachedControls[controlIndex].checkBox.IsChecked.Value;
          if (cachedControls[controlIndex].checkBox.IsChecked.Value == false && SelectAllCheckBox.IsChecked == true)
             SelectAllCheckBox.IsChecked = false;
+
          SanityTests[controlIndex] = testData;
          bool anyNoRuns = cachedControls.Any (cc => cc.checkBox.IsChecked == false);
-         if (!anyNoRuns) SelectAllCheckBox.IsChecked = true;
+         if (!anyNoRuns) 
+            SelectAllCheckBox.IsChecked = true;
+
          isDirty = true;
       }
 
-      void OnBrowseSuiteButtonClick (object sender, RoutedEventArgs e) {
-         MessageBox.Show ($"Select Sanity Tests Directory");
-      }
+      void OnBrowseSuiteButtonClick (object sender, RoutedEventArgs e)
+         => MessageBox.Show ($"Select Sanity Tests Directory");
 
       void OnClickSettingsButton (int rowIndex, SanityTestData sData) {
          // Create a new SettingsDlg instance with the settings
@@ -206,12 +215,12 @@ namespace FChassis {
 
             // Update the cached control if needed
             cachedControls[rowIndex - mNFixedTopRows] = (cachedControls[rowIndex - mNFixedTopRows].checkBox,
-                                            cachedControls[rowIndex - mNFixedTopRows].textBox,
-                                            cachedControls[rowIndex - mNFixedTopRows].browseButton,
-                                            cachedControls[rowIndex - mNFixedTopRows].settingsButton,
-                                            cachedControls[rowIndex - mNFixedTopRows].gCodeButton,
-                                            cachedControls[rowIndex - mNFixedTopRows].diffButton,
-                                            cachedControls[rowIndex - mNFixedTopRows].statEllipse);
+                                                         cachedControls[rowIndex - mNFixedTopRows].textBox,
+                                                         cachedControls[rowIndex - mNFixedTopRows].browseButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].settingsButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].gCodeButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].diffButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].statEllipse);
             if (settingsDialog.IsModified && !string.IsNullOrEmpty (TestFileName))
                //SaveToJson (TestFileName);
                SanityTests[rowIndex - mNFixedTopRows] = sData;
@@ -228,11 +237,14 @@ namespace FChassis {
       }
 
       void OnSaveTSuiteAsButtonClick (object sender, RoutedEventArgs e) {
-         if (SanityTests.Count == 0) return;
+         if (SanityTests.Count == 0) 
+            return;
+
          SaveFileDialog saveFileDialog = new () {
             Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
             InitialDirectory = TestSuiteDir
          };
+
          if (saveFileDialog.ShowDialog () == true) {
             SaveToJson (saveFileDialog.FileName);
             TestFileName = saveFileDialog.FileName;
@@ -245,10 +257,13 @@ namespace FChassis {
          mSelectedTestIndices.Clear ();
          List<SanityTestData> testDataList = [];
          for (int ii = 0; ii < SanityTests.Count; ii++) {
-            if (cachedControls[ii].checkBox.IsChecked == false) continue;
+            if (cachedControls[ii].checkBox.IsChecked == false) 
+               continue;
+
             testDataList.Add (SanityTests[ii]);
             mSelectedTestIndices.Add (ii);
          }
+
          var stats = RunTests (testDataList);
          UpdateRunStatus (mSelectedTestIndices, stats);
       }
@@ -273,25 +288,28 @@ namespace FChassis {
       void OnNewTSuiteButtonClick (object sender, RoutedEventArgs e) {
          if (isDirty) {
             MessageBoxResult result = MessageBox.Show ("Do you want to save before creating a new item?", "Save Confirmation",
-               MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                                                       MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+
             if (result == MessageBoxResult.Yes) {
                // Show Save File Dialog
                SaveFileDialog saveFileDialog = new () {
                   Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
                   InitialDirectory = TestSuiteDir
                };
+
                if (saveFileDialog.ShowDialog () == true) {
                   // Save logic here (not implemented)
                   // Assume successful save, proceed with removing rows
                   RemoveSanityTestRows (onlySelected: false);
                   SaveToJson (saveFileDialog.FileName);
                }
-            } else if (result == MessageBoxResult.No) {
-               // Proceed without saving
-               RemoveSanityTestRows ();
-            }
+            } else if (result == MessageBoxResult.No) 
+               RemoveSanityTestRows (); // Proceed without saving
+
             isDirty = false;
-         } else RemoveSanityTestRows ();
+         } else 
+            RemoveSanityTestRows ();
+
          ClearZombies ();
       }
 
@@ -301,9 +319,10 @@ namespace FChassis {
             Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
             InitialDirectory = TestSuiteDir
          };
-         if (openFileDialog.ShowDialog () == true) {
+
+         if (openFileDialog.ShowDialog () == true)
             LoadFromJson (openFileDialog.FileName);
-         }
+
          TestFileName = openFileDialog.FileName;
          this.Title = "Sanity Check " + TestFileName;
       }
@@ -311,14 +330,12 @@ namespace FChassis {
       void OnSelectAllCheckBoxClick (object sender, RoutedEventArgs e) {
          if (SelectAllCheckBox.IsChecked == true) {
             // Check all checkboxes
-            foreach (var (checkbox, _, _, _, _, _, _) in cachedControls) {
+            foreach (var (checkbox, _, _, _, _, _, _) in cachedControls)
                checkbox.IsChecked = true;
-            }
          } else {
             // Uncheck all checkboxes
-            foreach (var (checkbox, _, _, _, _, _, _) in cachedControls) {
+            foreach (var (checkbox, _, _, _, _, _, _) in cachedControls)
                checkbox.IsChecked = false;
-            }
          }
       }
 
@@ -331,6 +348,7 @@ namespace FChassis {
                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
                InitialDirectory = TestSuiteDir
             };
+
             if (saveFileDialog.ShowDialog () == true) {
                SaveToJson (saveFileDialog.FileName);
                isDirty = false; // Reset the dirty flag after saving
@@ -346,6 +364,7 @@ namespace FChassis {
             Text = initialText,
             Width = width
          };
+
          return filePathTextBox;
       }
 
@@ -358,6 +377,7 @@ namespace FChassis {
             Margin = new Thickness (5),
             Stroke = new SolidColorBrush (Colors.Black)
          };
+
          Grid.SetRow (statusEllipse, newRowIdx);
          Grid.SetColumn (statusEllipse, colIndex);
          return statusEllipse;
@@ -388,7 +408,7 @@ namespace FChassis {
          // If the test pres is modified and if the test was loaded (not cewly created)
          if (isDirty && !string.IsNullOrEmpty (TestFileName)) {
             MessageBoxResult result = MessageBox.Show ("Do you want to save before closing?", "Save Confirmation", 
-               MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                                                       MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes) {
                // Show Save File Dialog
                SaveFileDialog saveFileDialog = new () {
@@ -403,7 +423,8 @@ namespace FChassis {
                   TestFileName = saveFileDialog.FileName;
                   this.Close ();
                }
-            } else if (result == MessageBoxResult.No) this.Close ();
+            } else if (result == MessageBoxResult.No) 
+               this.Close ();
          }
       }
 
@@ -422,14 +443,12 @@ namespace FChassis {
       void RemoveRow (int rowIndex) {
          // Create a list of elements to remove to avoid modifying the collection while iterating
          var elementsToRemove = new List<UIElement> ();
-         foreach (UIElement element in MainGrid.Children) {
-            if (Grid.GetRow (element) == rowIndex) {
+         foreach (UIElement element in MainGrid.Children)
+            if (Grid.GetRow (element) == rowIndex)
                elementsToRemove.Add (element);
-            }
-         }
-         foreach (UIElement element in elementsToRemove) {
+
+         foreach (UIElement element in elementsToRemove)
             MainGrid.Children.Remove (element);
-         }
 
          // Remove the row definition
          MainGrid.RowDefinitions.RemoveAt (rowIndex);
@@ -444,6 +463,7 @@ namespace FChassis {
                Grid.SetRow (element, currentRow - 1);
             }
          }
+
          // Mark as dirty since changes were made
          isDirty = true;
       }
@@ -462,9 +482,11 @@ namespace FChassis {
             WriteIndented = true, // For pretty-printing the JSON
             Converters = { new JsonStringEnumConverter () } // Converts Enums to their string representation
          };
+
          var jsonObject = new {
             Tests = SanityTests
          };
+
          var json = JsonSerializer.Serialize (jsonObject, mJSONWriteOptions);
          File.WriteAllText (filePath, json);
       }
@@ -477,7 +499,9 @@ namespace FChassis {
          if (File.Exists (filePath)) {
             var json = File.ReadAllText (filePath);
             var jsonObject = JsonSerializer.Deserialize<JsonElement> (json, mJSONReadOptions);
-            if (jsonObject.TryGetProperty ("Tests", out JsonElement testsElement) && testsElement.ValueKind == JsonValueKind.Array) {
+
+            if (jsonObject.TryGetProperty ("Tests", out JsonElement testsElement) 
+                && testsElement.ValueKind == JsonValueKind.Array) {
                SanityTests.Clear ();
                cachedControls.Clear ();
                foreach (var element in testsElement.EnumerateArray ()) {
@@ -487,6 +511,7 @@ namespace FChassis {
                   // Create UI elements to match the loaded data, starting from row index 2 onwards
                   AddSanityTestRow (sanityTestData);
                }
+
                isDirty = false; // Reset the dirty flag after loading
             }
          }
@@ -501,8 +526,10 @@ namespace FChassis {
             Margin = new Thickness (5), IsChecked = sanityTestData.ToRun,
             HorizontalAlignment = HorizontalAlignment.Center
          };
+
          if (!sanityTestData.ToRun && SelectAllCheckBox.IsChecked == true)
             SelectAllCheckBox.IsChecked = false;
+
          newCheckBox.Checked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
          newCheckBox.Unchecked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
          Grid.SetRow (newCheckBox, newRowIdx);
@@ -547,7 +574,8 @@ namespace FChassis {
          MainGrid.Children.Add (statusEllipse);
 
          // Cache the created controls
-         cachedControls.Add ((newCheckBox, filePathTextBox, browseButton, settingsButton, gCodeButton, diffButton, statusEllipse));
+         cachedControls.Add ((newCheckBox, filePathTextBox, browseButton, 
+                              settingsButton, gCodeButton, diffButton, statusEllipse));
       }
       #endregion
    }

@@ -1,4 +1,5 @@
 ﻿using System.IO;
+
 namespace FChassis;
 public class SettingServices {
    private readonly string settingsFilePath;
@@ -15,9 +16,8 @@ public class SettingServices {
       if (!Directory.Exists (fChassisDrive)) {
          string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
          fChassisFolderPath = Path.Combine (userHomePath, "FChassis");
-      } else {
+      } else
          fChassisFolderPath = Path.Combine (fChassisDrive, "FChassis");
-      }
 
       // Define the full path to the settings file
       settingsFilePath = Path.Combine (fChassisFolderPath, "FChassis.User.Settings.JSON");
@@ -26,12 +26,15 @@ public class SettingServices {
       if (!Directory.Exists (fChassisFolderPath)) {
          Directory.CreateDirectory (fChassisFolderPath);
       }
+
       LeftToRightMachining = true;
    }
 
    public void SaveSettings (MCSettings settings, bool backupNew = false) {
-      if (backupNew) settings.SaveToJson (settingsFilePath+".bckup");
-      else settings.SaveToJson (settingsFilePath);
+      if (backupNew) 
+         settings.SaveToJson (settingsFilePath+".bckup");
+      else 
+         settings.SaveToJson (settingsFilePath);
    }
 
    public void LoadSettings (MCSettings settings) {

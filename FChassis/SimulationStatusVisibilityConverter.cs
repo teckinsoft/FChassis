@@ -1,5 +1,4 @@
 ﻿using FChassis.Processes;
-using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -23,6 +22,7 @@ public class SimulationStatusToVisibilityConverter : IValueConverter {
                break;
          }
       }
+
       return Visibility.Collapsed;
    }
 
