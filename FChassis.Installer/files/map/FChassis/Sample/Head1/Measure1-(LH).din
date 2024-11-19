@@ -1,0 +1,189 @@
+1(Measure1-(LH).din)
+N1
+CNC_ID=1
+Job_Length = 1200
+Job_Width = 300
+Job_Height = 80
+Job_Thickness = 8
+X_Partition = 600
+Job_O_Radius = 20
+Job_Type  = 1
+Marking_X_Pos = 700.4
+Marking_Y_Pos = 10
+Marking_Angle = 0
+G253 F="ModelTag:Deluxe" E0
+(BF-Soffset:S1, TF-Soffset:S2, WEB_BF-Soffset:S3, WEB_TF-Soffset:S4, Marking:S3)
+(Block No - BF:N1001~N1999, TF:N2001~N2999, WEB:N3001~N3999, Notch:N4001~N4999, CutOut:N5001~N5999)
+(BlockType - 0:Flange Holes, 1:Web Block with BF reference, -1:Web Block with TF reference, 2:Notch, 3:Cutout, 4:Marking)
+(PM:Pierce Method, CM:Cutting Method, EM:End Method, ZRH: Z/Y Retract Height)
+(M50 - Sync On command, only in Tandem job Programs)
+(Job_TYPE - 1:LH JOB, 2:RH_JOB)
+(X_Correction & YZ_Correction Limit +/-5mm)
+
+(---Don't alter above Parameters---)
+
+M50
+M15
+H=LaserTableID
+G61
+G40 E0
+
+(Cutting with head 1)
+(N1001 to N1001 in Bottom flange)
+(N2001 to N2001 in Top flange)
+(N3001 to N3001 in Web flange)
+
+
+(( **Tooling Name : Tooling-1 - Bottom - Hole** ))
+G253 E0 F="0=1:Measure1:605.8,305.39"
+G20 X=BlockID
+
+
+
+(( ** Tool Block Initialization ** ))
+START_X=15.000 END_X=65.000
+N1001
+BlockID=1001
+PathLength=148.60
+
+(( ** Machining on the Bottom Flange ** ))
+S1
+G93 Z=-Head_Height T1
+G18
+G61
+PM=Flange_PM CM=Flange_CM EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+PlaneTransfer
+G0 X17.929 Y-10.000 Z28.000 A0
+G1 X17.929 Y-10.000 Z-53.414 A90 F8000
+EndPlaneTransfer
+(-----CUTTING ON BOTTOM FLANGE-----)
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X17.929 Y-0.000 Z-53.414 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G3 I2.828 K-2.828 X17.929 Z-59.071
+G3 I7.071 K7.071 X25.000 Z-62.000
+G1 X65.000 Z-62.000 
+G1 X65.000 Z-47.000 
+G2 I0.000 K15.000 X50.000 Z-32.000
+G1 X15.000 Z-32.000 
+G1 X15.000 Z-52.000 
+G3 I10.000 K-0.000 X17.929 Z-59.071
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="2=1:1:25"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-2 - Top - Hole** ))
+G4 X2
+
+
+(( ** Tool Block Initialization ** ))
+START_X=170.000 END_X=230.000
+N2001
+BlockID=2001
+PathLength=168.60
+
+(( ** Machining on the Top Flange ** ))
+S2
+G93 Z=-Head_Height T1
+G18
+G61
+PM=Flange_PM CM=Flange_CM EM=Flange_EM ZRH=Flange_YRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+PlaneTransfer
+G1 X17.929 Y-10.000 Z28.000 A0 F8000
+G0 X188.500 Y310.000 Z28.000 A0
+G1 X188.500 Y310.000 Z-36.000 A-90 F8000
+EndPlaneTransfer
+(-----CUTTING ON TOP FLANGE-----)
+BlockType=0
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X188.500 Y300.000 Z-36.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G3 I4.000 K0.000 X192.500 Z-32.000
+G1 X215.000 Z-32.000 
+G2 I15.000 K0.000 X230.000 Z-47.000
+G1 X230.000 Z-62.000 
+G1 X180.000 Z-62.000 
+G3 I0.000 K10.000 X170.000 Z-52.000
+G1 X170.000 Z-32.000 
+G1 X192.500 Z-32.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="2=1:1:28"
+G40 E1
+
+
+
+(( **Tooling Name : Tooling-3 - Web - Hole** ))
+G4 X2
+
+
+(( ** Tool Block Initialization ** ))
+START_X=50.000 END_X=150.000
+N3001
+BlockID=3001
+PathLength=288.60
+
+(( ** Machining on the Web Flange ** ))
+S3
+G93 Z0 T1
+G17
+G61
+PM=Web_PM CM=Web_CM EM=Web_EM ZRH=Web_ZRH
+Update_Param
+Lead_In=F3)
+(( ** End - Tool Block Initialization ** ))
+
+PlaneTransfer
+G1 X192.500 Y310.000 Z28.000 A0 F8000
+G0 X54.000 Y79.000 Z28.000 A0
+G1 X54.000 Y79.000 Z18.000 A0 F8000
+EndPlaneTransfer
+(-----CUTTING ON WEB FLANGE-----)
+BlockType=1
+X_Correction=0
+YZ_Correction=0
+ToolCorrection
+
+G1 X54.000 Y79.000 Z8.000 F8000 ((Linear move to the start of tooling))
+(( ** Machining Block **))
+M14
+G3 I-0.000 J-4.000 X50.000 Y75.000
+G1 X50.000 Y55.000 
+G3 I10.000 J0.000 X60.000 Y45.000
+G1 X150.000 Y45.000 
+G1 X150.000 Y80.000 
+G2 I0.000 J15.000 X135.000 Y95.000
+G1 X50.000 Y95.000 
+G1 X50.000 Y75.000 
+M15
+
+(( ** Tooling Block Finalization ** )
+G253 E0 F="2=1:1:48"
+G40 E1
+
+
+N10000
+EndOfJob
+G99
