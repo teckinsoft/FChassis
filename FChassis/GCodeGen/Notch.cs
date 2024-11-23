@@ -694,8 +694,8 @@ public class Notch {
       List<NotchSequenceSection> reverseNotchSequences = [];
       for (int ii = 0; ii < notchIndexSequence.Count; ii++) {
          if (notchIndexSequence[ii].Index == -1) break;
-         if (prevIdxType == IndexType.Zero) throw new Exception ("Notch reached zero and then continuing. Wrong");
-         if (prevIdx == notchIndexSequence[ii].Index)
+         if (prevIdxType == IndexType.Zero && prevIdxType != IndexType.At25) throw new Exception ("Notch reached zero and then continuing. Wrong");
+         if (prevIdx == notchIndexSequence[ii].Index && prevIdx != 0 )
             throw new Exception ("Two notch sequence indices are the same. Wrong");
          int startIndex = -1;
          switch (notchIndexSequence[ii].Type) {
@@ -788,6 +788,16 @@ public class Notch {
             case IndexType.At50:
                if (!started) continue;
                break;
+            case IndexType.Zero:
+               if (!started) continue;
+               if (prevIdx != notchIndexSequence[ii].Index && notchIndexSequence[ii - 1].Index != mNotchIndices.segIndexAtWJTPost25pc &&
+                  notchIndexSequence[ii - 1].Index != mNotchIndices.segIndexAtWJTApproach &&
+                  notchIndexSequence[ii - 1].Type != IndexType.Flex1BeforeStart &&
+                  notchIndexSequence[ii - 1].Type != IndexType.Flex2BeforeStart) startIndex = prevIdx;
+               else startIndex = prevIdx - 1;
+               reverseNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index, NotchSectionType.MachineToolingReverse));
+               prevIdx = notchIndexSequence[ii].Index;
+               break;
             default:
                break;
          };
@@ -851,7 +861,8 @@ public class Notch {
       List<NotchSequenceSection> forwardNotchSequences = [];
       for (int ii = 0; ii < notchIndexSequence.Count; ii++) {
          if (notchIndexSequence[ii].Index == -1) continue;
-         if (prevIdx == notchIndexSequence[ii].Index)
+         if (prevIdxType == IndexType.Max && prevIdxType != IndexType.Post75) throw new Exception ("IndexType.Max is referred to by two entries");
+         if (prevIdx == notchIndexSequence[ii].Index && prevIdx != notchIndexSequence[^1].Index )
             throw new Exception ("Two notch sequence indices are the same. Wrong");
          int startIndex = -1;
          switch (notchIndexSequence[ii].Type) {
@@ -943,12 +954,18 @@ public class Notch {
 
             case IndexType.Max:
                if (!started) continue;
-               startIndex = prevIdx + 1;
+               if (notchIndexSequence.Last ().Index != prevIdx)
+                  startIndex = prevIdx + 1;
+               else startIndex = prevIdx;
                if (startIndex <= notchIndexSequence[ii].Index) {
                   forwardNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index, NotchSectionType.MachineToolingForward));
                   prevIdxType = notchIndexSequence[ii].Type;
-                  prevIdx = notchIndexSequence[ii].Index;
-               } else throw new Exception ("startIndex < notchIndexSequence[ii].Index is FALSE");
+               } else {
+                  if (notchIndexSequence[^2].Type != IndexType.Post75 && notchIndexSequence[^2].Type != IndexType.Flex1AfterEnd &&
+                     notchIndexSequence[^2].Type != IndexType.Flex2AfterEnd )
+                     forwardNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index, NotchSectionType.MachineToolingForward));
+               }
+               prevIdx = notchIndexSequence[ii].Index;
                break;
             default:
                break;
