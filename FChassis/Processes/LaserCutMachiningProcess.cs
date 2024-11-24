@@ -143,7 +143,7 @@ public class Processor : INotifyPropertyChanged {
    //public void ComputeGCode (bool testing = false, double ratio = 0.5) {
    public void ComputeGCode (bool testing = false) {
       ClearZombies ();
-      mTraces = Utils.ComputeGCode(mGCodeGenerator, testing);
+      mTraces = Utils.ComputeGCode (mGCodeGenerator, testing);
    }
    #endregion
 
@@ -189,6 +189,12 @@ public class Processor : INotifyPropertyChanged {
    void RewindEnumerator (int head) {
       mNextXFormIndex[head].wayPointIndex = 0;
       mNextXFormIndex[head].gCodeSegIndex = 0;
+      mWayPoints = new List<Tuple<Point3, Vector3>>[2];
+      SetCutScopeIndex (0);
+      if (CutScopeTraces.Count > 0) {
+         mTraces[0] = CutScopeTraces[0][0];
+         mTraces[1] = CutScopeTraces[0][1];
+      }
    }
 
    XForm4 mTransform0, mTransform1;
@@ -204,17 +210,25 @@ public class Processor : INotifyPropertyChanged {
          }
 
          if (mTransform0 == null && mTransform1 == null && SimulationStatus != ESimulationStatus.NotRunning) {
-            // If MUltipass
+            // If Multipass
             if (CutScopeTraces.Count > 1 && GetCutScopeIndex () + 1 < CutScopeTraces.Count) {
+               
+               // Safe incrementor
                IncrementCutScopeIndex ();
                int csIdx = GetCutScopeIndex ();
+               
+               // Reset enumerator
                RewindEnumerator (0);
                RewindEnumerator (1);
+
+               // Rewind will reset everything. So
+               // The cutscope index needs to be restored
+               SetCutScopeIndex (csIdx);
                if (head == 3) {
                   mTraces[0] = CutScopeTraces[csIdx][0];
                   mTraces[1] = CutScopeTraces[csIdx][1];
                } else {
-                  mTraces[head] = CutScopeTraces[mCutScopeIndex][head];
+                  mTraces[head] = CutScopeTraces[GetCutScopeIndex ()][head];
                }
                mMachiningTool.Draw (mTransform0, Utils.LHToolColor, mTransform1, Utils.RHToolColor, mDispatcher);
                return; // Exit the loop after drawing
@@ -244,7 +258,7 @@ public class Processor : INotifyPropertyChanged {
             }
          } else {
             mMachiningTool.Draw (mTransform0, Utils.LHToolColor, mTransform1, Utils.RHToolColor, mDispatcher);
-            return; 
+            return;
          }
       }
    }
@@ -257,7 +271,7 @@ public class Processor : INotifyPropertyChanged {
          else DrawToolSim (head);
       }
    }
-   
+
    /// <summary>Called when the SIMULATE button is clicked</summary>
    public void Run () {
       if (SimulationStatus == ESimulationStatus.Running) return;
@@ -288,7 +302,7 @@ public class Processor : INotifyPropertyChanged {
       // should be calculated.
       TriggerRedraw?.Invoke ();
    }
-   
+
    public void Stop () {
       Lux.StopContinuousRender (GFXCallback);
       if (MCSettings.It.EnableMultipassCut) MCSettings.It.StepLength = mPrevStepLen;
@@ -307,13 +321,13 @@ public class Processor : INotifyPropertyChanged {
 
    #region GCode Draw Implementation
    public void DrawGCode () {
-      foreach (var cutScopeTooling in CutScopeTraces) 
+      foreach (var cutScopeTooling in CutScopeTraces)
          DrawGCode (cutScopeTooling);
    }
    public void DrawGCodeForCutScope () {
       // If simulation runs and when a new part is loaded, this 
       // check is necessary
-      if (CutScopeTraces.Count > 0) 
+      if (CutScopeTraces.Count > 0)
          DrawGCode (CutScopeTraces[GetCutScopeIndex ()]);
    }
 
@@ -385,7 +399,7 @@ public class Processor : INotifyPropertyChanged {
          Lux.Color = Utils.G3SegColor;
          foreach (var arcPoints in G3DrawPoints) {
             Lux.Draw (EDraw.Lines, arcPoints);
-            
+
             // The following draw call is to terminate drawing of the 
             // above arc points. Else, the arcs are connected continuously
             // There has to be a better/elegant solution: TODO
@@ -397,7 +411,7 @@ public class Processor : INotifyPropertyChanged {
          Lux.Color = Utils.G2SegColor;
          foreach (var arcPoints in G2DrawPoints) {
             Lux.Draw (EDraw.Lines, arcPoints);
-            
+
             // The following draw call is to terminate drawing of the 
             // above arc points. Else, the arcs are connected continuously
             // There has to be a better/elegant solution: TODO
