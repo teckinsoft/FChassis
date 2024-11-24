@@ -7,6 +7,7 @@ namespace FChassis.GCodeGen;
 
 using static FChassis.Geom;
 using ToolingCutScope = (double Position, ToolingScope ToolScope, bool IsStart);
+using CutScopeToolingList = List<(List<Tooling> ToolingList, double XMin, double XMax)>;
 
 class Scope (double xmin, double xmax) {
    public double XMax { get; set; } = xmax;
@@ -152,6 +153,7 @@ public class ToolingScope {
       return false;
    }
    public bool IsProcessed { get; set; } = false;
+   public bool IsNotchSplitComplete { get; set; } = false;
    public bool IsIntersect (double x, bool considerEndPoints = false) {
       if (((x - StartX) / (EndX - StartX)).LieWithin (0, 1)) {
          if (!considerEndPoints) {
@@ -162,14 +164,14 @@ public class ToolingScope {
       return false;
    }
 
-   public static bool operator==(ToolingScope lhs, ToolingScope rhs) {
+   public static bool operator == (ToolingScope lhs, ToolingScope rhs) {
       if (lhs is null || rhs is null)
          return false;
-      if (lhs.StartX.EQ(rhs.StartX) && lhs.EndX.EQ(rhs.EndX)) return true;
+      if (lhs.StartX.EQ (rhs.StartX) && lhs.EndX.EQ (rhs.EndX)) return true;
       return false;
    }
-   public static bool operator!=(ToolingScope lhs, ToolingScope rhs) {
-      if ( lhs == null || rhs == null) return false;
+   public static bool operator != (ToolingScope lhs, ToolingScope rhs) {
+      if (lhs == null || rhs == null) return false;
       if (lhs == rhs) return false; return true;
    }
    #endregion
@@ -279,9 +281,9 @@ class CutScope {
    public static bool IsToolingIntersectForward (CutScope cs, ToolingScope t) {
       if (CutScope.EQ (cs, t)) return false;
       if (cs.mIsLeftToRight) {
-         if ((cs.StartX.SLT (t.StartX) && (t.StartX.SLT (cs.EndX) && (cs.EndX.SLT (t.EndX))))) return true;
+         if (((cs.StartX.SLT (t.StartX) || cs.StartX.EQ (t.StartX)) && (t.StartX.SLT (cs.EndX) && (cs.EndX.SLT (t.EndX))))) return true;
       } else {
-         if ((cs.StartX.SGT (t.StartX) && (t.StartX.SGT (cs.EndX) && (cs.EndX.SGT (t.EndX))))) return true;
+         if (((cs.StartX.SGT (t.StartX) || cs.StartX.EQ (t.StartX)) && (t.StartX.SGT (cs.EndX) && (cs.EndX.SGT (t.EndX))))) return true;
       }
       return false;
    }
@@ -395,12 +397,12 @@ class CutScope {
       mToolingScopesIntersect = [];
       mMaxScopeLength = MaximumScopeLength;
       CategorizeToolings ();
-      AssessDeadBandFeatIndices(ref mMPC);
+      AssessDeadBandFeatIndices (ref mMPC);
    }
 
    public void AssessDeadBandFeatIndices (ref MultiPassCuts mpc) {
-      var deadBandCutScope = new CutScope (StartX, DeadBandWidth, mMaxScopeLength, ref mpc);
-      DeadBandScopeToolingIndices = deadBandCutScope.DeadBandScopeToolingIndices;
+      DeadBandCutScope = new CutScope (StartX, DeadBandWidth, mMaxScopeLength, ref mpc);
+      DeadBandScopeToolingIndices = DeadBandCutScope.DeadBandScopeToolingIndices;
       DeadBandScope = new (StartX + mpc.MaximumScopeLength / 2 - DeadBandWidth / 2, StartX + mpc.MaximumScopeLength / 2 + DeadBandWidth / 2);
    }
    #endregion
@@ -428,6 +430,7 @@ class CutScope {
    public List<int> DeadBandScopeToolingIndices { get; set; } = [];
    public bool IsUncuttableScope { get; set; }
    public Scope DeadBandScope { get; set; }
+   public CutScope DeadBandCutScope { get; set; }
    #endregion
 
    #region Data Processors
@@ -499,6 +502,7 @@ class CutScope {
       bool listModified = false;
       for (int ii = 0; ii < res.Count; ii++) {
          var ts = tss[ii];
+         if (ts.IsNotchSplitComplete) continue;
          if (ts.IsNotch () && !splitNotches) continue;
          if (!ts.IsNotch () && !splitNonNotches) continue;
          bool canSplit = true;
@@ -727,12 +731,12 @@ internal class MultiPassCuts {
       //   throw new InvalidOperationException ("One or more ToolScopes have not been processed.");
       //}
       for (int ii = 0; ii < MachinableCutScopes.Count; ii++) {
-         for ( int jj=0; jj < MachinableCutScopes[ii].MachinableToolingScopes.Count; jj++ )
+         for (int jj = 0; jj < MachinableCutScopes[ii].MachinableToolingScopes.Count; jj++)
             if (!MachinableCutScopes[ii].MachinableToolingScopes[jj].IsProcessed)
-               throw new Exception("One or more ToolScopes have not been processed.");
+               throw new Exception ("One or more ToolScopes have not been processed.");
       }
-         
-      
+
+
    }
 
    /// <summary>
@@ -812,7 +816,7 @@ internal class MultiPassCuts {
       Scope currDBScope = new (0, 0), prevDBScope = new (0, 0);
       Dictionary<ToolingScope, bool> processedTSSKVPairs = [];
       int pass = 1;
-      while (/*!(startXPos - endXPos).EQ (0) ||*/ currDBScope.XMin.LTEQ(mpc.XMax)) {
+      while (/*!(startXPos - endXPos).EQ (0) ||*/ currDBScope.XMin.LTEQ (mpc.XMax)) {
          //processedTSSKVPairs.Clear ();
          //if ( prevEndX.GTEQ(currDeadBandXMax)) startXPos = endXPos + (maxScopeLength) / 2.0
          // Order by decending StartX keeps the highest StartX at the 0th element. 
@@ -878,6 +882,33 @@ internal class MultiPassCuts {
                tss = mpc.ToolingScopes;
                featsWithIn = GetUncutToolingScopesWithin (cs, tss);
                currDBScope = cs.DeadBandScope;
+            }
+
+            // Split the Notch(es) that intersect the dead band area. This is a mandatory one and does
+            // not adhere to the min notch split options. Splitting shall be called only after possible resizing
+            // of CutScope
+            (mpc.ToolingScopes, var splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
+                     thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+
+            // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
+            if (splitToolScopes) {
+               CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
+               cs.CategorizeToolings ();
+               cs.AssessDeadBandFeatIndices (ref mpc);
+               tss = mpc.ToolingScopes;
+               featsWithIn = GetUncutToolingScopesWithin (cs, tss);
+            }
+
+            (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
+                     thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+
+            // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
+            if (splitToolScopes) {
+               CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
+               cs.CategorizeToolings ();
+               cs.AssessDeadBandFeatIndices (ref mpc);
+               tss = mpc.ToolingScopes;
+               featsWithIn = GetUncutToolingScopesWithin (cs, tss);
             }
 
             // Check if any notches are intersecting
@@ -972,7 +1003,7 @@ internal class MultiPassCuts {
                   if (split2) {
                      CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
                      cs.AssessDeadBandFeatIndices (ref mpc);
-                     tss = mpc.ToolingScopes.Where (ts => !cs.DeadBandScopeToolingIndices.Contains (ts.Index)).ToList ();
+                     tss = mpc.ToolingScopes;
                   }
                } else {
                   endXPos = ixnNotches[0].StartX;
@@ -1008,8 +1039,9 @@ internal class MultiPassCuts {
                                                                                        // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
                   if (split1) {
                      CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
+                     cs.CategorizeToolings ();
                      cs.AssessDeadBandFeatIndices (ref mpc);
-                     tss = mpc.ToolingScopes.Where (ts => !cs.DeadBandScopeToolingIndices.Contains (ts.Index)).ToList ();
+                     tss = mpc.ToolingScopes;
                   }
                }
             }
@@ -1027,6 +1059,10 @@ internal class MultiPassCuts {
                .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
                .Select (index => tss[index])
                .ToList ();
+            for (int nn = 0; nn < toolingScopesToBeMachined.Count; nn++) {
+               if (toolingScopesToBeMachined[nn].Tooling.IsNotch ())
+                  toolingScopesToBeMachined[nn].IsNotchSplitComplete = true;
+            }
             cs.MachinableToolingScopes = toolingScopesToBeMachined;
 
             // Set the IsProcessed for all the toolscopes within to true
@@ -1051,7 +1087,7 @@ internal class MultiPassCuts {
                processedTSSKVPairs.Add (tsc, true);
             }
 
-            foreach( var tssc in cs.MachinableToolingScopes)
+            foreach (var tssc in cs.MachinableToolingScopes)
                if (!tssc.IsProcessed) throw new Exception ("One of the tooling scopes was not set as processed");
 
 
@@ -1082,7 +1118,7 @@ internal class MultiPassCuts {
                   ixnFeats = [.. ixnFeats.OrderByDescending (tl => tl.StartX)];
 
                // If there are no notches intersecting, the new startX will be the maximum StartX.
-               if (cs.IsIntersectWithNotches) 
+               if (cs.IsIntersectWithNotches)
                   throw new Exception ("Notch intersection still found.");
                if (ixnFeats.Count > 0) endXPos = ixnFeats[0].StartX;
             }
@@ -1126,7 +1162,7 @@ internal class MultiPassCuts {
 
          // Set the variables for the next loop
          //startXPos = endXPos;
-         if (mpc.mIsLeftToRight) endXPos = Math.Min(startXPos + maxScopeLength, mpc.XMax);
+         if (mpc.mIsLeftToRight) endXPos = Math.Min (startXPos + maxScopeLength, mpc.XMax);
          else endXPos -= maxScopeLength;
 
          prevDBScope.Assign (currDBScope);
@@ -1163,7 +1199,7 @@ internal class MultiPassCuts {
 
    /// <summary>
    /// This method writes the G Code for the multipass case of sheet metal feeding in LCM. 
-   /// The WriteGCode method should not be direcltly called if the machine is multipass 2H 
+   /// The WriteTooling method should not be direcltly called if the machine is multipass 2H 
    /// </summary>
    public void GenerateGCode () {
       // Allocate for CutscopeTraces
@@ -1172,23 +1208,30 @@ internal class MultiPassCuts {
       if (!mGC.OptimizePartition) mGC.PartitionRatio = 0.5;
       if (mGC.Heads == MCSettings.EHeads.Left || mGC.Heads == MCSettings.EHeads.Right) mGC.PartitionRatio = 1.0;
 
-      List<List<Tooling>> tls = [];
+      CutScopeToolingList cutScTlgList = [];
+      //List<List<Tooling>> tls = [];
+      List<Tooling> cutsH1 = [], cutsH2 = [];
       foreach (var cs in MachinableCutScopes) {
          List<Tooling> tlList = [];
          foreach (var mtls in cs.MachinableToolingScopes)
             tlList.Add (mtls.Tooling);
-         tls.Add (tlList);
+         mGC.CreatePartition (tlList, MCSettings.It.OptimizePartition, Utils.CalculateBound3 (tlList));
+         cutsH1 = tlList.Where (c => c.Head == 0).ToList ();
+         cutsH2 = tlList.Where (c => c.Head == 1).ToList ();
+         cutScTlgList.Add ((tlList, cs.StartX, cs.EndX));
       }
-      List<Tooling> cutsH1 = [], cutsH2 = [];
-      for (int ii = 0; ii < tls.Count; ii++) {
-         var cuts = tls[ii];
-         mGC.CreatePartition (cuts, MCSettings.It.OptimizePartition, Utils.CalculateBound3 (cuts));
-         cutsH1 = cuts.Where (c => c.Head == 0).ToList ();
-         cutsH2 = cuts.Where (c => c.Head == 1).ToList ();
-         tls[ii] = cuts;
-      }
-      mGC.GenerateGCode (0, tls);
-      mGC.GenerateGCode (1, tls);
+
+      //List<Tooling> cutsH1 = [], cutsH2 = [];
+
+      //for (int ii = 0; ii < tls.Count; ii++) {
+      //   var cuts = tls[ii];
+      //   mGC.CreatePartition (cuts, MCSettings.It.OptimizePartition, Utils.CalculateBound3 (cuts));
+      //   cutsH1 = cuts.Where (c => c.Head == 0).ToList ();
+      //   cutsH2 = cuts.Where (c => c.Head == 1).ToList ();
+      //   tls[ii] = cuts;
+      //}
+      mGC.GenerateGCode (0, cutScTlgList);
+      mGC.GenerateGCode (1, cutScTlgList);
       CutScopeTraces = mGC.CutScopeTraces;
       mGC.PartitionRatio = prevPartRatio;
    }

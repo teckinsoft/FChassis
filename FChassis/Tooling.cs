@@ -311,9 +311,9 @@ public class Tooling {
       bool TopPlaneFeat = segs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Dot (XForm4.mZAxis)).EQ (1.0));
       foreach (var seg in segs) {
          var nn = (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys) * seg.Vec0.Normalized ();
-         if (nn.Y < -0.1) 
+         if (nn.Y < -0.1 && nn.Y.SGT(-1.0)) 
             return ECutKind.YNegFlex;
-         else if (nn.Y > 0.2) 
+         else if (nn.Y > 0.2 && nn.Y.SLT(1.0)) 
             return ECutKind.YPosFlex;
       }
 

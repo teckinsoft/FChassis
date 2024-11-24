@@ -363,15 +363,16 @@ public class Workpiece : INotifyPropertyChanged {
                                                                  MCSettings.It.PartConfig == PartConfigType.LHComponent 
                                                                      ? GCodeGenerator.LHCSys 
                                                                      : GCodeGenerator.RHCSys);
-               if (NotchStFlType != Utils.EFlange.Flex && NotchEndFlType != Utils.EFlange.Flex) {
+               if (cut.ProfileKind == ECutKind.YPosFlex || cut.ProfileKind == ECutKind.YNegFlex || cut.ProfileKind == ECutKind.YNegToYPos) {
                   var endX = cutSegs.Last ().Curve.End.X;
-                  if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX) 
+                  if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
                      cut.Reverse ();
-                  else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX) 
+                  else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX)
                      cut.Reverse ();
-               }
-               
-               if (cut.ProfileKind == ECutKind.Top) {
+               } else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) {
+                  if (cutSegs.First ().Curve.Start.X > cutSegs.Last ().Curve.End.X)
+                     cut.Reverse ();
+               }else if (cut.ProfileKind == ECutKind.Top) {
                   if (cutSegs.First ().Curve.Start.Y > cutSegs.Last ().Curve.End.Y) 
                      cut.Reverse ();
                }

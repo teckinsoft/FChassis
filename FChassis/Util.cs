@@ -1374,7 +1374,7 @@ public static class Utils {
    public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight) {
       var segs = ts.Tooling.Segs; var toolingItem = ts.Tooling;
       List<ToolingSegment> resSegs = [];
-      if (segs[^1].Curve.End.X < segs[0].Curve.Start.X) 
+      if (segs[^1].Curve.End.X < segs[0].Curve.Start.X && (ts.Tooling.ProfileKind == ECutKind.YPos || ts.Tooling.ProfileKind == ECutKind.YNeg)) 
          throw new Exception ("The notch direction in X is opposite to the direction of the part");
 
       var startX = ts.StartX; var endX = ts.EndX;
@@ -1398,28 +1398,31 @@ public static class Utils {
             throw new Exception ("ToolingScope does not match with Tooling: In Right to left");
       }
 
-      var (notchXPt, _, index, _) = GetPointParamsAtXVal (segs, xPartition);
-      var splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized ());
-      var lineEndPoint = new Point3 (notchXPt.X, notchXPt.Y, segs[0].Curve.Start.Z);
-      Line3 line;
+      var (notchXPt, _, index, doesIntersect) = GetPointParamsAtXVal (segs, xPartition);
+      List<ToolingSegment> splitSegs; Point3 lineEndPoint; Line3 line;
+      if (doesIntersect) {
+         splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized ());
+         lineEndPoint = new Point3 (notchXPt.X, notchXPt.Y, segs[0].Curve.Start.Z);
 
-      // Create a new line tooling segment.
-      if (maxSideToPartition) {
-         // Take all toolingSegments from Last toolingSegmen to index-1, add the 0th index of splitSegs, add it to the lastTSG.
-         line = new Line3 (lineEndPoint, notchXPt);
-         var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
-         resSegs.Add (lastTSG);
-         resSegs.Add (splitSegs[1]);
-         for (int ii = index + 1; ii < segs.Count; ii++) 
-            resSegs.Add (segs[ii]);
-      } else {
-         line = new Line3 (notchXPt, lineEndPoint);
-         var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
-         for (int ii = 0; ii < index; ii++) 
-            resSegs.Add (segs[ii]);
+         // Create a new line tooling segment.
+         //if (splitSegs.Count > 0 && lineEndPoint != null) {
+         if (maxSideToPartition) {
+            // Take all toolingSegments from Last toolingSegmen to index-1, add the 0th index of splitSegs, add it to the lastTSG.
+            line = new Line3 (lineEndPoint, notchXPt);
+            var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
+            resSegs.Add (lastTSG);
+            resSegs.Add (splitSegs[1]);
+            for (int ii = index + 1; ii < segs.Count; ii++)
+               resSegs.Add (segs[ii]);
+         } else {
+            line = new Line3 (notchXPt, lineEndPoint);
+            var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
+            for (int ii = 0; ii < index; ii++)
+               resSegs.Add (segs[ii]);
 
-         resSegs.Add (splitSegs[0]);
-         resSegs.Add (lastTSG);
+            resSegs.Add (splitSegs[0]);
+            resSegs.Add (lastTSG);
+         }
       }
 
       return resSegs;
