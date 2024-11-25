@@ -218,6 +218,7 @@
                                 <RowDefinition />
                                 <RowDefinition />
                                 <RowDefinition />
+                                <RowDefinition />
                             </Grid.RowDefinitions>
                             <Label Grid.Row="0">Output Directory</Label>
                             <TextBox Name="tbDirectoryPath" Grid.Row="0" Grid.Column="1" IsReadOnly="False"/>
@@ -235,8 +236,11 @@
                             <Label Grid.Row="3">Show Tooling Names</Label>
                             <CheckBox Grid.Row="3" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
 
-                            <Label Grid.Row="4">Rotate 180 degrees</Label>
-                            <CheckBox Grid.Row="4" Grid.Column="1" Name="cbRotate180AbZ"></CheckBox>
+                            <Label Grid.Row="4">Show Tooling Extents</Label>
+                            <CheckBox Grid.Row="4" Grid.Column="1" Name="cbShowTlgExtents"></CheckBox>
+
+                            <Label Grid.Row="5">Rotate 180 degrees</Label>
+                            <CheckBox Grid.Row="5" Grid.Column="1" Name="cbRotate180AbZ"></CheckBox>
                         </Grid>
                     </StackPanel>
                 </Grid>

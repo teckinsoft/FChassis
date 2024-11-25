@@ -12,28 +12,7 @@ using CutScopeToolingList = List<(List<Tooling> ToolingList, double XMin, double
 class Scope (double xmin, double xmax) {
    public double XMax { get; set; } = xmax;
    public double XMin { get; set; } = xmin;
-   //public static List<Scope> operator - (Scope b, Scope a) {
-   //   List<Scope> result = [];
-   //   if (a.XMin.SLT (b.XMin) && a.XMax.SLT (b.XMin)) result.Add (b);
-   //   else if (a.XMin.SGT (b.XMax) && a.XMax.SGT (b.XMax)) result.Add (b);
-   //   else if (a.XMin.SGT (b.XMin) && a.XMax.SLT (b.XMax)) {
-   //      Scope s1 = new (b.XMin, a.XMin); result.Add (s1);
-   //      Scope s2 = new (a.XMax, b.XMax); result.Add (s2);
-   //   } else if (a.XMax.SLT (b.XMax) && a.XMin.EQ (b.XMin)) result.Add (new (a.XMax, b.XMax));
-   //   else if (a.XMin.SGT (b.XMin) && a.XMax.EQ (b.XMax)) result.Add (new (b.XMin, a.XMin));
-   //   else if (a.XMin.SGT (b.XMin) && a.XMax.SGT (b.XMax)) result.Add (new (b.XMin, a.XMin));
-   //   else if (a.XMin.SLT (b.XMin) && a.XMax.SLT (b.XMax)) result.Add (new (a.XMax, b.XMax));
-   //   else if (a.XMin.SLT (b.XMin) && a.XMax.SGT (b.XMax)) ; // do nothing a is lengthier than b and a band is more than b
-   //   else if (a.XMin.EQ (b.XMin) && a.XMax.EQ (b.XMax)) ; // do nothing complete overlap
-   //   else if (a.XMin.LTEQ (b.XMin) && a.XMax.GTEQ (b.XMax)) ; // do nothing
-   //   else if (a.XMax.EQ (b.XMin) && a.XMin.EQ (b.XMax)) ; // do nothing
-   //   else if (a.XMin.EQ (b.XMin) && a.XMax.SGT (b.XMax)) ; // do nothing
-   //   else if (a.XMax.EQ (b.XMax) && a.XMin.SLT (b.XMin)) ; // do nothing
-   //   else if (a.XMin.SLT (b.XMin) && a.XMax.SLT (b.XMin)) result.Add (b);
-   //   else if (a.XMin.SGT (b.XMin) && a.XMin.SGT (b.XMax)) result.Add (b);
-   //   else result.Add (b);
-   //   return result;
-   //}
+   
    public static List<Scope> operator - (Scope b, Scope a) {
       List<Scope> result = [];
 
@@ -322,27 +301,7 @@ class CutScope {
    public List<int> mNotchesIntersect;
    #endregion
 
-   #region Constructor(s)
-   //public CutScope (double MaxX, double offset, ToolingScope tsc, Bound3 boundextent, 
-   //   MultiPassCuts.ToolingAssocType type, double MaximumScopeLength, ref MultiPassCuts mpc, bool isLeftToRight) {
-   //   mBoundExtent = boundextent;
-   //   mIsLeftToRight = isLeftToRight;
-   //   if (mIsLeftToRight) {
-   //      EndX = MaxX - offset;
-   //   } else StartX = MaxX - offset;
-
-   //   // Clampers
-   //   StartX.Clamp (mBoundExtent.XMin, mBoundExtent.XMax);
-   //   EndX.Clamp (mBoundExtent.XMin, mBoundExtent.XMax);
-
-   //   if (type == MultiPassCuts.ToolingAssocType.Start) Size = StartX - tsc.StartX;
-   //   else if (type == MultiPassCuts.ToolingAssocType.End) Size = StartX - tsc.EndX;
-   //   CutScope.SortAndReIndex (ref mpc, mIsLeftToRight);
-   //   mToolingScopesWithin = [];
-   //   mToolingScopesIntersect = [];
-   //   mMaxScopeLength = MaximumScopeLength;
-   //   CategorizeToolings ();
-   //}
+   #region Constructor(s)   
    /// <summary>
    /// The following constructor is to represent the CutScope object that covers Dead Band  Area.
    /// THough this is Cut Scope, this scope is the DeadBand scope
@@ -372,6 +331,7 @@ class CutScope {
       mToolingScopesIntersect = [];
       CategorizeToolings ();
       DeadBandScopeToolingIndices = [.. mToolingScopesWithin, .. mToolingScopesIntersect];
+      ComputeBound ();
    }
    public CutScope (double MaxX, double offset, double endXPos, Bound3 boundExtent,
       double MaximumScopeLength, double deadbandWidth, ref MultiPassCuts mpc, bool isLeftToRight) {
@@ -380,6 +340,7 @@ class CutScope {
       else StartX = MaxX - offset;
       EndX = endXPos;
       DeadBandWidth = deadbandWidth;
+
       // Clampers
       StartX.Clamp (mBoundExtent.XMin, mBoundExtent.XMax);
       EndX.Clamp (mBoundExtent.XMin, mBoundExtent.XMax);
@@ -397,13 +358,24 @@ class CutScope {
       mToolingScopesIntersect = [];
       mMaxScopeLength = MaximumScopeLength;
       CategorizeToolings ();
-      AssessDeadBandFeatIndices (ref mMPC);
+      if (!deadbandWidth.EQ (0)) AssessDeadBandFeatIndices (ref mMPC);
+      ComputeBound ();
    }
 
    public void AssessDeadBandFeatIndices (ref MultiPassCuts mpc) {
       DeadBandCutScope = new CutScope (StartX, DeadBandWidth, mMaxScopeLength, ref mpc);
+      DeadBandCutScope.DeadBandScopeToolingIndices.Sort ();
       DeadBandScopeToolingIndices = DeadBandCutScope.DeadBandScopeToolingIndices;
       DeadBandScope = new (StartX + mpc.MaximumScopeLength / 2 - DeadBandWidth / 2, StartX + mpc.MaximumScopeLength / 2 + DeadBandWidth / 2);
+   }
+
+   public List<ToolingScope> DeadBandToolingScopes (List<ToolingScope> refTss = null) {
+      List<ToolingScope> dbAssociatedCutScopes;
+      if (refTss != null)
+         dbAssociatedCutScopes = MultiPassCuts.GetToolScopesFromIndices (DeadBandScopeToolingIndices, refTss, true);
+      else
+         dbAssociatedCutScopes = MultiPassCuts.GetToolScopesFromIndices (DeadBandScopeToolingIndices, ToolingScopes, true);
+      return dbAssociatedCutScopes;
    }
    #endregion
 
@@ -431,10 +403,41 @@ class CutScope {
    public bool IsUncuttableScope { get; set; }
    public Scope DeadBandScope { get; set; }
    public CutScope DeadBandCutScope { get; set; }
+   Bound3 mBound;
+   public Bound3 Bound {
+      get {
+         return mBound;
+      }
+   }
    #endregion
 
    #region Data Processors
-
+   void ComputeBound () {
+      var associatedFeats = MultiPassCuts.GetToolScopesFromIndices (AssociatedFeatures (),
+         ToolingScopes).OrderBy (f => f.StartX).ToList ();
+      var allSPoints = associatedFeats
+         .SelectMany (scope => scope.Tooling.Segs)
+         .Select (seg => seg.Curve.Start).ToList ();
+      var allEPoints = associatedFeats
+         .SelectMany (scope => scope.Tooling.Segs)
+         .Select (seg => seg.Curve.End).ToList ();
+      List<Point3> allPoints = [.. allSPoints, .. allEPoints];
+      
+      // Min Y, Max Y, Min Z, Max Z
+      if (allPoints.Count > 0) {
+         double minY = allPoints.Min (point => point.Y);
+         double maxY = allPoints.Max (point => point.Y);
+         double minZ = allPoints.Min (point => point.Z);
+         double maxZ = allPoints.Max (point => point.Z);
+         mBound = new Bound3 (StartX, minY, minZ, EndX, maxY, maxZ);
+      } else
+         mBound = new Bound3 ();
+   }
+   public bool DoesIntersectAnyFeatures () => mToolingScopesIntersect.Count > 0;
+   public List<int> IntersectingFeatures () => mToolingScopesIntersect;
+   public List<int> ContainedFeatures () => mToolingScopesWithin;
+   public List<int> AssociatedFeatures () => [.. mToolingScopesWithin, .. mToolingScopesIntersect];
+   public bool DoesContainAnyFeatures () => mToolingScopesWithin.Count > 0;
    /// <summary>
    /// This method categorizes the features or toolings under four 
    /// broader categories. They are
@@ -478,6 +481,12 @@ class CutScope {
       mNotchesWithin = mToolingScopesWithin.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsNotch ()).ToList ();
       mHolesIntersect = mToolingScopesIntersect.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsHole ()).ToList ();
       mNotchesIntersect = mToolingScopesIntersect.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsNotch ()).ToList ();
+   }
+
+   public List<ToolingScope> IntersectingNotches (List<ToolingScope> refTss = null) {
+      if (refTss == null)
+         return [.. MultiPassCuts.GetToolScopesFromIndices (mNotchesIntersect, ToolingScopes).OrderBy (t => t.StartX)];
+      return [.. MultiPassCuts.GetToolScopesFromIndices (mNotchesIntersect, refTss).OrderBy (t => t.StartX)];
    }
 
    /// <summary>
@@ -602,6 +611,12 @@ class CutScope {
 /// </list>
 /// </summary>
 internal class MultiPassCuts {
+   #region Enums
+   enum PassType {
+      CutScope,
+      DeadBand
+   }
+   #endregion
    #region Data Members
    List<ToolingScope> mTStarts, mTEnds;
    List<ToolingScope> mTscs;
@@ -655,7 +670,6 @@ internal class MultiPassCuts {
       mIsLeftToRight = isLeftToRight;
       MaximumWorkpieceLength = XMax - XMin;
       DeadBandWidth = deadbandWidth;
-      //mStartScopePos = MaximumWorkpieceLength;
       ToolingScopes = ToolingScope.CreateToolingScopes (ts, mIsLeftToRight);
       if (mIsLeftToRight) {
          ToolingScopes = [.. ToolingScopes.OrderBy (ts => ts.StartX)];
@@ -726,17 +740,15 @@ internal class MultiPassCuts {
    public void ComputeQuasiOptimalCutScopes () {
       var mpc = this;
       MachinableCutScopes = MultiPassCuts.GetQuasiOptimalCutScopes (ref mpc, mIsLeftToRight, mpc.MaximumScopeLength,
-            this.XMin, this.XMax, Bound, MaximizeFrameLengthInMultipass, MinimumThresholdNotchLength);
-      //if (MachinableCutScopes.Any (cs => mpc.ToolingScopes.Any (ts => !ts.IsProcessed))) {
-      //   throw new InvalidOperationException ("One or more ToolScopes have not been processed.");
-      //}
+            this.XMin, this.XMax, MaximizeFrameLengthInMultipass, MinimumThresholdNotchLength);
+
+      // Intentionally throw exception if even one of the Toolscopes is not accommodated in one of the 
+      // cutscopes. This is set as IsProcessed flag on the ToolScope
       for (int ii = 0; ii < MachinableCutScopes.Count; ii++) {
          for (int jj = 0; jj < MachinableCutScopes[ii].MachinableToolingScopes.Count; jj++)
             if (!MachinableCutScopes[ii].MachinableToolingScopes[jj].IsProcessed)
                throw new Exception ("One or more ToolScopes have not been processed.");
       }
-
-
    }
 
    /// <summary>
@@ -752,17 +764,34 @@ internal class MultiPassCuts {
       else
          featsWithInIxs = [.. cs.mToolingScopesWithin.OrderByDescending (tsix => tss[tsix].StartX)];
       featsWithInIxs = featsWithInIxs.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)).ToList ();
-
       var featsWithIn = featsWithInIxs
           .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
                                                             //.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)) // Exclude deadband indices
           .Select (index => tss[index])
           .Where (ts => ts.IsProcessed == false) // Only unprocessed tooling scopes
           .ToList ();
-
       return featsWithIn;
    }
 
+   public static List<ToolingScope> GetToolScopesFromIndices (List<int> tsIxs, List<ToolingScope> refTss, bool excludeProcessed = false) {
+      var tss = tsIxs.Where (index => index >= 0 && index < refTss.Count) // Ensure index is valid
+          .Select (index => refTss[index])
+          .Where (ts => (excludeProcessed && ts.IsProcessed == false) || excludeProcessed == false)
+          .OrderBy (ts => ts.StartX)
+          .ToList ();
+      return tss;
+   }
+
+   static List<ToolingScope> GetDeadBandToolingScopes (CutScope deadBandCutScope, List<ToolingScope> tss) {
+      var deadBandUnprocessedToolings = deadBandCutScope.DeadBandScopeToolingIndices
+          .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
+          .Select (index => tss[index])
+          .Where (ts => ts.IsProcessed == false) // Only unprocessed tooling scopes
+          .OrderBy (ts => ts.StartX)
+          .ToList ();
+      return deadBandUnprocessedToolings;
+   }
+   
    /// <summary>
    /// This method prepares the cut spans with the priority prescribed, which is 
    /// if the maximal cut scope be retained and any notches not conforming to be cut
@@ -783,7 +812,8 @@ internal class MultiPassCuts {
    /// features can not be accommodated within the cutscope</exception>
    public static List<CutScope> GetQuasiOptimalCutScopes (ref MultiPassCuts mpc, bool isLeftToRight,
    double maxScopeLength, double minXWorkPiece, double maxXWorkPiece,
-   Bound3 bbox, bool maximizeScopeLength, double minimumThresholdNotchLength) {
+   bool maximizeScopeLength, double minimumThresholdNotchLength) {
+      PassType passType = PassType.CutScope;
       bool minimizeNotchSplits = !maximizeScopeLength;
       List<CutScope> resCSS = [];
       if (mpc.ToolingScopes.Count == 0) return resCSS;
@@ -810,40 +840,29 @@ internal class MultiPassCuts {
       bool firstRun = true;
       int count = 0;
       HashSet<double> singularEndXPositions = [];
-      //double prevEndX = 0, currDeadBandXMin=0, currDeadBandXMax=0;
-      //currDeadBandXMin = startXPos + (maxScopeLength) / 2.0 - mpc.DeadBandWidth / 2.0;
-      //currDeadBandXMax = startXPos + (maxScopeLength) / 2.0 + mpc.DeadBandWidth / 2.0;
       Scope currDBScope = new (0, 0), prevDBScope = new (0, 0);
       Dictionary<ToolingScope, bool> processedTSSKVPairs = [];
       int pass = 1;
-      while (/*!(startXPos - endXPos).EQ (0) ||*/ currDBScope.XMin.LTEQ (mpc.XMax)) {
-         //processedTSSKVPairs.Clear ();
-         //if ( prevEndX.GTEQ(currDeadBandXMax)) startXPos = endXPos + (maxScopeLength) / 2.0
+      while (true) {
          // Order by decending StartX keeps the highest StartX at the 0th element. 
          // Create the CutScope from MaximumWorkpieceLength to highest startX toolscope.
          CutScope cs = new (startXPos, offset, endXPos, mpc.Model.Bound, maxScopeLength, mpc.DeadBandWidth,
             ref mpc, mpc.mIsLeftToRight);
          startXPos = cs.StartX;
          currDBScope = cs.DeadBandScope;
-
+         var tss = mpc.ToolingScopes;
          var endXCache = endXPos;
          var stXCache = startXPos;
-         var tss = mpc.ToolingScopes;
+         var dbAssociatedCutScopes = GetToolScopesFromIndices (cs.DeadBandScopeToolingIndices, tss, true);
          var featsWithIn = GetUncutToolingScopesWithin (cs, tss);
          bool startXPosChanged = false;
          bool endXPosChanged = false;
-         if (featsWithIn.Count > 0 && !(featsWithIn[0].StartX - startXPos).EQ (0)) {
+         if (featsWithIn.Count > 0 && !(featsWithIn[0].StartX - startXPos).EQ (0) && // If there is a need
+            featsWithIn[0].StartX.SLT (cs.DeadBandToolingScopes (tss).First ().StartX)) {
+            
+            // Otherwise, the StartX changes to the after end of dead scope
+            // which will omit the dead band altogether
             startXPos = featsWithIn[0].StartX;
-
-            // Since StartXPos changed, the new EndXPos shall be the StartXPos + MaxScopeLength OR
-            // workpiece.Bound.XMax(left to right)/Xmin (right to left)
-            //var newEndXPos = Math.Min(startXPos + maxScopeLength, mpc.XMax);
-            //if (isLeftToRight) {
-            //   if (newEndXPos > mpc.Model.Bound.XMax) newEndXPos = mpc.Model.Bound.XMax;
-            //} else {
-            //   if (newEndXPos < mpc.Model.Bound.XMin) newEndXPos = mpc.Model.Bound.XMin;
-            //}
-            //endXPos = newEndXPos;
             endXPos = Math.Min (startXPos + maxScopeLength, mpc.XMax);
             startXPosChanged = true;
          }
@@ -877,38 +896,10 @@ internal class MultiPassCuts {
             // the new end position will be the starting point of the first hole.
             if (ixnHoles.Count > 0) {
                endXPos = ixnHoles[0].StartX;
-               //endXPosChanged = true;
                cs = new (startXPos, 0, endXPos, mpc.Model.Bound, maxScopeLength, mpc.DeadBandWidth, ref mpc, mpc.mIsLeftToRight);
                tss = mpc.ToolingScopes;
                featsWithIn = GetUncutToolingScopesWithin (cs, tss);
                currDBScope = cs.DeadBandScope;
-            }
-
-            // Split the Notch(es) that intersect the dead band area. This is a mandatory one and does
-            // not adhere to the min notch split options. Splitting shall be called only after possible resizing
-            // of CutScope
-            (mpc.ToolingScopes, var splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
-                     thresholdLength: 100, splitNotches: true, splitNonNotches: false);
-
-            // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
-            if (splitToolScopes) {
-               CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
-               cs.CategorizeToolings ();
-               cs.AssessDeadBandFeatIndices (ref mpc);
-               tss = mpc.ToolingScopes;
-               featsWithIn = GetUncutToolingScopesWithin (cs, tss);
-            }
-
-            (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
-                     thresholdLength: 100, splitNotches: true, splitNonNotches: false);
-
-            // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
-            if (splitToolScopes) {
-               CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
-               cs.CategorizeToolings ();
-               cs.AssessDeadBandFeatIndices (ref mpc);
-               tss = mpc.ToolingScopes;
-               featsWithIn = GetUncutToolingScopesWithin (cs, tss);
             }
 
             // Check if any notches are intersecting
@@ -918,6 +909,43 @@ internal class MultiPassCuts {
                .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
                .Select (index => tss[index])
                .ToList ();
+            if (ixnNotches.Count > 0) {
+               // Split the Notch(es) that intersect the dead band area. This is a mandatory one and does
+               // not adhere to the min notch split options. Splitting shall be called only after possible resizing
+               // of CutScope
+               bool splitToolScopes;
+               if (passType == PassType.CutScope)
+                  (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
+                           thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+               else
+                  (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.StartX, mpc.Bound,
+                           thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+
+               // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
+               if (splitToolScopes) {
+                  CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
+                  cs.CategorizeToolings ();
+                  cs.AssessDeadBandFeatIndices (ref mpc);
+                  tss = mpc.ToolingScopes;
+                  featsWithIn = GetUncutToolingScopesWithin (cs, tss);
+               }
+
+               if (passType == PassType.CutScope)
+                  (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
+                           thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+               else
+                  (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound,
+                              thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+
+               // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
+               if (splitToolScopes) {
+                  CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
+                  cs.CategorizeToolings ();
+                  cs.AssessDeadBandFeatIndices (ref mpc);
+                  tss = mpc.ToolingScopes;
+                  featsWithIn = GetUncutToolingScopesWithin (cs, tss);
+               }
+            }
 
             // Order the notches in descenind order of StartX
             // Order by decending StartX keeps the highest StartX at the 0th element. 
@@ -1064,18 +1092,6 @@ internal class MultiPassCuts {
                   toolingScopesToBeMachined[nn].IsNotchSplitComplete = true;
             }
             cs.MachinableToolingScopes = toolingScopesToBeMachined;
-
-            // Set the IsProcessed for all the toolscopes within to true
-            // Ensure indices are within bounds
-            //foreach (int index in cs.mToolingScopesWithin.Where (index => index >= 0 && index < tss.Count &&
-            //!cs.DeadBandScopeToolingIndices.Contains (index))) {
-            //   var tscp = mpc.ToolingScopes[index];
-            //   tscp.IsProcessed = true;
-            //   mpc.ToolingScopes[index] = tscp;
-
-            //   processedTSSKVPairs[mpc.ToolingScopes[index]] = true;
-            //}
-
             foreach (var tsc in cs.MachinableToolingScopes) {
                if (processedTSSKVPairs.ContainsKey (tsc))
                   throw new Exception ("Previously handled tool scope found again in dictionary");
@@ -1086,20 +1102,16 @@ internal class MultiPassCuts {
                // Mark the ToolingScope as processed in the dictionary
                processedTSSKVPairs.Add (tsc, true);
             }
-
             foreach (var tssc in cs.MachinableToolingScopes)
                if (!tssc.IsProcessed) throw new Exception ("One of the tooling scopes was not set as processed");
-
-
-
             cs.ToolingScopes = mpc.ToolingScopes;
             cs.CategorizeToolings ();
 
             // Add the cutscope
             if (cs.MachinableToolingScopes.Count > 0) resCSS.Add (cs);
-
          } else {
             cs.CategorizeToolings ();
+            
             // No "within features" found. Move the EndXPos to the start of the intersection feature
             // that has the lowest startX for left to right pass
             var ixnFeatIdxs = cs.mToolingScopesIntersectForward.Where (tsix => !tss[tsix].IsProcessed &&
@@ -1123,11 +1135,6 @@ internal class MultiPassCuts {
                if (ixnFeats.Count > 0) endXPos = ixnFeats[0].StartX;
             }
          }
-         //for (int kk = 0; kk <= uptoIndicesProcessed; kk++) {
-         //   if (!mpc.ToolingScopes[kk].IsProcessed)
-         //      throw new Exception ($"Tooling index {kk} is not marked for cut. Error in optimization detected");
-         //}
-
          foreach (var toolScopeItem in processedTSSKVPairs) {
             ToolingScope currentToolScope = toolScopeItem.Key;
 
@@ -1139,46 +1146,38 @@ internal class MultiPassCuts {
                   break;
                }
             }
-
             if (foundToolScope != null) {
                // Check if the found ToolScope is marked as processed
-               if (!foundToolScope.IsProcessed) {
+               if (!foundToolScope.IsProcessed) 
                   throw new Exception ($"Tooling scope for the current item is not marked for cut. Error in optimization detected.");
-               }
-            } else {
+            } else 
                throw new Exception ($"Tooling scope not found in mpc.toolscopes for the given dictionary key.");
+         }
+         var dbb = cs.DeadBandScope;
+         if (passType == PassType.CutScope) {
+            // The next pass is to move utp the deadband beginning and
+            // the cutscope width is the width of dead band.
+            var dbTScopes = GetDeadBandToolingScopes (cs, tss);
+            if (dbTScopes.Count > 0) {
+               startXPos = dbTScopes[0].StartX;
+               var dbTScopesEx = dbTScopes.OrderBy (ts => ts.EndX);
+               endXPos = dbTScopesEx.Last ().EndX;
             }
+         } else {
+            // The next pass is CutScope Max, which is to move to the work
+            // to the max frame width.
+            startXPos = cs.EndX;
+            endXPos = Math.Min (startXPos + maxScopeLength, mpc.XMax);
          }
-
-         var currMinusPrevBand = (currDBScope - prevDBScope);
-         if (currMinusPrevBand.Count > 1) throw new Exception ("MultiPassCuts.GetQuasiOptimalCutScopes: Dead Band diff returns more than 1 band");
-         Scope scopeBandDiff = new (0, 0);
-         if (currMinusPrevBand.Count == 0)
-            startXPos += maxScopeLength;
-         else {
-            scopeBandDiff = currMinusPrevBand[0];
-            startXPos = scopeBandDiff.XMin;
-         }
-
-         // Set the variables for the next loop
-         //startXPos = endXPos;
-         if (mpc.mIsLeftToRight) endXPos = Math.Min (startXPos + maxScopeLength, mpc.XMax);
-         else endXPos -= maxScopeLength;
-
-         prevDBScope.Assign (currDBScope);
-
-         if (!mpc.mIsLeftToRight && endXPos < 0) endXPos = bbox.XMin;
-         if (mpc.mIsLeftToRight && (endXPos.GTEQ (bbox.XMax))) endXPos = bbox.XMax;
          offset = 0;
          count++;
          pass++;
-      };
-      //for (int ii = 0; ii < mpc.ToolingScopes.Count; ii++) {
-      //   if (mpc.ToolingScopes[ii].IsProcessed == false) {
-      //      throw new Exception ($"Tool scope {ii + 1} is not processed");
-      //   }
-      //}
+         if (passType == PassType.CutScope) passType = PassType.DeadBand;
+         else passType = PassType.CutScope;
 
+         // Terminate the while loop if condition is met
+         if (cs.StartX.GTEQ (mpc.Model.Bound.XMax)) break;
+      };
       foreach (var toolScopeItem in processedTSSKVPairs) {
          ToolingScope currentToolScope = toolScopeItem.Key;
 
@@ -1209,27 +1208,16 @@ internal class MultiPassCuts {
       if (mGC.Heads == MCSettings.EHeads.Left || mGC.Heads == MCSettings.EHeads.Right) mGC.PartitionRatio = 1.0;
 
       CutScopeToolingList cutScTlgList = [];
-      //List<List<Tooling>> tls = [];
       List<Tooling> cutsH1 = [], cutsH2 = [];
       foreach (var cs in MachinableCutScopes) {
          List<Tooling> tlList = [];
          foreach (var mtls in cs.MachinableToolingScopes)
             tlList.Add (mtls.Tooling);
-         mGC.CreatePartition (tlList, MCSettings.It.OptimizePartition, Utils.CalculateBound3 (tlList));
+         mGC.CreatePartition (tlList, MCSettings.It.OptimizePartition, /*Utils.CalculateBound3 (tlList)*/cs.Bound);
          cutsH1 = tlList.Where (c => c.Head == 0).ToList ();
          cutsH2 = tlList.Where (c => c.Head == 1).ToList ();
          cutScTlgList.Add ((tlList, cs.StartX, cs.EndX));
       }
-
-      //List<Tooling> cutsH1 = [], cutsH2 = [];
-
-      //for (int ii = 0; ii < tls.Count; ii++) {
-      //   var cuts = tls[ii];
-      //   mGC.CreatePartition (cuts, MCSettings.It.OptimizePartition, Utils.CalculateBound3 (cuts));
-      //   cutsH1 = cuts.Where (c => c.Head == 0).ToList ();
-      //   cutsH2 = cuts.Where (c => c.Head == 1).ToList ();
-      //   tls[ii] = cuts;
-      //}
       mGC.GenerateGCode (0, cutScTlgList);
       mGC.GenerateGCode (1, cutScTlgList);
       CutScopeTraces = mGC.CutScopeTraces;

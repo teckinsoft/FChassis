@@ -336,6 +336,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                   Lux.Color = new Color32 (128, 0, 128);
                   Lux.DrawBillboardText (tName, pt, (float)12);
                }
+               if (MCSettings.It.ShowToolingExtents) {
+                  // Draw the tool extents
+                  var tXMin = $"{cut.XMin:F2}"; var tXMax = $"{cut.XMax:F2}";
+                  var ptXMin = new Point3(cut.XMin, cut.Segs[0].Curve.Start.Y, cut.Segs[0].Curve.Start.Z+5);
+                  var ptXMax = new Point3 (cut.XMax, cut.Segs[0].Curve.Start.Y, cut.Segs[0].Curve.Start.Z+5);
+                  Lux.Color = new Color32 (128, 0, 128);
+                  Lux.DrawBillboardText (tXMin, ptXMin, (float)12);
+                  Lux.DrawBillboardText (tXMax, ptXMax, (float)12);
+               }
             }
          }
       }

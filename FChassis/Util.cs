@@ -1398,7 +1398,7 @@ public static class Utils {
             throw new Exception ("ToolingScope does not match with Tooling: In Right to left");
       }
 
-      var (notchXPt, _, index, doesIntersect) = GetPointParamsAtXVal (segs, xPartition);
+      var (notchXPt, paramAtIxn, index, doesIntersect) = GetPointParamsAtXVal (segs, xPartition);
       List<ToolingSegment> splitSegs; Point3 lineEndPoint; Line3 line;
       if (doesIntersect) {
          splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized ());

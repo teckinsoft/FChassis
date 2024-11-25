@@ -118,6 +118,7 @@ public class MCSettings : INotifyPropertyChanged {
       Machine = other.Machine;
       WorkpieceOptionsFilename = other.WorkpieceOptionsFilename;
       ShowToolingNames = other.ShowToolingNames;
+      ShowToolingExtents = other.ShowToolingExtents;
       DeadbandWidth = other.DeadbandWidth;
    }
    // Helper method to set a property and raise the event
@@ -222,6 +223,12 @@ public class MCSettings : INotifyPropertyChanged {
       get => mShowToolingNames; 
       set => SetProperty(ref mShowToolingNames, value); }
    bool mShowToolingNames;
+
+   public bool ShowToolingExtents {
+      get => mShowToolingExtents;
+      set => SetProperty (ref mShowToolingExtents, value);
+   }
+   bool mShowToolingExtents;
 
    public bool IncludeFlange { 
       get=>mIncludeFlange; 
