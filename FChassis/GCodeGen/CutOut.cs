@@ -1,5 +1,4 @@
 ﻿using Flux.API;
-using System.Security.Cryptography;
 namespace FChassis.GCodeGen;
 
 
@@ -34,7 +33,6 @@ public class CutOut {
    double mXStart, mXPartition, mXEnd;
    bool mIsFirstTooling;
    ToolingSegment? mLastToolingSegment;
-
    double mPrevCutToolingsLength, mPrevMarkToolingsLength,
             mTotalMarkLength, mTotalToolingCutLength;
 
@@ -94,32 +92,28 @@ public class CutOut {
             isFlexSeg = false;
          }
       }
-
       if (flgSegs.Count > 0) {
          mSegValLists.Add ((new List<ToolingSegment> (flgSegs), isFlexSeg));
          flgSegs.Clear ();
       }
    }
 
-
    public void WriteTooling () {
       bool firstTime = true;
-      foreach (var segs in mSegValLists) {
-         
+      for (int ii=0; ii<mSegValLists.Count; ii++ ) {
+         var (Segs, FlexSegs) = mSegValLists[ii];
          double currSegsLen = 0;
          GCGen.InitializeToolingBlock (ToolingItem, mPrevToolingItem, /*frameFeed,*/
-              mXStart, mXPartition, mXEnd, ToolingSegments, /*isValidNotch:*/false, segs.FlexSegs);
+              mXStart, mXPartition, mXEnd, ToolingSegments, /*isValidNotch:*/false, ii==mSegValLists.Count-1, FlexSegs);
          if (firstTime) {
             GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mLastToolingSegment, mPrevToolingItem, mPrevTlgSegs, mIsFirstTooling, /*isValidNotch:*/false);
             GCGen.WriteToolCorrectionData (ToolingItem);
             firstTime = false;
          }
-
-         WriteGCode (segs.Segs);
-         currSegsLen += segs.Segs.Sum (s => s.Curve.Length);
+         WriteGCode (Segs);
+         currSegsLen += Segs.Sum (s => s.Curve.Length);
          GCGen.FinalizeToolingBlock (ToolingItem, mPrevCutToolingsLength, mPrevMarkToolingsLength, mTotalMarkLength, mTotalToolingCutLength);
          mPrevCutToolingsLength += currSegsLen;
-         //SetProgNo (toolingItem, mProgramNumber);
       }
    }
 

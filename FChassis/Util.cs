@@ -15,6 +15,71 @@ using NotchAttribute = Tuple<
         bool // Some boolean value
     >;
 
+public class MachinableCutScope {
+   public MachinableCutScope (CutScope cs, GCodeGenerator gCGen) {
+      ArgumentNullException.ThrowIfNull (cs);
+      CutScope = cs;
+      ToolingScopes = cs.MachinableToolingScopes;
+      mScopeWidth = ToolingScopes.Sum (t => (t.EndX - t.StartX));
+      StartX = cs.StartX;
+      EndX = cs.EndX;
+      GCGen = gCGen;
+      GCodeGenerator.CreatePartition (GCGen, ToolingScopes, MCSettings.It.OptimizePartition, /*Utils.CalculateBound3 (tlList)*/cs.Bound);
+      SetData ();
+      Toolings = ToolingScopes.Select (ts => ts.Tooling).ToList ();
+      Bound = cs.Bound;
+   }
+   public MachinableCutScope (List<Tooling> toolings, GCodeGenerator gCGen) {
+      CutScope = null;
+      ToolingScopes = ToolingScope.CreateToolingScopes (toolings);
+      mScopeWidth = ToolingScopes.Sum (t => (t.EndX - t.StartX));
+      StartX = ToolingScopes.Min (ts => ts.StartX);
+      EndX = ToolingScopes.Min (ts => ts.EndX);
+      GCGen = gCGen;
+      Toolings = ToolingScopes.Select (ts => ts.Tooling).ToList ();
+      Bound = Utils.CalculateBound3 (Toolings);
+      GCodeGenerator.CreatePartition (GCGen, ToolingScopes, MCSettings.It.OptimizePartition, Bound);
+      SetData ();
+   }
+
+   void SetData () {
+      ToolingScopesH1 = ToolingScopes.Where (t => t.Tooling.Head == 0).ToList ();
+      ToolingScopesH2 = ToolingScopes.Where (t => t.Tooling.Head == 1).ToList ();
+      ToolingScopesWidth = ToolingScopes.Sum (t => (t.EndX - t.StartX));
+      ToolingScopesWidthH1 = ToolingScopesH1.Sum (t => (t.EndX - t.StartX));
+      ToolingScopesWidthH2 = ToolingScopesH2.Sum (t => (t.EndX - t.StartX));
+      ToolingsHead1 = ToolingScopes.Select (ts => ts.Tooling).Where (ts => ts.Head == 0).ToList ();
+      ToolingsHead2 = ToolingScopes.Select (ts => ts.Tooling).Where (ts => ts.Head == 1).ToList ();
+   }
+   public CutScope CutScope { get; set; }
+   public GCodeGenerator GCGen { get; set; }
+   public List<ToolingScope> ToolingScopes { get; set; }
+   public double StartX { get; private set; }
+   public double EndX { get; private set; }
+   double mScopeWidth;
+   public double ScopeWidth { get => mScopeWidth; }
+   public List<Tooling> Toolings { get; private set; }
+   public List<Tooling> ToolingsHead1 { get; private set; }
+   public List<Tooling> ToolingsHead2 { get; private set; }
+   public double ToolingScopesWidth { get; set; }
+   public double ToolingScopesWidthH1 { get; set; }
+
+
+   public double ToolingScopesWidthH2 { get; set; }
+   public List<ToolingScope> ToolingScopesH1 { get; private set; }
+   public List<ToolingScope> ToolingScopesH2 { get; private set; }
+   public static List<MachinableCutScope> CreateMachinableCutScopes (List<CutScope> css, GCodeGenerator gcGen) {
+      return css.Select (cs => new MachinableCutScope (cs, gcGen)).ToList ();
+   }
+   public Bound3 Bound { get; private set; }
+   //public List<Tooling> ToolingsHead1 () {
+   //   return ToolingScopes.Select (ts => ts.Tooling).Where(ts=>ts.Head==0).ToList ();
+   //}
+   //public List<Tooling> ToolingsHead2 () {
+   //   return ToolingScopes.Select (ts => ts.Tooling).Where (ts => ts.Head == 1).ToList ();
+   //}
+}
+
 internal static class Extensions {
    public static double LieOn (this double f, double a, double b) => (f - a) / (b - a);
 
@@ -28,38 +93,38 @@ internal static class Extensions {
 
    public static double D2R (this int a) => a * PI / 180;
 
-   public static bool LieWithin (this double val, double leftLimit, 
+   public static bool LieWithin (this double val, double leftLimit,
                                  double rightLimit, double epsilon = 1e-6)
       => (leftLimit - epsilon < val && val < rightLimit + epsilon);
 }
 
 public class NegZException : Exception {
    // Parameterless constructor
-   public NegZException () {}
+   public NegZException () { }
 
    // Constructor with a message
    public NegZException (string message)
-       : base (message) {}
+       : base (message) { }
 
    // Constructor with a message and an inner exception
    public NegZException (string message, Exception innerException)
-       : base (message, innerException) {}
+       : base (message, innerException) { }
 }
 
 public class NotchCreationFailedException : Exception {
    // Parameterless constructor
-   public NotchCreationFailedException () {}
+   public NotchCreationFailedException () { }
 
    // Constructor with a message
    public NotchCreationFailedException (string message)
-       : base (message) {}
+       : base (message) { }
 
    // Constructor with a message and an inner exception
    public NotchCreationFailedException (string message, Exception innerException)
-       : base (message, innerException) {}
+       : base (message, innerException) { }
 }
 public enum OrdinateAxis {
-   Y, Z 
+   Y, Z
 }
 
 public enum MachineType {
@@ -95,23 +160,23 @@ public class GCodeSeg {
    public EGCode GCode => mGCode;
 
    public GCodeSeg (Point3 stPoint, Point3 endPoint, Vector3 StNormal, Vector3 EndNormal,
-                    EGCode gcmd, EMove moveType, string toolingName) 
+                    EGCode gcmd, EMove moveType, string toolingName)
       => SetGCLine (stPoint, endPoint, StNormal, EndNormal, gcmd, moveType, toolingName);
 
    public GCodeSeg (Arc3 arc, Point3 stPoint, Point3 endPoint, Point3 center, double radius,
-                    Vector3 StNormal, EGCode gcmd, EMove moveType, string toolingName) 
+                    Vector3 StNormal, EGCode gcmd, EMove moveType, string toolingName)
       => SetGCArc (arc, stPoint, endPoint, center, radius, StNormal, gcmd, moveType, toolingName);
-   
+
    public GCodeSeg (GCodeSeg rhs) {
-      mStartPoint = rhs.mStartPoint; 
-      mEndPoint = rhs.mEndPoint; 
+      mStartPoint = rhs.mStartPoint;
+      mEndPoint = rhs.mEndPoint;
       mRadius = rhs.mRadius;
-      mCenter = rhs.mCenter; 
-      mStartNormal = rhs.mStartNormal; 
+      mCenter = rhs.mCenter;
+      mStartNormal = rhs.mStartNormal;
       mEndNormal = rhs.mEndNormal;
-      mMoveType = rhs.mMoveType; 
-      mArc = rhs.mArc; 
-      mToolingName = rhs.mToolingName; 
+      mMoveType = rhs.mMoveType;
+      mArc = rhs.mArc;
+      mToolingName = rhs.mToolingName;
       mGCode = rhs.mGCode;
    }
 
@@ -133,17 +198,17 @@ public class GCodeSeg {
 
    public double Length {
       get {
-         if (mGCode is EGCode.G0 or EGCode.G1) 
+         if (mGCode is EGCode.G0 or EGCode.G1)
             return StartPoint.DistTo (EndPoint);
-         else if (mGCode is EGCode.G2 or EGCode.G3) 
+         else if (mGCode is EGCode.G2 or EGCode.G3)
             return mArc.Length;
 
          throw new NotSupportedException ("Unknown G Entity while computing length");
       }
    }
 
-   public void SetGCLine (Point3 stPoint, Point3 endPoint, 
-                          Vector3 stNormal, Vector3 endNormal, 
+   public void SetGCLine (Point3 stPoint, Point3 endPoint,
+                          Vector3 stNormal, Vector3 endNormal,
                           EGCode gcmd, EMove moveType, string toolingName) {
       if (gcmd is not EGCode.G0 and not EGCode.G1)
          throw new InvalidDataException ("The GCode cmd for line is wrong");
@@ -154,16 +219,16 @@ public class GCodeSeg {
       mToolingName = toolingName;
    }
 
-   public void SetGCArc (Arc3 arc, Point3 stPoint, Point3 endPoint, 
-                         Point3 center, double radius, Vector3 stNormal, 
+   public void SetGCArc (Arc3 arc, Point3 stPoint, Point3 endPoint,
+                         Point3 center, double radius, Vector3 stNormal,
                          EGCode gcmd, EMove moveType, string toolingName) {
       if (gcmd is not EGCode.G2 and not EGCode.G3)
          throw new InvalidDataException ("The GCode cmd for Arc is wrong");
 
-      mStartPoint = stPoint; 
-      mEndPoint = endPoint; 
-      mCenter = center; 
-      mRadius = radius; 
+      mStartPoint = stPoint;
+      mEndPoint = endPoint;
+      mCenter = center;
+      mRadius = radius;
       mGCode = gcmd;
       mStartNormal = stNormal;
       mArc = arc;
@@ -176,7 +241,7 @@ public class GCodeSeg {
       mEndPoint = GCodeGenerator.XfmToMachine (codeGen, mEndPoint);
       mStartNormal = GCodeGenerator.XfmToMachineVec (codeGen, mStartNormal);
       mEndNormal = GCodeGenerator.XfmToMachineVec (codeGen, mEndNormal);
-      if (IsArc ()) 
+      if (IsArc ())
          mCenter = GCodeGenerator.XfmToMachine (codeGen, mCenter);
    }
 
@@ -185,11 +250,11 @@ public class GCodeSeg {
       seg.XfmToMachine (codeGGen);
       return seg;
    }
-   
-   public bool IsLine () 
+
+   public bool IsLine ()
       => mGCode is EGCode.G0 or EGCode.G1;
-   
-   public bool IsArc () 
+
+   public bool IsArc ()
       => mGCode is EGCode.G2 or EGCode.G3;
 }
 
@@ -209,11 +274,11 @@ public static class Utils {
       Flex,
       None
    }
-   
+
    public enum EArcSense {
       CW, CCW
    }
-   
+
    //static readonly XForm4 Xfm = new ();
    public const double EpsilonVal = 1e-6;
    public static Color32 LHToolColor = new (57, 255, 20); // neon green
@@ -231,14 +296,14 @@ public static class Utils {
    /// <param name="fromPointPV">The from vector</param>
    /// <param name="toPointPV">The to vector</param>
    /// <returns>The angle between the two vectors specified</returns>
-   public static double GetAngleAboutXAxis (Vector3 fromPointPV, 
+   public static double GetAngleAboutXAxis (Vector3 fromPointPV,
                                             Vector3 toPointPV, XForm4 xfm) {
       //var trfFromPt = xfm * fromPointPV; var trfToPt = xfm * toPointPV;
       var theta = fromPointPV.AngleTo (toPointPV);
       var crossVec = Geom.Cross (fromPointPV, toPointPV);
       //if (!crossVec.IsZero && crossVec.Opposing (XForm4.mXAxis)) 
       //   theta *= -1;
-      if (!crossVec.IsZero && crossVec.Opposing (xfm.XCompRot)) 
+      if (!crossVec.IsZero && crossVec.Opposing (xfm.XCompRot))
          theta *= -1;
 
       return theta;
@@ -255,13 +320,13 @@ public static class Utils {
    /// Top, a NotSupportedException is thrown</exception>
    public static double GetAngle4PlaneTypeAboutXAxis (EPlane planeType) {
       double angleBetweenStartAndEndPoints;
-      if (planeType == Utils.EPlane.Top) 
+      if (planeType == Utils.EPlane.Top)
          angleBetweenStartAndEndPoints = 0.0;
-      else if (planeType == Utils.EPlane.YPos) 
+      else if (planeType == Utils.EPlane.YPos)
          angleBetweenStartAndEndPoints = -Math.PI / 2.0;
-      else if (planeType == Utils.EPlane.YNeg) 
+      else if (planeType == Utils.EPlane.YNeg)
          angleBetweenStartAndEndPoints = Math.PI / 2.0;
-      else 
+      else
          throw new NotSupportedException ("Unsupported plane type encountered");
 
       return angleBetweenStartAndEndPoints;
@@ -278,15 +343,15 @@ public static class Utils {
    public static EPlane GetArcPlaneType (Vector3 vec, XForm4 xfm) {
       xfm ??= XForm4.IdentityXfm;
       var trVec = xfm * vec.Normalized ();
-      if (Workpiece.Classify (trVec) == Workpiece.EType.Top) 
+      if (Workpiece.Classify (trVec) == Workpiece.EType.Top)
          return Utils.EPlane.Top;
-         
-      if (Workpiece.Classify (trVec) == Workpiece.EType.YPos) 
+
+      if (Workpiece.Classify (trVec) == Workpiece.EType.YPos)
          return Utils.EPlane.YPos;
-         
-      if (Workpiece.Classify (trVec) == Workpiece.EType.YNeg) 
+
+      if (Workpiece.Classify (trVec) == Workpiece.EType.YNeg)
          return Utils.EPlane.YNeg;
-      
+
       return EPlane.None;
    }
 
@@ -306,13 +371,13 @@ public static class Utils {
          return EFlange.Web;
 
       if (Workpiece.Classify (trVec) == Workpiece.EType.YPos)
-         return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent 
+         return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent
                                                 ? EFlange.Top : EFlange.Bottom;
-                                                
+
       if (Workpiece.Classify (trVec) == Workpiece.EType.YNeg)
-         return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent 
+         return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent
                                                 ? EFlange.Bottom : EFlange.Top;
-                                                
+
       throw new NotSupportedException (" Flange type could not be assessed");
    }
 
@@ -325,7 +390,7 @@ public static class Utils {
    public static Point2 ToPlane (Point3 pt, EPlane ep) => ep switch {
       EPlane.YNeg => new Point2 (pt.X, pt.Z),
       EPlane.YPos => new Point2 (pt.X, pt.Z),
-                _ => new Point2 (pt.X, pt.Y),
+      _ => new Point2 (pt.X, pt.Y),
    };
 
    /// <summary>
@@ -349,15 +414,15 @@ public static class Utils {
 
          // TODO IMPORTANT clarify with Dinesh top or bottom
          if (Workpiece.Classify (trVec) == Workpiece.EType.YPos)
-            return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent 
+            return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent
                                                    ? EFlange.Top : EFlange.Bottom;
 
          if (Workpiece.Classify (trVec) == Workpiece.EType.YNeg)
-            return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent 
+            return MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent
                                                    ? EFlange.Bottom : EFlange.Top;
       }
 
-      if (toolingItem.IsFlexFeature ()) 
+      if (toolingItem.IsFlexFeature ())
          return Utils.EFlange.Flex;
 
       throw new NotSupportedException (" Flange type could not be assessed");
@@ -376,7 +441,7 @@ public static class Utils {
       if (toolingItem.IsPlaneFeature ()) {
          if (Workpiece.Classify (trVec) == Workpiece.EType.Top)
             return EPlane.Top;
-         
+
          if (Workpiece.Classify (trVec) == Workpiece.EType.YPos)
             return EPlane.YPos;
 
@@ -384,15 +449,15 @@ public static class Utils {
             return EPlane.YNeg;
       }
 
-      if (toolingItem.IsFlexFeature ()) 
+      if (toolingItem.IsFlexFeature ())
          return Utils.EPlane.Flex;
 
       throw new InvalidOperationException (" The feature is neither plane nor flex");
    }
 
-   public static EPlane GetPlaneType (Vector3 normal, XForm4 xfm) 
+   public static EPlane GetPlaneType (Vector3 normal, XForm4 xfm)
       => GetArcPlaneType (normal, xfm);
-   
+
    /// <summary>
    /// This method returns the Vector3 normal emanating from the E3Plane
    /// given the tooling.
@@ -420,7 +485,7 @@ public static class Utils {
          var segs = toolingItem.Segs;
          Vector3 n = new (0.0, Math.Sqrt (2.0), Math.Sqrt (2.0));
          var yNegFlex = segs.Any (cutSeg => cutSeg.Vec0.Normalized ().Y < -0.1);
-         if (yNegFlex) 
+         if (yNegFlex)
             n = new (0.0, -Math.Sqrt (2.0), Math.Sqrt (2.0));
 
          return n;
@@ -454,16 +519,16 @@ public static class Utils {
       var featureNormalDotZAxis = featureNormal.Dot (zAxis);
       var featureNormalDotYAxis = featureNormal.Dot (yAxis);
 
-      if (Math.Abs (featureNormalDotZAxis - 1.0) < EpsilonVal) 
+      if (Math.Abs (featureNormalDotZAxis - 1.0) < EpsilonVal)
          return EPlane.Top;
 
-      if (Math.Abs (featureNormalDotZAxis + 1.0) < EpsilonVal) 
+      if (Math.Abs (featureNormalDotZAxis + 1.0) < EpsilonVal)
          throw new NegZException ("Negative Z axis feature normal encountered");
 
-      if (Math.Abs (featureNormalDotYAxis - 1.0) < EpsilonVal) 
+      if (Math.Abs (featureNormalDotYAxis - 1.0) < EpsilonVal)
          return EPlane.YPos;
 
-      if (Math.Abs (featureNormalDotYAxis + 1.0) < EpsilonVal) 
+      if (Math.Abs (featureNormalDotYAxis + 1.0) < EpsilonVal)
          return EPlane.YNeg;
 
       return EPlane.Flex;
@@ -482,10 +547,10 @@ public static class Utils {
           a.X * b.Y - a.Y * b.X);
    }
 
-   public static bool IsCircle (Curve3 curve) 
+   public static bool IsCircle (Curve3 curve)
       => curve != null && curve is Arc3 && curve.Start.EQ (curve.End);
 
-   public static bool IsArc (Curve3 curve) 
+   public static bool IsArc (Curve3 curve)
       => curve != null && curve is Arc3 && !curve.Start.EQ (curve.End);
 
    /// <summary>
@@ -513,7 +578,7 @@ public static class Utils {
       List<Tuple<Point3, Vector3>> res = null;
       if (!seg.IsArc () || (seg.GCode != EGCode.G2 && seg.GCode != EGCode.G3))
          return res;
-      
+
       res = [];
       double theta = 2 * Math.PI;
       Vector3 center2Start = seg.StartPoint - seg.ArcCenter;
@@ -526,9 +591,9 @@ public static class Utils {
 
       if (!seg.StartPoint.DistTo (seg.EndPoint).EQ (0)) {
          var val = center2Start.Dot (center2End) / (center2Start.Length * center2End.Length);
-         if (val < -1) 
+         if (val < -1)
             val += 1e-6;
-         else if (val > 1) 
+         else if (val > 1)
             val -= 1e-6;
 
          val = val.Clamp (-1.0, 1.0);
@@ -539,7 +604,7 @@ public static class Utils {
          else if (seg.GCode == EGCode.G2 && crossVec.Dot (seg.StartNormal) > 0.0)
             theta = 2 * Math.PI - theta;
 
-         if (seg.GCode == EGCode.G2 && theta > 0.0) 
+         if (seg.GCode == EGCode.G2 && theta > 0.0)
             theta = -theta;
       }
 
@@ -564,7 +629,7 @@ public static class Utils {
    /// <returns>A list of tuples of intermediate points, interpolated with normals</returns>
    public static List<Tuple<Point3, Vector3>> DiscretizeLine (GCodeSeg seg, int steps) {
       List<Tuple<Point3, Vector3>> res = null;
-      if (seg.IsArc () || (seg.GCode != EGCode.G0 && seg.GCode != EGCode.G1)) 
+      if (seg.IsArc () || (seg.GCode != EGCode.G0 && seg.GCode != EGCode.G1))
          return res;
 
       res = [];
@@ -575,33 +640,33 @@ public static class Utils {
       // current seg's last point should be gradual. This requires linear interpolation.
       res.Add (new Tuple<Point3, Vector3> (seg.StartPoint, seg.StartNormal.Normalized ()));
       for (int k = 1; k < steps - 1; k++) {
-         var pt1 = Utils.MovePoint (seg.StartPoint, 
+         var pt1 = Utils.MovePoint (seg.StartPoint,
                                     Geom.P2V (seg.EndPoint) - Geom.P2V (seg.StartPoint), k * stepLength);
-         var angleBetweenStNormalEndNormal = Utils.GetAngleAboutXAxis (seg.StartNormal, 
-                                                                       seg.EndNormal, 
+         var angleBetweenStNormalEndNormal = Utils.GetAngleAboutXAxis (seg.StartNormal,
+                                                                       seg.EndNormal,
                                                                        XForm4.IdentityXfm);
          if (angleBetweenStNormalEndNormal.EQ (0.0))
             res.Add (new Tuple<Point3, Vector3> (pt1, seg.StartNormal.Normalized ()));
          else if ((Math.Abs ((seg.EndPoint - seg.StartPoint).Normalized ().Dot (XForm4.mZAxis)) - 1.0).EQ (0.0)) {
             var t = (double)k / (double)(steps - 1);
-            var newNormal = seg.StartNormal.Normalized () * (1 - t) + seg.EndNormal.Normalized () * t; 
-                newNormal = newNormal.Normalized ();
+            var newNormal = seg.StartNormal.Normalized () * (1 - t) + seg.EndNormal.Normalized () * t;
+            newNormal = newNormal.Normalized ();
             res.Add (new Tuple<Point3, Vector3> (pt1, newNormal));
          } else {
-            var pt0 = Utils.MovePoint (seg.StartPoint, 
-                                       Geom.P2V (seg.EndPoint) - Geom.P2V (seg.StartPoint), 
+            var pt0 = Utils.MovePoint (seg.StartPoint,
+                                       Geom.P2V (seg.EndPoint) - Geom.P2V (seg.StartPoint),
                                        (k - 1) * stepLength);
-            var pt2 = Utils.MovePoint (seg.StartPoint, 
-                                       Geom.P2V (seg.EndPoint) - Geom.P2V (seg.StartPoint), 
+            var pt2 = Utils.MovePoint (seg.StartPoint,
+                                       Geom.P2V (seg.EndPoint) - Geom.P2V (seg.StartPoint),
                                        (k + 1) * stepLength);
             var norm1 = Geom.Cross ((pt1 - pt0), XForm4.mXAxis);
-            if (norm1.Opposing (prevNormal)) 
+            if (norm1.Opposing (prevNormal))
                norm1 = -norm1;
 
             prevNormal = norm1;
 
             var norm2 = Geom.Cross ((pt2 - pt1), XForm4.mXAxis);
-            if (norm2.Opposing (prevNormal)) 
+            if (norm2.Opposing (prevNormal))
                norm2 = -norm2;
 
             var norm = ((norm2 + norm1) * 0.5).Normalized ();
@@ -624,12 +689,12 @@ public static class Utils {
    public static Vector3 GetUnitVector (XForm4.EAxis axis) {
       Vector3 res = axis switch {
          XForm4.EAxis.NegZ => -XForm4.mZAxis,
-         XForm4.EAxis.Z    => XForm4.mZAxis,
+         XForm4.EAxis.Z => XForm4.mZAxis,
          XForm4.EAxis.NegX => -XForm4.mXAxis,
-         XForm4.EAxis.X    => XForm4.mXAxis,
+         XForm4.EAxis.X => XForm4.mXAxis,
          XForm4.EAxis.NegY => -XForm4.mYAxis,
-         XForm4.EAxis.Y    => XForm4.mYAxis,
-                         _ => throw new NotSupportedException ("Unsupported XForm.EAxis type")
+         XForm4.EAxis.Y => XForm4.mYAxis,
+         _ => throw new NotSupportedException ("Unsupported XForm.EAxis type")
       };
 
       return res;
@@ -653,21 +718,21 @@ public static class Utils {
       // tangent int he direction of start to end of the arc in the case of an arc
       Vector3 toolingDir;
       Point3 newToolingEntryPoint;
-      if (Utils.IsCircle (segmentsList[0].Curve)) 
+      if (Utils.IsCircle (segmentsList[0].Curve))
          newToolingEntryPoint = segmentsList[0].Curve.Start;
-      else 
+      else
          newToolingEntryPoint = Geom.GetMidPoint (segmentsList[0].Curve, toolingPlaneNormal);
 
       if (segmentsList[0].Curve is Arc3 arc)
          (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal);
-      else 
+      else
          toolingDir = (segmentsList[0].Curve.End - segmentsList[0].Curve.Start).Normalized ();
 
       // Ref points along the direction of the binormal, which is along or opposing the direction
       // in which the material removal side exists.
       var biNormal = Geom.Cross (toolingDir, toolingPlaneNormal).Normalized ();
       Vector3 scrapSideDirection = biNormal.Normalized ();
-      if (Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal)) 
+      if (Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
          scrapSideDirection = -biNormal;
 
       return new (newToolingEntryPoint, scrapSideDirection);
@@ -685,7 +750,7 @@ public static class Utils {
    /// if the given point is itself is at X=0.</param>
    /// <returns>The vector from the given point to the point on the nearest boundary along -X or X or -Z</returns>
    /// <exception cref="Exception">If the notch type is of type unknown, an exception is thrown</exception>
-   static Vector3 GetVectorToProximalBoundary (Point3 pt, Bound3 bound, ToolingSegment seg, 
+   static Vector3 GetVectorToProximalBoundary (Point3 pt, Bound3 bound, ToolingSegment seg,
                                                ECutKind profileKind, out XForm4.EAxis proxBdy) {
       Vector3 res;
       Point3 bdyPtXMin, bdyPtXMax, bdyPtZMin;
@@ -693,7 +758,7 @@ public static class Utils {
          case ECutKind.Top:
          case ECutKind.YPosFlex:
          case ECutKind.YNegFlex:
-            if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z)) 
+            if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
                   < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
                res = bdyPtXMin - pt;
                proxBdy = XForm4.EAxis.NegX;
@@ -707,8 +772,7 @@ public static class Utils {
 
                if (seg.Curve is Arc3 arc) {
                   (var _, p1p2) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0);
-               } 
-               else 
+               } else
                   p1p2 = (seg.Curve.End - seg.Curve.Start).Normalized ();
 
                var planeType = Utils.GetArcPlaneType (seg.Vec0, XForm4.IdentityXfm);
@@ -716,14 +780,14 @@ public static class Utils {
                   var resDir = res.Normalized (); // along x direction
 
                   // p1p2 may be along -Z direction
-                  if (p1p2.Opposing (resDir)) 
+                  if (p1p2.Opposing (resDir))
                      p1p2 *= -1;
 
                   var thetaP1P2WithX = Math.Acos (p1p2.Dot (resDir)); // Keep res if theta is max
                   var thetaP1P2WithMinusZ = Math.Acos (p1p2.Dot (XForm4.mZAxis * -1));
-                  if (thetaP1P2WithMinusZ > thetaP1P2WithX) 
+                  if (thetaP1P2WithMinusZ > thetaP1P2WithX)
                      return new Vector3 (0, 0, bound.ZMin);
-                  else 
+                  else
                      return res;
                }
             }
@@ -771,7 +835,7 @@ public static class Utils {
       var segmentLength = percentLength;
       int occuranceIndex = jj - 1;
       double previousCurveLengths = 0.0;
-      for (int kk = occuranceIndex - 1; kk >= 0; kk--) 
+      for (int kk = occuranceIndex - 1; kk >= 0; kk--)
          previousCurveLengths += segments[kk].Curve.Length;
 
       segmentLength -= previousCurveLengths;
@@ -789,8 +853,8 @@ public static class Utils {
       else if (segments[occuranceIndex].Curve.Length - segmentLength < distToPrevSegsEndPoint)
          notchPointOccuranceParams = new (occuranceIndex, segments[occuranceIndex].Curve.End);
       else {
-         notchPoint = Geom.GetPointAtLengthFromStart (segments[occuranceIndex].Curve, 
-                                                      segments[occuranceIndex].Vec0.Normalized (), 
+         notchPoint = Geom.GetPointAtLengthFromStart (segments[occuranceIndex].Curve,
+                                                      segments[occuranceIndex].Vec0.Normalized (),
                                                       segmentLength);
 
          notchPointOccuranceParams = new (occuranceIndex, notchPoint);
@@ -817,12 +881,12 @@ public static class Utils {
    /// The EAxis to the proximal boundary ( in the case of the previous vector being 0) and a flag</returns>
    /// <exception cref="NotSupportedException">An exception is thrown if the outward vector does not point 
    /// to the NegX, or X or Neg Z</exception>
-   public static NotchAttribute ComputeNotchAttribute (Bound3 bound, Tooling toolingItem, 
+   public static NotchAttribute ComputeNotchAttribute (Bound3 bound, Tooling toolingItem,
                                                        List<ToolingSegment> segments,
                                                        int segIndex, Point3 notchPoint) {
       if (segIndex == -1)
          return new NotchAttribute (null, new Vector3 (), new Vector3 (),
-                                    new Vector3 (), new Vector3 (), 
+                                    new Vector3 (), new Vector3 (),
                                     XForm4.EAxis.Z, false);
 
       XForm4.EAxis proxBdyStart;
@@ -830,29 +894,29 @@ public static class Utils {
       Vector3 vectorOutwardAtStart, vectorOutwardAtEnd, vectorOutwardAtSpecPoint;
       if (segments[segIndex].Curve is Arc3 arc) {
          (var center, _) = Geom.EvaluateCenterAndRadius (arc);
-         var vectorOutwardAtSpecPt = GetVectorToProximalBoundary (notchPoint, bound, 
-                                                                  segments[segIndex], toolingItem.ProfileKind, 
+         var vectorOutwardAtSpecPt = GetVectorToProximalBoundary (notchPoint, bound,
+                                                                  segments[segIndex], toolingItem.ProfileKind,
                                                                   out proxBdyStart);
          var flangeNormalVecAtSpecPt = (notchPoint - center).Normalized ();
          if (GetUnitVector (proxBdyStart).Opposing (flangeNormalVecAtSpecPt)) flangeNormalVecAtSpecPt *= -1.0;
-         return new NotchAttribute (segments[segIndex].Curve, segments[segIndex].Vec0.Normalized (), 
+         return new NotchAttribute (segments[segIndex].Curve, segments[segIndex].Vec0.Normalized (),
                                     segments[segIndex].Vec1.Normalized (),
-                                    flangeNormalVecAtSpecPt.Normalized (), 
+                                    flangeNormalVecAtSpecPt.Normalized (),
                                     vectorOutwardAtSpecPt, proxBdyStart, true);
       } else {
          var line = segments[segIndex].Curve as Line3;
          var p1p2 = line.End - line.Start;
-         vectorOutwardAtStart = GetVectorToProximalBoundary (line.Start, bound, segments[segIndex], 
+         vectorOutwardAtStart = GetVectorToProximalBoundary (line.Start, bound, segments[segIndex],
                                                              toolingItem.ProfileKind, out proxBdyStart);
-         vectorOutwardAtEnd = GetVectorToProximalBoundary (line.End, bound, segments[segIndex], 
+         vectorOutwardAtEnd = GetVectorToProximalBoundary (line.End, bound, segments[segIndex],
                                                            toolingItem.ProfileKind, out _);
-         vectorOutwardAtSpecPoint = GetVectorToProximalBoundary (notchPoint, bound, segments[segIndex], 
+         vectorOutwardAtSpecPoint = GetVectorToProximalBoundary (notchPoint, bound, segments[segIndex],
                                                            toolingItem.ProfileKind, out _);
          Vector3 bdyVec = proxBdyStart switch {
             XForm4.EAxis.NegX => -XForm4.mXAxis,
-            XForm4.EAxis.X    => XForm4.mXAxis,
+            XForm4.EAxis.X => XForm4.mXAxis,
             XForm4.EAxis.NegZ => -XForm4.mZAxis,
-                            _ => throw new NotSupportedException ("Outward vector can not be other than NegX, X, and NegZ")
+            _ => throw new NotSupportedException ("Outward vector can not be other than NegX, X, and NegZ")
          };
 
          outwardNormalAlongFlange = new Vector3 ();
@@ -862,25 +926,25 @@ public static class Utils {
             int nc = 0;
             do {
                if (!Geom.Cross (p1p2, bdyVec).Length.EQ (0)) {
-                  outwardNormalAlongFlange = Geom.Cross (segments[segIndex].Vec0.Normalized (), 
+                  outwardNormalAlongFlange = Geom.Cross (segments[segIndex].Vec0.Normalized (),
                                                          p1p2).Normalized ();
-                  if (outwardNormalAlongFlange.Opposing (bdyVec)) 
+                  if (outwardNormalAlongFlange.Opposing (bdyVec))
                      outwardNormalAlongFlange *= -1.0;
                   break;
-               } else 
+               } else
                   p1p2 = Geom.Perturb (p1p2);
 
                ++nc;
-               if (nc > 10) 
+               if (nc > 10)
                   break;
             } while (true);
          }
       }
 
-      return new NotchAttribute (segments[segIndex].Curve, 
-                                 segments[segIndex].Vec0.Normalized (), 
+      return new NotchAttribute (segments[segIndex].Curve,
+                                 segments[segIndex].Vec0.Normalized (),
                                  segments[segIndex].Vec1.Normalized (),
-                                 outwardNormalAlongFlange.Normalized (), 
+                                 outwardNormalAlongFlange.Normalized (),
                                  vectorOutwardAtSpecPoint, proxBdyStart, true);
    }
 
@@ -936,7 +1000,7 @@ public static class Utils {
                var newLine = new Line3 (fixedSegs[ii - 1].Curve.End, fixedSegs[ii].Curve.Start);
                var newTS = Geom.CreateToolingSegmentForCurve (newLine as Curve3, fixedSegs[ii - 1].Vec1, fixedSegs[ii].Vec0);
                fixedSegs.Insert (ii, newTS); ii--;
-            } else 
+            } else
                throw new Exception ("Utils.FixSanityOfToolingSegments: Unknown segment type encountered");
          }
       }
@@ -952,14 +1016,14 @@ public static class Utils {
    /// <param name="segments">The input segments and also the output</param>
    /// <param name="notchPtsInfo">The input notchPointsInfo list and also the output</param>
    /// <param name="tolerance">The epsilon tolerance, which is by default 1e-6</param>
-   public static void SplitToolingSegmentsAtPoints (ref List<ToolingSegment> segments, 
-                                                    ref List<NotchPointInfo> notchPtsInfo, 
+   public static void SplitToolingSegmentsAtPoints (ref List<ToolingSegment> segments,
+                                                    ref List<NotchPointInfo> notchPtsInfo,
                                                     double tolerance = 1e-6) {
       for (int ii = 0; ii < notchPtsInfo.Count; ii++) {
          if (notchPtsInfo[ii].mSegIndex == -1) continue;
-         var crvs = Geom.SplitCurve (segments[notchPtsInfo[ii].mSegIndex].Curve, 
+         var crvs = Geom.SplitCurve (segments[notchPtsInfo[ii].mSegIndex].Curve,
                                      notchPtsInfo[ii].mPoints,
-                                     segments[notchPtsInfo[ii].mSegIndex].Vec0.Normalized (), 
+                                     segments[notchPtsInfo[ii].mSegIndex].Vec0.Normalized (),
                                      deltaBetween: 0, tolerance);
          int stIndex = notchPtsInfo[ii].mSegIndex;
          List<NotchPointInfo> newNPInfo = [];
@@ -992,7 +1056,7 @@ public static class Utils {
             for (int jj = ii + newNPInfo.Count; jj < notchPtsInfo.Count; jj++) {
                var npInfoObj = notchPtsInfo[jj];
                npInfoObj.mSegIndex += crvs.Count - 1;
-               if (notchPtsInfo[jj].mSegIndex != -1) 
+               if (notchPtsInfo[jj].mSegIndex != -1)
                   notchPtsInfo[jj] = npInfoObj;
             }
          }
@@ -1011,8 +1075,8 @@ public static class Utils {
    /// <returns>The list of tooling segments that got created. If no curves were split, it returns an 
    /// empty list</returns>
    public static List<ToolingSegment> SplitToolingSegmentsAtPoint (
-                                          List<ToolingSegment> segments, 
-                                          int segIndex, Point3 point, Vector3 fpn, 
+                                          List<ToolingSegment> segments,
+                                          int segIndex, Point3 point, Vector3 fpn,
                                           double tolerance = 1e-6) {
       List<Point3> intPoints = [point];
       // Consistency check
@@ -1021,7 +1085,7 @@ public static class Utils {
          //return toolSegs;
          throw new Exception ("SplitToolingSegmentsAtPoint: Point not on the curve");
 
-      var crvs = Geom.SplitCurve (segments[segIndex].Curve, intPoints, fpn, 
+      var crvs = Geom.SplitCurve (segments[segIndex].Curve, intPoints, fpn,
                                   deltaBetween: 0, tolerance);
       var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (segments[segIndex], crvs);
 
@@ -1039,13 +1103,13 @@ public static class Utils {
    /// <exception cref="Exception"></exception>
    public static bool IsToolingOnFlex (Vector3 stNormal, Vector3 endNormal) {
       stNormal = stNormal.Normalized (); endNormal = endNormal.Normalized ();
-      if ((stNormal.Dot (XForm4.mZAxis).EQ (1) && endNormal.Dot (XForm4.mZAxis).EQ (1)) 
-           || (stNormal.Dot (XForm4.mYAxis).EQ (1) && endNormal.Dot (XForm4.mYAxis).EQ (1)) 
-           || (stNormal.Dot (-XForm4.mYAxis).EQ (1) && endNormal.Dot (-XForm4.mYAxis).EQ (1))) 
+      if ((stNormal.Dot (XForm4.mZAxis).EQ (1) && endNormal.Dot (XForm4.mZAxis).EQ (1))
+           || (stNormal.Dot (XForm4.mYAxis).EQ (1) && endNormal.Dot (XForm4.mYAxis).EQ (1))
+           || (stNormal.Dot (-XForm4.mYAxis).EQ (1) && endNormal.Dot (-XForm4.mYAxis).EQ (1)))
          return false;
-      else if (stNormal.Dot (-XForm4.mZAxis).EQ (1) 
-               || endNormal.Dot (-XForm4.mZAxis).EQ (1)) 
-               throw new Exception ("Negative Z axis normal encountered");
+      else if (stNormal.Dot (-XForm4.mZAxis).EQ (1)
+               || endNormal.Dot (-XForm4.mZAxis).EQ (1))
+         throw new Exception ("Negative Z axis normal encountered");
 
       return true;
    }
@@ -1084,7 +1148,7 @@ public static class Utils {
       var lengthInLastSegment = toolingLength;
       int occuranceIndex = jj - 1;
       double previousCurveLengths = 0.0;
-      for (int kk = occuranceIndex - 1; kk >= 0; kk--) 
+      for (int kk = occuranceIndex - 1; kk >= 0; kk--)
          previousCurveLengths += segments[kk].Curve.Length;
 
       lengthInLastSegment -= previousCurveLengths;
@@ -1101,10 +1165,10 @@ public static class Utils {
    /// <returns>The length of the tooling segments from start to end index including the start and 
    /// end the segments</returns>
    public static double GetLengthBetweenTooling (List<ToolingSegment> segments, int fromIdx, int toIdx) {
-      if (fromIdx > toIdx) 
+      if (fromIdx > toIdx)
          (fromIdx, toIdx) = (toIdx, fromIdx);
 
-      if (fromIdx == toIdx) 
+      if (fromIdx == toIdx)
          return segments[fromIdx].Curve.Length;
 
       double lengthBetween = segments.Skip (fromIdx + 1)
@@ -1128,20 +1192,20 @@ public static class Utils {
    /// To Point</returns>
    public static double GetLengthBetweenTooling (List<ToolingSegment> segments, Point3 fromPt, Point3 toPt) {
       var fromPtOnSegment = segments.Select ((segment, index) => new { Segment = segment, Index = index })
-                                          .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, fromPt, 
+                                          .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, fromPt,
                                                                                      x.Segment.Vec0.Normalized ()));
 
       bool fromPtOnSegmentExists = fromPtOnSegment != null;
-      if (!fromPtOnSegmentExists) 
+      if (!fromPtOnSegmentExists)
          throw new Exception ("GetLengthBetweenTooling: From pt is not on segment");
 
 
       var toPtOnSegment = segments.Select ((segment, index) => new { Segment = segment, Index = index })
-                                       .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, toPt, 
+                                       .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, toPt,
                                                                                     x.Segment.Vec0.Normalized ()));
 
       bool toPtOnSegmentExists = toPtOnSegment != null;
-      if (!toPtOnSegmentExists) 
+      if (!toPtOnSegmentExists)
          throw new Exception ("GetLengthBetweenTooling: To pt is not on segment");
 
       // Swap the objects if from index is > to Index
@@ -1157,7 +1221,7 @@ public static class Utils {
       double intermediateLength = 0;
       if (fromPtOnSegment.Index != toPtOnSegment.Index && fromPtOnSegment.Index + 1 < segments.Count
           && toPtOnSegment.Index - 1 >= 0)
-         intermediateLength = GetLengthBetweenTooling (segments, fromPtOnSegment.Index + 1, 
+         intermediateLength = GetLengthBetweenTooling (segments, fromPtOnSegment.Index + 1,
                                                        toPtOnSegment.Index - 1);
 
       double length = intermediateLength + (fromPtSegLength + toPtSegLength);
@@ -1176,17 +1240,17 @@ public static class Utils {
    /// input list of tooling segments</exception>
    public static double GetLengthFromEndToolingToPosition (List<ToolingSegment> segments, Point3 pt) {
       var result = segments.Select ((segment, index) => new { Segment = segment, Index = index })
-                           .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, pt, 
+                           .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, pt,
                                                                       x.Segment.Vec0.Normalized ()));
 
       bool ptOnSegment = result != null;
       int idx = ptOnSegment ? result.Index : -1;
-      if (!ptOnSegment) 
+      if (!ptOnSegment)
          throw new Exception ("GetLengthFromEndToolingToPosition: Given pt is not on any segment");
 
       double length = segments.Skip (idx + 1).Sum (segment => segment.Curve.Length);
-      double idxthSegLengthFromPt = Geom.GetLengthBetween (segments[idx].Curve, pt, 
-                                                           segments[idx].Curve.End, 
+      double idxthSegLengthFromPt = Geom.GetLengthBetween (segments[idx].Curve, pt,
+                                                           segments[idx].Curve.End,
                                                            segments[idx].Vec0.Normalized ());
       length += idxthSegLengthFromPt;
       return length;
@@ -1218,16 +1282,16 @@ public static class Utils {
    /// <param name="startIndex">The start index </param>
    /// <param name="endIndex">The end index</param>
    /// <returns></returns>
-   public static Bound3 GetToolingSegmentsBounds (List<ToolingSegment> toolingSegs, Bound3 extentBox, 
+   public static Bound3 GetToolingSegmentsBounds (List<ToolingSegment> toolingSegs, Bound3 extentBox,
                                                   int startIndex = -1, int endIndex = -1) {
       List<ToolingSegment> toolingSegsSub = [];
       if (startIndex != -1) {
          int increment = startIndex <= endIndex ? 1 : -1;
-         for (int ii = startIndex; (startIndex <= endIndex ? ii <= endIndex : ii >= endIndex); 
+         for (int ii = startIndex; (startIndex <= endIndex ? ii <= endIndex : ii >= endIndex);
             ii += increment)
-            
-         toolingSegsSub.Add (toolingSegs[ii]);
-      } else 
+
+            toolingSegsSub.Add (toolingSegs[ii]);
+      } else
          toolingSegsSub = toolingSegs;
 
       // Extract all Point3 instances from Start and End properties of Curve3
@@ -1254,11 +1318,11 @@ public static class Utils {
       bool ptOnSegment = result != null;
       int idx = ptOnSegment ? result.Index : -1;
 
-      if (!ptOnSegment) 
+      if (!ptOnSegment)
          throw new Exception ("GetLengthFromStartToolingToPosition: Given pt is not on any segment");
 
       length = segments.Take (idx - 1).Sum (segment => segment.Curve.Length);
-      length += Geom.GetLengthBetween (segments[idx].Curve, segments[idx].Curve.Start, pt, 
+      length += Geom.GetLengthBetween (segments[idx].Curve, segments[idx].Curve.Start, pt,
                                        segments[idx].Vec0.Normalized ());
       return length;
    }
@@ -1294,11 +1358,11 @@ public static class Utils {
    /// <returns></returns>
    public static Bound3 CalculateBound3 (List<Tooling> cuts) {
       var bounds = cuts.SelectMany (cut => new[] { cut.Bound3 });
-      return new Bound3 (bounds.Min (b => b.XMin), 
-                         bounds.Min (b => b.YMin), 
+      return new Bound3 (bounds.Min (b => b.XMin),
+                         bounds.Min (b => b.YMin),
                          bounds.Min (b => b.ZMin),
-                         bounds.Max (b => b.XMax), 
-                         bounds.Max (b => b.YMax), 
+                         bounds.Max (b => b.XMax),
+                         bounds.Max (b => b.YMax),
                          bounds.Max (b => b.ZMax));
    }
 
@@ -1318,27 +1382,27 @@ public static class Utils {
       int kk;
       bool ixn = false;
       for (kk = 0; kk < segs.Count; kk++) {
-         if ((segs[kk].Curve.Start.X - xVal).EQ (0)) 
+         if ((segs[kk].Curve.Start.X - xVal).EQ (0))
             return new Tuple<Point3, double, int, bool> (segs[kk].Curve.Start, 0, kk, true);
 
-         if ((segs[kk].Curve.End.X - xVal).EQ (0)) 
+         if ((segs[kk].Curve.End.X - xVal).EQ (0))
             return new Tuple<Point3, double, int, bool> (segs[kk].Curve.End, 1, kk, true);
 
          if (segs[kk].Curve is Arc3 arc) {
             var (c, r) = Geom.EvaluateCenterAndRadius (arc);
-            var p1 = new Point3 (xVal, segs[kk].Curve.Start.Y, 
+            var p1 = new Point3 (xVal, segs[kk].Curve.Start.Y,
                                  c.Z + Math.Sqrt (r * r - (xVal - c.X) * (xVal - c.X)));
-            var p2 = new Point3 (xVal, segs[kk].Curve.Start.Y, 
+            var p2 = new Point3 (xVal, segs[kk].Curve.Start.Y,
                                  c.Z - Math.Sqrt (r * r - (xVal - c.X) * (xVal - c.X)));
             // Find out which of the above points exists with in the segment
 
-            if (Geom.IsPointOnCurve (segs[kk].Curve, p1, segs[kk].Vec0)) 
+            if (Geom.IsPointOnCurve (segs[kk].Curve, p1, segs[kk].Vec0))
                p = p1;
-            else if (Geom.IsPointOnCurve (segs[kk].Curve, p2, segs[kk].Vec0)) 
+            else if (Geom.IsPointOnCurve (segs[kk].Curve, p2, segs[kk].Vec0))
                p = p2;
-            else 
+            else
                continue;
-               
+
             t = Geom.GetParamAtPoint (arc, p, segs[kk].Vec0);
          } else {
             var x1 = segs[kk].Curve.Start.X; var x2 = segs[kk].Curve.End.X;
@@ -1354,7 +1418,7 @@ public static class Utils {
          }
       }
 
-      if (kk == segs.Count) 
+      if (kk == segs.Count)
          return new Tuple<Point3, double, int, bool> (new Point3 (double.MinValue, double.MinValue, double.MinValue), -1, -1, ixn);
 
       return new Tuple<Point3, double, int, bool> (p, t, kk, ixn);
@@ -1374,7 +1438,7 @@ public static class Utils {
    public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight) {
       var segs = ts.Tooling.Segs; var toolingItem = ts.Tooling;
       List<ToolingSegment> resSegs = [];
-      if (segs[^1].Curve.End.X < segs[0].Curve.Start.X && (ts.Tooling.ProfileKind == ECutKind.YPos || ts.Tooling.ProfileKind == ECutKind.YNeg)) 
+      if (segs[^1].Curve.End.X < segs[0].Curve.Start.X && (ts.Tooling.ProfileKind == ECutKind.YPos || ts.Tooling.ProfileKind == ECutKind.YNeg))
          throw new Exception ("The notch direction in X is opposite to the direction of the part");
 
       var startX = ts.StartX; var endX = ts.EndX;
@@ -1384,17 +1448,17 @@ public static class Utils {
          if ((toolingItem.Bound3.XMax - ts.EndX).EQ (0)) {
             xPartition = startX;
             maxSideToPartition = true;
-         } else if ((toolingItem.Bound3.XMin - ts.StartX).EQ (0)) 
+         } else if ((toolingItem.Bound3.XMin - ts.StartX).EQ (0))
             xPartition = endX;
-         else 
+         else
             throw new Exception ("ToolingScope does not match with Tooling: In left to right");
       } else {
          if ((toolingItem.Bound3.XMax - ts.StartX).EQ (0)) {
             xPartition = endX;
             maxSideToPartition = true;
-         } else if ((toolingItem.Bound3.XMin - ts.EndX).EQ (0)) 
+         } else if ((toolingItem.Bound3.XMin - ts.EndX).EQ (0))
             xPartition = startX;
-         else 
+         else
             throw new Exception ("ToolingScope does not match with Tooling: In Right to left");
       }
 
@@ -1446,7 +1510,7 @@ public static class Utils {
    /// <param name="segs">The input list of segments</param>
    /// <param name="npsInfo">The data structure that holds the notch points specs</param>
    /// <exception cref="Exception">Exception is thrown if an error is found</exception>
-   public static void CheckSanityNotchPointsInfo (List<ToolingSegment> segs, 
+   public static void CheckSanityNotchPointsInfo (List<ToolingSegment> segs,
                                                   List<NotchPointInfo> npsInfo) {
       for (int ii = 0; ii < npsInfo.Count; ii++) {
          if (npsInfo[ii].mSegIndex == -1) continue;
@@ -1473,7 +1537,7 @@ public static class Utils {
       int sgn;
       string about = "";
       sgn = Math.Sign (segments.Last ().Curve.End.Y - segments.First ().Curve.Start.Y);
-      if (sgn != 0) 
+      if (sgn != 0)
          about = "Y";
 
       if (sgn == 0) {
@@ -1486,20 +1550,20 @@ public static class Utils {
          about = "X";
       }
 
-      if (sgn == 0) 
+      if (sgn == 0)
          throw new Exception ("Sign of the tooling segment (end-start) computation ambiguous");
 
       for (int ii = 0; ii < segments.Count; ii++) {
          if (segments[ii].Curve is Line3) {
             double diff = -1;
-            if (about == "Y") 
+            if (about == "Y")
                diff = segments[ii].Curve.End.Y - segments[ii].Curve.Start.Y;
-            else if (about == "Z") 
+            else if (about == "Z")
                diff = segments[ii].Curve.End.Z - segments[ii].Curve.Start.Z;
-            else if (about == "X") 
+            else if (about == "X")
                diff = segments[ii].Curve.End.X - segments[ii].Curve.Start.X;
 
-            if (diff.EQ (0)) 
+            if (diff.EQ (0))
                continue;
             var segSign = Math.Sign (diff);
             if (segSign != 0 && segSign != sgn) {
@@ -1512,7 +1576,7 @@ public static class Utils {
             bool broken = false;
             for (int jj = 1; jj < arcPts.Count; jj++) {
                var diff = arcPts[jj].Y - arcPts[jj - 1].Y;
-               if (diff.EQ (0)) 
+               if (diff.EQ (0))
                   continue;
 
                var segSign = Math.Sign (diff);
@@ -1525,7 +1589,7 @@ public static class Utils {
                }
             }
 
-            if (broken) 
+            if (broken)
                continue;
          }
       }
@@ -1566,7 +1630,7 @@ public static class Utils {
    /// <param name="percent">The parameter of the point in the tooling segments</param>
    /// <param name="pt">The actual point</param>
    /// <exception cref="Exception">If the given point is not participating in the tooling segments list</exception>
-   public static void UpdateNotchPointsInfo (List<ToolingSegment> segs, 
+   public static void UpdateNotchPointsInfo (List<ToolingSegment> segs,
                                              ref List<NotchPointInfo> notchPointsInfo,
       string position, double percent, Point3 pt) {
       var npinfo = new NotchPointInfo () {
@@ -1576,7 +1640,7 @@ public static class Utils {
       };
       npinfo.mPoints.Add (pt);
       int index = segs.FindIndex (s => s.Curve.End.DistTo (pt).EQ (0));
-      if (index == -1) 
+      if (index == -1)
          throw new Exception ("Index = -1 for notch spec point in mSegments");
 
       npinfo.mSegIndex = index;
@@ -1595,12 +1659,12 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void RapidPosition (StreamWriter sw, double x, double y, double z, 
-                                     double a, MachineType machine = MachineType.LCMMultipass2H, 
+   public static void RapidPosition (StreamWriter sw, double x, double y, double z,
+                                     double a, MachineType machine = MachineType.LCMMultipass2H,
                                      bool slaveRun = false) {
       if (machine == MachineType.LCMMultipass2H && slaveRun) return;
-      sw.WriteLine ("G0 X{0} Y{1} Z{2} A{3}", x.ToString ("F3"), 
-                                              y.ToString ("F3"), 
+      sw.WriteLine ("G0 X{0} Y{1} Z{2} A{3}", x.ToString ("F3"),
+                                              y.ToString ("F3"),
                                               z.ToString ("F3"),
                                               a.ToString ("F3"));
    }
@@ -1617,16 +1681,16 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void RapidPosition (StreamWriter sw, double x, OrdinateAxis oaxis, 
+   public static void RapidPosition (StreamWriter sw, double x, OrdinateAxis oaxis,
                                      double val, string comment,
-                                     MachineType machine = MachineType.LCMMultipass2H, 
+                                     MachineType machine = MachineType.LCMMultipass2H,
                                      bool slaveRun = false) {
       if (machine == MachineType.LCMMultipass2H && slaveRun) return;
       if (oaxis == OrdinateAxis.Y)
-         sw.WriteLine ("G0 X{0} Y{1} ({2})", x.ToString ("F3"), 
+         sw.WriteLine ("G0 X{0} Y{1} ({2})", x.ToString ("F3"),
                                              val.ToString ("F3"), comment);
       else if (oaxis == OrdinateAxis.Z)
-         sw.WriteLine ("G0 X{0} Z{1} ({2})", x.ToString ("F3"), 
+         sw.WriteLine ("G0 X{0} Z{1} ({2})", x.ToString ("F3"),
                                              val.ToString ("F3"), comment);
    }
 
@@ -1647,13 +1711,13 @@ public static class Utils {
    /// machine type LCMMultipass2H, no g code statement is written</param>
    public static void LinearMachining (StreamWriter sw, double x, double y, double z, double a, double f, string comment = "",
       MachineType machine = MachineType.LCMMultipass2H, bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) 
+      if (machine == MachineType.LCMMultipass2H && slaveRun)
          return;
 
-      sw.WriteLine ("G1 X{0} Y{1} Z{2} A{3} F{4} ({5})", x.ToString ("F3"), 
-                                                         y.ToString ("F3"), 
+      sw.WriteLine ("G1 X{0} Y{1} Z{2} A{3} F{4} ({5})", x.ToString ("F3"),
+                                                         y.ToString ("F3"),
                                                          z.ToString ("F3"),
-                                                         a.ToString ("F3"), 
+                                                         a.ToString ("F3"),
                                                          f, comment);
    }
 
@@ -1671,13 +1735,13 @@ public static class Utils {
    /// machine type LCMMultipass2H, no g code statement is written</param>
    public static void LinearMachining (StreamWriter sw, double x, double y, double z, double a, string comment = "",
       MachineType machine = MachineType.LCMMultipass2H, bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) 
+      if (machine == MachineType.LCMMultipass2H && slaveRun)
          return;
 
-      sw.WriteLine ("G1 X{0} Y{1} Z{2} A{3} {4}", x.ToString ("F3"), 
-                                                  y.ToString ("F3"), 
+      sw.WriteLine ("G1 X{0} Y{1} Z{2} A{3} {4}", x.ToString ("F3"),
+                                                  y.ToString ("F3"),
                                                   z.ToString ("F3"),
-                                                  a.ToString ("F3"), 
+                                                  a.ToString ("F3"),
                                                   comment);
    }
 
@@ -1692,14 +1756,14 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void LinearMachining (StreamWriter sw, double x, double y, double z, 
-                                       string comment = "", MachineType machine = MachineType.LCMMultipass2H, 
+   public static void LinearMachining (StreamWriter sw, double x, double y, double z,
+                                       string comment = "", MachineType machine = MachineType.LCMMultipass2H,
                                        bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) 
+      if (machine == MachineType.LCMMultipass2H && slaveRun)
          return;
 
-      sw.WriteLine ("G1 X{0} Y{1} Z{2} {3}", x.ToString ("F3"), 
-                                             y.ToString ("F3"), 
+      sw.WriteLine ("G1 X{0} Y{1} Z{2} {3}", x.ToString ("F3"),
+                                             y.ToString ("F3"),
                                              z.ToString ("F3"),
                                              comment);
    }
@@ -1717,18 +1781,18 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void LinearMachining (StreamWriter sw, double x, OrdinateAxis oaxis, 
+   public static void LinearMachining (StreamWriter sw, double x, OrdinateAxis oaxis,
                                        double val, double a, string comment = "",
-                                       MachineType machine = MachineType.LCMMultipass2H, 
+                                       MachineType machine = MachineType.LCMMultipass2H,
                                        bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) 
+      if (machine == MachineType.LCMMultipass2H && slaveRun)
          return;
 
       if (oaxis == OrdinateAxis.Y)
-         sw.WriteLine ("G1 X{0} Y{1} A{2} {3}", x.ToString ("F3"), val.ToString ("F3"), 
+         sw.WriteLine ("G1 X{0} Y{1} A{2} {3}", x.ToString ("F3"), val.ToString ("F3"),
                                                 a.ToString ("F3"), comment);
       else if (oaxis == OrdinateAxis.Z)
-         sw.WriteLine ("G1 X{0} Z{1} A{2} {3}", x.ToString ("F3"), val.ToString ("F3"), 
+         sw.WriteLine ("G1 X{0} Z{1} A{2} {3}", x.ToString ("F3"), val.ToString ("F3"),
                                                 a.ToString ("F3"), comment);
    }
 
@@ -1744,17 +1808,17 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void LinearMachining (StreamWriter sw, double x, OrdinateAxis oaxis, 
+   public static void LinearMachining (StreamWriter sw, double x, OrdinateAxis oaxis,
                                        double val, string comment = "",
       MachineType machine = MachineType.LCMMultipass2H, bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) 
+      if (machine == MachineType.LCMMultipass2H && slaveRun)
          return;
-      
+
       if (oaxis == OrdinateAxis.Y)
-         sw.WriteLine ("G1 X{0} Y{1} {2}", x.ToString ("F3"), 
+         sw.WriteLine ("G1 X{0} Y{1} {2}", x.ToString ("F3"),
                                            val.ToString ("F3"), comment);
       else if (oaxis == OrdinateAxis.Z)
-         sw.WriteLine ("G1 X{0} Z{1} {2}", x.ToString ("F3"), 
+         sw.WriteLine ("G1 X{0} Z{1} {2}", x.ToString ("F3"),
                                            val.ToString ("F3"), comment);
    }
 
@@ -1770,11 +1834,11 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void CircularMachining (StreamWriter sw, Utils.EArcSense arcSense, 
+   public static void CircularMachining (StreamWriter sw, Utils.EArcSense arcSense,
                                          double i, OrdinateAxis oaxis, double val,
-                                         EFlange flange, MachineType machine = MachineType.LCMMultipass2H, 
+                                         EFlange flange, MachineType machine = MachineType.LCMMultipass2H,
                                          bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) 
+      if (machine == MachineType.LCMMultipass2H && slaveRun)
          return;
 
       // LCMMultipass2H machine's G2 and G3 functions are reversed in sense for BOTTOM flange. So
@@ -1794,7 +1858,7 @@ public static class Utils {
             sw.Write ("G{0} I{1} K{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                                                    val.ToString ("F3"));
       }
-      
+
       sw.WriteLine ();
    }
 
@@ -1812,12 +1876,12 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void ArcMachining (StreamWriter sw, Utils.EArcSense arcSense, 
+   public static void ArcMachining (StreamWriter sw, Utils.EArcSense arcSense,
                                     double i, OrdinateAxis oaxis, double val,
-                                    double x, double y, EFlange flange, 
-                                    MachineType machine = MachineType.LCMMultipass2H, 
+                                    double x, double y, EFlange flange,
+                                    MachineType machine = MachineType.LCMMultipass2H,
                                     bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) 
+      if (machine == MachineType.LCMMultipass2H && slaveRun)
          return;
 
       // LCMMultipass2H machine's G2 and G3 functions are reversed in sense for BOTTOM flange. So
@@ -1838,7 +1902,7 @@ public static class Utils {
          else
             sw.Write ("G{0} I{1} K{2}", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                                         val.ToString ("F3"));
-         
+
          sw.Write (" X{0} Z{1}", x.ToString ("F3"), y.ToString ("F3"));
       }
 
@@ -1861,8 +1925,8 @@ public static class Utils {
       if (gcodeGen.EnableMultipassCut && gcodeGen.Process.Workpiece.Model.Bound.XMax - gcodeGen.Process.Workpiece.Model.Bound.XMin >= gcodeGen.MaxFrameLength)
          gcodeGen.EnableMultipassCut = true;
 
-      if (testing) 
-         gcodeGen.CreatePartition (gcodeGen.Process.Workpiece.Cuts, /*optimize*/false, 
+      if (testing)
+         gcodeGen.CreatePartition (gcodeGen.Process.Workpiece.Cuts, /*optimize*/false,
                                    gcodeGen.Process.Workpiece.Model.Bound);
       else {
          // Sanity test might have changed the instance of setting properties

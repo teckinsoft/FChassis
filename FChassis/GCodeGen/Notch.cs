@@ -1460,7 +1460,8 @@ public class Notch {
          mFullPartBound, mApproachIndex, mNotchWireJointDistance);
       var (_, notchApproachStNormal, notchApproachEndNormal, _, _, _, _) = mNotchAttrs[mApproachIndex];
       mBlockCutLength = mCutLengthTillPrevTooling;
-      foreach (var notchSequence in mNotchSequences) {
+      for (int ii= 0; ii < mNotchSequences.Count; ii++) {
+         var notchSequence = mNotchSequences[ii];
          switch (notchSequence.mSectionType) {
             case NotchSectionType.WireJointApproach: {
                   Utils.EPlane currPlaneType = Utils.GetFeatureNormalPlaneType (notchApproachEndNormal, new ());
@@ -1469,7 +1470,7 @@ public class Notch {
                   pts.Add (flangeEnd);
                   pts.Add (notchPointAtApproachpc);
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, pts, notchApproachStNormal,
-                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, "Notch: Wire Joint Approach to the Tooling");
+                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count-1, "Notch: Wire Joint Approach to the Tooling");
                   mGCodeGen.EnableMachiningDirective ();
 
                   // *** Moving to the mid point wire joint distance ***
@@ -1494,7 +1495,7 @@ public class Notch {
                   pts.Clear ();
                   pts.Add (nMid1); pts.Add (n1); pts.Add (notchPointAtApproachpc);
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, pts, notchApproachStNormal,
-                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, "Notch: Wire Joint Approach to the Tooling");
+                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count - 1, "Notch: Wire Joint Approach to the Tooling");
                   mGCodeGen.EnableMachiningDirective ();
 
                   // *** Start machining from n2 -> nMid2 -> 50% dist end point ***
@@ -1525,7 +1526,7 @@ public class Notch {
                   pts.Add (notchPointAtApproachpc); pts.Add (mRecentToolPosition);
                   pts.Add (n1); pts.Add (nMid1);
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, pts, notchApproachStNormal,
-                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, "Notch: Direct Approach to the Tooling");
+                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count - 1, "Notch: Direct Approach to the Tooling");
                   mGCodeGen.EnableMachiningDirective ();
                   mGCodeGen.WriteLine (mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.End, notchApproachStNormal,
                      notchApproachEndNormal, currPlaneType, mPrevPlane,
@@ -1586,13 +1587,14 @@ public class Notch {
                   if (notchSequence.mStartIndex > notchSequence.mEndIndex)
                      throw new Exception ("In WriteNotch: MachineToolingForward : startIndex > endIndex");
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments,
-                     mSegments[notchSequence.mStartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut:false, notchSequence.mStartIndex, notchSequence.mEndIndex,
+                     mSegments[notchSequence.mStartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut:false, ii == mNotchSequences.Count - 1,
+                     notchSequence.mStartIndex, notchSequence.mEndIndex,
                      comment: "Notch: Machining Forward Direction");
                   mGCodeGen.EnableMachiningDirective ();
-                  for (int ii = notchSequence.mStartIndex; ii <= notchSequence.mEndIndex; ii++) {
-                     mExitTooling = mSegments[ii];
-                     mGCodeGen.WriteCurve (mSegments[ii], mToolingItem.Name);
-                     mBlockCutLength += mSegments[ii].Curve.Length;
+                  for (int jj = notchSequence.mStartIndex; jj <= notchSequence.mEndIndex; jj++) {
+                     mExitTooling = mSegments[jj];
+                     mGCodeGen.WriteCurve (mSegments[jj], mToolingItem.Name);
+                     mBlockCutLength += mSegments[jj].Curve.Length;
                   }
                   mGCodeGen.DisableMachiningDirective ();
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
@@ -1603,10 +1605,10 @@ public class Notch {
                   if (notchSequence.mStartIndex < notchSequence.mEndIndex)
                      throw new Exception ("In WriteNotch: MachineToolingReverse : startIndex < endIndex");
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments, mSegments[notchSequence.mStartIndex].Vec0,
-                     mXStart, mXPartition, mXEnd, isFlexCut: false, notchSequence.mStartIndex, notchSequence.mEndIndex, comment: "Notch: Machining Reverse Direction");
+                     mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mNotchSequences.Count - 1, notchSequence.mStartIndex, notchSequence.mEndIndex, comment: "Notch: Machining Reverse Direction");
                   mGCodeGen.EnableMachiningDirective ();
-                  for (int ii = notchSequence.mStartIndex; ii >= notchSequence.mEndIndex; ii--) {
-                     mExitTooling = Geom.GetReversedToolingSegment (mSegments[ii], tolerance: mSplit ? 1e-4 : 1e-6);
+                  for (int jj = notchSequence.mStartIndex; jj >= notchSequence.mEndIndex; jj--) {
+                     mExitTooling = Geom.GetReversedToolingSegment (mSegments[jj], tolerance: mSplit ? 1e-4 : 1e-6);
                      mGCodeGen.WriteCurve (mExitTooling, mToolingItem.Name);
                      mBlockCutLength += mExitTooling.Curve.Length;
                   }
@@ -1618,10 +1620,10 @@ public class Notch {
             case NotchSectionType.MachineFlexToolingReverse: {
                   if (notchSequence.mStartIndex < notchSequence.mEndIndex) throw new Exception ("In WriteNotchGCode: MachineFlexToolingReverse : startIndex < endIndex");
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments, mSegments[notchSequence.mStartIndex].Vec0,
-                     mXStart, mXPartition, mXEnd, isFlexCut: true, notchSequence.mStartIndex, notchSequence.mEndIndex, circularMotionCmd: false, "Notch: Flex machining Reverse Direction");
+                     mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mNotchSequences.Count - 1, notchSequence.mStartIndex, notchSequence.mEndIndex, circularMotionCmd: false, "Notch: Flex machining Reverse Direction");
                   mGCodeGen.EnableMachiningDirective ();
-                  for (int ii = notchSequence.mStartIndex; ii >= notchSequence.mEndIndex; ii--) {
-                     var segment = Geom.GetReversedToolingSegment (mSegments[ii], tolerance: mSplit ? 1e-4 : 1e-6);
+                  for (int jj = notchSequence.mStartIndex; jj >= notchSequence.mEndIndex; jj--) {
+                     var segment = Geom.GetReversedToolingSegment (mSegments[jj], tolerance: mSplit ? 1e-4 : 1e-6);
                      mGCodeGen.WriteCurve (segment, mToolingItem.Name);
                      mBlockCutLength += segment.Curve.Length;
                   }
@@ -1634,12 +1636,12 @@ public class Notch {
                   if (notchSequence.mStartIndex > notchSequence.mEndIndex)
                      throw new Exception ("In WriteNotch: MachineFlexToolingForward : startIndex > endIndex");
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments, mSegments[notchSequence.mStartIndex].Vec0,
-                     mXStart, mXPartition, mXEnd, isFlexCut: true, notchSequence.mStartIndex, notchSequence.mEndIndex, circularMotionCmd: false,
+                     mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mNotchSequences.Count - 1, notchSequence.mStartIndex, notchSequence.mEndIndex, circularMotionCmd: false,
                      "Notch: Flex machining Forward Direction");
                   mGCodeGen.EnableMachiningDirective ();
-                  for (int ii = notchSequence.mStartIndex; ii <= notchSequence.mEndIndex; ii++) {
-                     mGCodeGen.WriteCurve (mSegments[ii], mToolingItem.Name);
-                     mBlockCutLength += mSegments[ii].Curve.Length;
+                  for (int jj = notchSequence.mStartIndex; jj <= notchSequence.mEndIndex; jj++) {
+                     mGCodeGen.WriteCurve (mSegments[jj], mToolingItem.Name);
+                     mBlockCutLength += mSegments[jj].Curve.Length;
                   }
                   mGCodeGen.DisableMachiningDirective ();
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
