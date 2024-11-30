@@ -127,6 +127,10 @@ public enum OrdinateAxis {
    Y, Z
 }
 
+public enum ERotate {
+   Rotate0, Rotate90, Rotate180, Rotate270
+}
+
 public enum MachineType {
    LCMLegacy,
    LCMMultipass2H
@@ -756,6 +760,8 @@ public static class Utils {
       Point3 bdyPtXMin, bdyPtXMax, bdyPtZMin;
       switch (profileKind) {
          case ECutKind.Top:
+         case ECutKind.Top2YPos:
+         case ECutKind.Top2YNeg:
          case ECutKind.YPosFlex:
          case ECutKind.YNegFlex:
             if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
@@ -767,7 +773,7 @@ public static class Utils {
                proxBdy = XForm4.EAxis.X;
             }
 
-            if (profileKind == ECutKind.YPosFlex || profileKind == ECutKind.YNegFlex) {
+            if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg) {
                Vector3 p1p2;
 
                if (seg.Curve is Arc3 arc) {
@@ -799,7 +805,7 @@ public static class Utils {
             res = bdyPtZMin - pt;
             proxBdy = XForm4.EAxis.NegZ;
             break;
-
+         
          default:
             throw new Exception ("Unknown notch type encountered");
       }
@@ -1682,16 +1688,16 @@ public static class Utils {
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
    public static void RapidPosition (StreamWriter sw, double x, OrdinateAxis oaxis,
-                                     double val, string comment,
+                                     double val, string comment, string extraToken = "",
                                      MachineType machine = MachineType.LCMMultipass2H,
                                      bool slaveRun = false) {
       if (machine == MachineType.LCMMultipass2H && slaveRun) return;
       if (oaxis == OrdinateAxis.Y)
-         sw.WriteLine ("G0 X{0} Y{1} ({2})", x.ToString ("F3"),
-                                             val.ToString ("F3"), comment);
+         sw.WriteLine ("G0 X{0} Y{1} {2} ({3})", x.ToString ("F3"),
+                                             val.ToString ("F3"), extraToken, comment);
       else if (oaxis == OrdinateAxis.Z)
-         sw.WriteLine ("G0 X{0} Z{1} ({2})", x.ToString ("F3"),
-                                             val.ToString ("F3"), comment);
+         sw.WriteLine ("G0 X{0} Z{1} {2} ({3})", x.ToString ("F3"),
+                                             val.ToString ("F3"), extraToken, comment);
    }
 
    /// <summary>

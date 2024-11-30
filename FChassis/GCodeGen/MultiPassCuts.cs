@@ -879,15 +879,15 @@ public class MultiPassCuts {
          var endXCache = endXPos;
          var stXCache = startXPos;
 
-         bool splitToolScopes = false;
+         bool splitToolScopes1 = false, splitToolScopes2 = false;
          var notchesIxnDeadBand = cs.DeadBandCutScope.NotchesIntersect ();
          // Split intersectingScopes if they are notches
-         (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
+         (mpc.ToolingScopes, splitToolScopes1) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
                               thresholdLength: 100, splitNotches: true, splitNonNotches: false);
-         (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
+         (mpc.ToolingScopes, splitToolScopes2) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
                               thresholdLength: 100, splitNotches: true, splitNonNotches: false);
 
-         if (splitToolScopes) {
+         if (splitToolScopes1 || splitToolScopes1) {
             cs = new (startXPos, offset, endXPos, mpc.Model.Bound, maxScopeLength, mpc.DeadBandWidth,
             ref mpc, mpc.mIsLeftToRight);
             startXPos = cs.StartX;
@@ -895,7 +895,8 @@ public class MultiPassCuts {
             tss = mpc.ToolingScopes;
             endXCache = endXPos;
             stXCache = startXPos;
-            splitToolScopes = false;
+            splitToolScopes1 = false;
+            splitToolScopes2 = false;
          }
          var dbAssociatedCutScopes = GetToolScopesFromIndices (cs.DeadBandScopeToolingIndices, tss, true);
          var featsWithIn = GetUncutToolingScopesWithin (cs, tss);
@@ -959,6 +960,7 @@ public class MultiPassCuts {
                // Split the Notch(es) that intersect the dead band area. This is a mandatory one and does
                // not adhere to the min notch split options. Splitting shall be called only after possible resizing
                // of CutScope
+               bool splitToolScopes = false;
                if (passType == PassType.CutScope)
                   (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
                            thresholdLength: 100, splitNotches: true, splitNonNotches: false);
@@ -974,8 +976,8 @@ public class MultiPassCuts {
                   tss = mpc.ToolingScopes;
                   featsWithIn = GetUncutToolingScopesWithin (cs, tss);
                }
+               
                splitToolScopes = false;
-
                if (passType == PassType.CutScope)
                   (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
                            thresholdLength: 100, splitNotches: true, splitNonNotches: false);

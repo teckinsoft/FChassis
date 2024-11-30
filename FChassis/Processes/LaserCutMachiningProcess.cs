@@ -120,6 +120,7 @@ public class Processor : INotifyPropertyChanged {
       RewindEnumerator (1);
       TriggerRedraw?.Invoke ();
       mMultipassCuts?.ClearZombies ();
+      mGCodeGenerator.ClearZombies ();
    }
    public void LoadGCode (string filename) {
       try {

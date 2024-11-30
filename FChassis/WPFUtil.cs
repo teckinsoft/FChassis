@@ -94,6 +94,21 @@ static class WPFUtil {
       };
    }
 
+   /// <summary>Binds a text-box to a int</summary>
+   /// <param name="tb">The text-box</param>
+   /// <param name="getter">Getter used to fetch the intial value of the double to display</param>
+   /// <param name="setter">Setter called whenever we have a new double (only if parsed correctly)</param>
+   public static void Bind (this TextBox tb, Func<int> getter, Action<int> setter) {
+      tb.Text = getter ().ToString ();
+      tb.GotFocus += (s, e) => tb.SelectAll ();
+      tb.LostFocus += (s, e) => {
+         if (int.TryParse (tb.Text, out var f))
+            setter (f);
+
+         tb.Text = getter ().ToString ();
+      };
+   }
+
    /// <summary>
    /// Binds a ComboBox to an enum or a list of options.
    /// </summary>

@@ -5,6 +5,13 @@ using static FChassis.Utils;
 
 namespace FChassis;
 
+public static class IntExtension {
+   public static int Clamp (this int a, int min, int max) {
+      if (a < min) return min;
+      if (a > max) return max;
+      return a;
+   }
+}
 public static class DoubleExtensions {
    public static double Clamp (this double a, double min, double max) {
       if (a < min) return min;
@@ -88,7 +95,7 @@ public class Geom {
    /// <param name="apn">The arcplane normal, that should be provided by the tooling</param>
    /// <returns>Point3 point at the parameter</returns>
    public static Point3 EvaluateArc (Arc3 arc, double param, Vector3 apn) {
-      var(angle, _) = GetArcAngleAndSense (arc, apn);
+      var (angle, _) = GetArcAngleAndSense (arc, apn);
       return GetArcPointAtAngle (arc, angle * param, apn);
    }
 
@@ -1083,7 +1090,7 @@ public class Geom {
             break;
          }
       }
-      if ( !ptOnOneSeg) throw new Exception ("Geom:GetLengthAtPoint: The given point pt does not exist on any segments");
+      if (!ptOnOneSeg) throw new Exception ("Geom:GetLengthAtPoint: The given point pt does not exist on any segments");
       foreach (var seg in segs) {
          idx++;
          if (IsPointOnCurve (seg.Curve, pt, seg.Vec0)) {

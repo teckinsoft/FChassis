@@ -218,7 +218,9 @@ public class Notch {
    #endregion
 
    #region Constructor(s)
-   public Notch (Tooling toolingItem, Bound3 bound, Bound3 fullPartBound, GCodeGenerator gcodeGen, EPlane prevPlaneType, /*double frameFeed,*/
+   public Notch (Tooling toolingItem, Bound3 bound, Bound3 fullPartBound, GCodeGenerator gcodeGen, Tooling prevToolingItem,
+      ToolingSegment? prevToolingSegment, List<ToolingSegment> prevToolingSegs, bool firstTooling,
+      EPlane prevPlaneType, /*double frameFeed,*/
       double xStart, double xPartition, double xEnd,
       double notchWireJointDistance, double notchApproachLength, double minNotchThresholdLength, double[] percentlength,
       double totalPrevCutToolingsLength, double totalToolingsCutLength, double curveLeastLength = 0.5) {
@@ -239,6 +241,10 @@ public class Notch {
       mXStart = xStart; mXPartition = xPartition; mXEnd = xEnd;
       MinNotchLengthThreshold = minNotchThresholdLength;
       EdgeNotch = false;
+      PreviousTooling = prevToolingItem;
+      PreviousToolingSegment = prevToolingSegment;
+      mFirstTooling = firstTooling;
+      mPrevToolingSegments = prevToolingSegs;
       if (Notch.IsEdgeNotch (mGCodeGen.Process.Workpiece.Bound, toolingItem, percentlength, notchApproachLength, curveLeastLength))
          EdgeNotch = true;
       else {
@@ -269,7 +275,11 @@ public class Notch {
    static Bound3 mFullPartBound;
    Tooling mToolingItem;
    EPlane mPrevPlane = EPlane.None;
+   bool mFirstTooling = false;
+   List<ToolingSegment> mPrevToolingSegments;
    public EPlane PrevPlane { get => mPrevPlane; set => mPrevPlane = value; }
+   public Tooling PreviousTooling { get; set; }
+   public ToolingSegment? PreviousToolingSegment { get; set; }
    #endregion
 
    #region Tunable Parameters / Setting Prescriptions
@@ -696,7 +706,7 @@ public class Notch {
       for (int ii = 0; ii < notchIndexSequence.Count; ii++) {
          if (notchIndexSequence[ii].Index == -1) break;
          if (prevIdxType == IndexType.Zero && prevIdxType != IndexType.At25) throw new Exception ("Notch reached zero and then continuing. Wrong");
-         if (prevIdx == notchIndexSequence[ii].Index && prevIdx != 0 )
+         if (prevIdx == notchIndexSequence[ii].Index && prevIdx != 0)
             throw new Exception ("Two notch sequence indices are the same. Wrong");
          int startIndex = -1;
          switch (notchIndexSequence[ii].Type) {
@@ -863,7 +873,7 @@ public class Notch {
       for (int ii = 0; ii < notchIndexSequence.Count; ii++) {
          if (notchIndexSequence[ii].Index == -1) continue;
          if (prevIdxType == IndexType.Max && prevIdxType != IndexType.Post75) throw new Exception ("IndexType.Max is referred to by two entries");
-         if (prevIdx == notchIndexSequence[ii].Index && prevIdx != notchIndexSequence[^1].Index )
+         if (prevIdx == notchIndexSequence[ii].Index && prevIdx != notchIndexSequence[^1].Index)
             throw new Exception ("Two notch sequence indices are the same. Wrong");
          int startIndex = -1;
          switch (notchIndexSequence[ii].Type) {
@@ -963,7 +973,7 @@ public class Notch {
                   prevIdxType = notchIndexSequence[ii].Type;
                } else {
                   if (notchIndexSequence[^2].Type != IndexType.Post75 && notchIndexSequence[^2].Type != IndexType.Flex1AfterEnd &&
-                     notchIndexSequence[^2].Type != IndexType.Flex2AfterEnd )
+                     notchIndexSequence[^2].Type != IndexType.Flex2AfterEnd)
                      forwardNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index, NotchSectionType.MachineToolingForward));
                }
                prevIdx = notchIndexSequence[ii].Index;
@@ -1375,35 +1385,80 @@ public class Notch {
       // a mid point would suffice. But if the notch is on flex or on multiple flanges,
       // the above idea is the best. For any point to be equi distant and on the part,
       // a MIN (| p->Sp and p->Ep | ) holds good.
-      Point3[] paramPts = new Point3[51];
-      double[] percentPos = new double[51];
-      double stPercent = 0.25; double incr = 0.01;
-      for (int ii = 0; ii < 51; ii++) percentPos[ii] = stPercent + ii * incr;
-
-      int[] segIndices = new int[51];
-      for (int ii = 0; ii < 51; ii++)
-         (segIndices[ii], paramPts[ii]) = Utils.GetNotchPointsOccuranceParams (segs, percentPos[ii], 0.5);
-      var Sp = segs.First ().Curve.Start; var Ep = segs.Last ().Curve.End;
-
-
-      // By default, 1-th index is assumed to be approach index.
       Point3 bestPoint = new ();
-      int bestSegIndex = -1; ;
-      double minDifference = double.MaxValue;
+      int bestSegIndex = -1;
+      bool bestPointFound = false;
+      double thresholdLengthFromStartToApproachPt = 50.0;
+      (var segIndex, _) = Utils.GetNotchPointsOccuranceParams (segs, 0.5, 0.5);
 
-      // Loop through paramPts[] to find the point that minimizes the distance difference
-      for (int i = 0; i < paramPts.Length; i++) {
-         var p = paramPts[i];
-         double distToStart = p.DistTo (Sp);  // Distance to the start point
-         double distToEnd = p.DistTo (Ep);    // Distance to the end point
-         double diff = Math.Abs (distToStart - distToEnd);
+      double pToCurveEndAlongX = double.MaxValue, pToCurveEndAlongY = double.MaxValue;
+      double pToCurveStartAlongX = double.MaxValue, pToCurveStartAlongY = double.MaxValue;
 
-         if (diff < minDifference) {
-            minDifference = diff;
-            bestPoint = p;
-            bestSegIndex = segIndices[i];  // Get the corresponding segIndices[]
+      var flangeTypeAt50pc = Utils.GetArcPlaneFlangeType (segs[segIndex].Vec0, XForm4.IdentityXfm);
+      var flangeTypeAtSegStart = Utils.GetArcPlaneFlangeType (segs.First ().Vec0, XForm4.IdentityXfm);
+      var flangeTypeAtSegEnd = Utils.GetArcPlaneFlangeType (segs.Last ().Vec0, XForm4.IdentityXfm);
+      if (flangeTypeAt50pc == flangeTypeAtSegStart && ((flangeTypeAtSegStart == EFlange.Top || flangeTypeAtSegStart == EFlange.Bottom)))
+         // Compare Distance in X
+         pToCurveStartAlongX = Math.Abs (segs.First ().Curve.Start.X - segs[segIndex].Curve.End.X);
+      if (flangeTypeAt50pc == flangeTypeAtSegEnd && ((flangeTypeAtSegEnd == EFlange.Top || flangeTypeAtSegEnd == EFlange.Bottom)))
+         // Compare Distance in X
+         pToCurveEndAlongX = Math.Abs (segs.Last ().Curve.End.X - segs[segIndex].Curve.End.X);
+      if (flangeTypeAt50pc == flangeTypeAtSegEnd && flangeTypeAtSegEnd == EFlange.Web)
+         // Compute distance in Y
+         pToCurveEndAlongY = Math.Abs (segs.Last ().Curve.End.Y - segs[segIndex].Curve.End.Y);
+      if (flangeTypeAt50pc == flangeTypeAtSegStart && flangeTypeAtSegStart == EFlange.Web)
+         // Compute distance in Y
+         pToCurveStartAlongY = Math.Abs (segs.First ().Curve.Start.Y - segs[segIndex].Curve.End.Y);
+
+      if (pToCurveStartAlongX != double.MaxValue && pToCurveEndAlongX != double.MaxValue) {
+         if (pToCurveStartAlongX < pToCurveEndAlongX && pToCurveStartAlongX > thresholdLengthFromStartToApproachPt &&
+            (flangeTypeAtSegStart == EFlange.Top || flangeTypeAtSegStart == EFlange.Bottom)) {
+            bestPoint = segs[segIndex].Curve.End;
+            bestSegIndex = segIndex; bestPointFound = true;
+         } else if (pToCurveEndAlongX < pToCurveStartAlongX && pToCurveEndAlongX > thresholdLengthFromStartToApproachPt &&
+            (flangeTypeAtSegEnd == EFlange.Top || flangeTypeAtSegEnd == EFlange.Bottom)) {
+            bestPoint = segs[segIndex].Curve.End;
+            bestSegIndex = segIndex; bestPointFound = true;
+         }
+      } else if (pToCurveStartAlongY != double.MaxValue && pToCurveEndAlongY != double.MaxValue) {
+         if (pToCurveStartAlongY < pToCurveEndAlongY && pToCurveStartAlongY > thresholdLengthFromStartToApproachPt && flangeTypeAtSegStart == EFlange.Web) {
+            bestPoint = segs[segIndex].Curve.End;
+            bestSegIndex = segIndex; bestPointFound = true;
+         } else if (pToCurveEndAlongY < pToCurveStartAlongY && pToCurveStartAlongY > thresholdLengthFromStartToApproachPt && flangeTypeAtSegEnd == EFlange.Web) {
+            bestPoint = segs[segIndex].Curve.End;
+            bestSegIndex = segIndex; bestPointFound = true;
          }
       }
+      if (!bestPointFound) {
+         Point3[] paramPts = new Point3[51];
+         double[] percentPos = new double[51];
+         double stPercent = 0.25; double incr = 0.01;
+         for (int ii = 0; ii < 51; ii++) percentPos[ii] = stPercent + ii * incr;
+
+         int[] segIndices = new int[51];
+         for (int ii = 0; ii < 51; ii++)
+            (segIndices[ii], paramPts[ii]) = Utils.GetNotchPointsOccuranceParams (segs, percentPos[ii], 0.5);
+         var Sp = segs.First ().Curve.Start; var Ep = segs.Last ().Curve.End;
+
+         // By default, 1-th index is assumed to be approach index.
+         double minDifference = double.MaxValue;
+
+         // Loop through paramPts[] to find the point that minimizes the distance difference
+         for (int i = 0; i < paramPts.Length; i++) {
+            var p = paramPts[i];
+            double distToStart = p.DistTo (Sp);  // Distance to the start point
+            double distToEnd = p.DistTo (Ep);    // Distance to the end point
+            double diff = Math.Abs (distToStart - distToEnd);
+
+            if (diff < minDifference) {
+               minDifference = diff;
+               bestPoint = p;
+               bestSegIndex = segIndices[i];  // Get the corresponding segIndices[]
+               bestPointFound = true;
+            }
+         }
+      }
+      if (!bestPointFound) throw new Exception ("Best mid point can not be found");
 
       // For the best point find the notch attribute info. We are interested in finding the 
       // flange end point, which is given by item5 of NotchAttribute
@@ -1455,12 +1510,11 @@ public class Notch {
          WriteEdgeNotch ();
          return;
       }
-
       var (n1, nMid1, flangeEnd, n2, nMid2, notchPointAtApproachpc) = GetNotchApproachPositions (mToolingItem, mSegments, mNotchAttrs,
          mFullPartBound, mApproachIndex, mNotchWireJointDistance);
       var (_, notchApproachStNormal, notchApproachEndNormal, _, _, _, _) = mNotchAttrs[mApproachIndex];
       mBlockCutLength = mCutLengthTillPrevTooling;
-      for (int ii= 0; ii < mNotchSequences.Count; ii++) {
+      for (int ii = 0; ii < mNotchSequences.Count; ii++) {
          var notchSequence = mNotchSequences[ii];
          switch (notchSequence.mSectionType) {
             case NotchSectionType.WireJointApproach: {
@@ -1470,7 +1524,13 @@ public class Notch {
                   pts.Add (flangeEnd);
                   pts.Add (notchPointAtApproachpc);
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, pts, notchApproachStNormal,
-                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count-1, "Notch: Wire Joint Approach to the Tooling");
+                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count - 1, "Notch: Wire Joint Approach to the Tooling");
+
+                  mGCodeGen.PrepareforToolApproach (mToolingItem, mSegments, PreviousToolingSegment, PreviousTooling, mPrevToolingSegments, mFirstTooling, isValidNotch: true);
+                  mGCodeGen.WriteToolCorrectionData (mToolingItem);
+                  var notchEntry = GetNotchEntry ();
+                  mGCodeGen.MoveToMachiningStartPosition (notchEntry.Item1, notchEntry.Item2, mToolingItem.Name);
+
                   mGCodeGen.EnableMachiningDirective ();
 
                   // *** Moving to the mid point wire joint distance ***
@@ -1587,7 +1647,7 @@ public class Notch {
                   if (notchSequence.mStartIndex > notchSequence.mEndIndex)
                      throw new Exception ("In WriteNotch: MachineToolingForward : startIndex > endIndex");
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments,
-                     mSegments[notchSequence.mStartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut:false, ii == mNotchSequences.Count - 1,
+                     mSegments[notchSequence.mStartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mNotchSequences.Count - 1,
                      notchSequence.mStartIndex, notchSequence.mEndIndex,
                      comment: "Notch: Machining Forward Direction");
                   mGCodeGen.EnableMachiningDirective ();
@@ -1654,7 +1714,7 @@ public class Notch {
                   mGCodeGen.MoveToRetract (prevEndPoint, PrevEndNormal, mToolingItem.Name);
                   mGCodeGen.MoveToNextTooling (PrevEndNormal, mExitTooling, nMid2, notchApproachStNormal,
                      "Moving from one end of tooling to mid of tooling",
-                     "", false);
+                     "", false, isMark:false);
                   mGCodeGen.MoveToMachiningStartPosition (nMid2, notchApproachStNormal, mToolingItem.Name);
                   mRecentToolPosition = nMid2;
                }
@@ -1963,7 +2023,7 @@ public class Notch {
       foreach (var notchAttr in notchAttrs) {
          var (_, _, endNormal, _, ToNearestBdyVec, _, _) = notchAttr;
          var approachEndPoint = notchAttr.Item1.End;
-         if (ToNearestBdyVec.Length > notchApproachDistance - Utils.EpsilonVal) {
+         if (ToNearestBdyVec.Length > /*notchApproachDistance*/1.0 - Utils.EpsilonVal) { // TODO Revisit for notchApproachDistance
             var res = new Tuple<Point3, Vector3, Vector3> (approachEndPoint + ToNearestBdyVec, endNormal, ToNearestBdyVec);
             attrs.Add (res);
          } else {

@@ -58,9 +58,6 @@ public class MCSettings : INotifyPropertyChanged {
    #endregion
 
    #region Enums
-   public enum ERotate {
-      Rotate0, Rotate90, Rotate180, Rotate270
-   }
    
    public enum EHeads {
       Left,
@@ -84,6 +81,7 @@ public class MCSettings : INotifyPropertyChanged {
       MarkTextPosX = other.MarkTextPosX;
       MarkTextPosY = other.MarkTextPosY;
       MarkText = other.MarkText;
+      MarkTextHeight = other.MarkTextHeight;
       MarkAngle = other.MarkAngle;
       OptimizeSequence = other.OptimizeSequence;
       ProgNo = other.ProgNo;
@@ -162,6 +160,12 @@ public class MCSettings : INotifyPropertyChanged {
       get => mMarkText; 
       set => SetProperty (ref mMarkText, value); }
    string mMarkText;
+
+   public int MarkTextHeight {
+      get => mMarkTextHeight;
+      set => SetProperty (ref mMarkTextHeight, value);
+   }
+   int mMarkTextHeight;
 
    public ERotate MarkAngle { 
       get => mMarkAngle;  

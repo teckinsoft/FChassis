@@ -408,14 +408,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       if (!HandleNoWorkpiece ()) {
          if (Work.DoAddHoles ()) 
             mProcess?.ClearZombies ();
-
          mOverlay.Redraw ();
       }
    }
    
    void DoTextMarking (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
-         if (Work.DoTextMarking ()) 
+         if (Work.DoTextMarking (MCSettings.It)) 
             mProcess?.ClearZombies ();
             
          mOverlay.Redraw ();

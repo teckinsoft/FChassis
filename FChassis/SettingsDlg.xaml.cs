@@ -16,7 +16,7 @@ public partial class SettingsDlg : Window {
       SettingServices.It.LoadSettings (set);
       Bind (set);
    }
-   
+
    /// <summary>
    /// This method binds the dialog controls with setters and getters
    /// </summary>
@@ -30,6 +30,9 @@ public partial class SettingsDlg : Window {
       cbPingPong.Bind (() => Settings.UsePingPong, b => { Settings.UsePingPong = b; IsModified = true; });
       cbOptimize.Bind (() => Settings.OptimizePartition, b => { Settings.OptimizePartition = b; IsModified = true; });
       tbMarkText.Bind (() => Settings.MarkText, s => { Settings.MarkText = s; IsModified = true; });
+      tbMarkTextHeight.Bind (() => Settings.MarkTextHeight, h => { Settings.MarkTextHeight = h.Clamp (8, 80); IsModified = true; });
+      cbMarkTextAngle.ItemsSource = Enum.GetValues (typeof (ERotate)).Cast<ERotate> ().ToList ();
+      cbMarkTextAngle.Bind (() => Settings.MarkAngle, s => { Settings.MarkAngle = s; IsModified = true; });
       tbMarkTextPositionX.Bind (() => Settings.MarkTextPosX, f => { Settings.MarkTextPosX = f.Clamp (0.05, 100000); IsModified = true; });
       tbMarkTextPositionY.Bind (() => Settings.MarkTextPosY, f => { Settings.MarkTextPosY = f.Clamp (0.05, 100000); IsModified = true; });
 

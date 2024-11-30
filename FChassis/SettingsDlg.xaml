@@ -77,6 +77,8 @@
                                     <RowDefinition />
                                     <RowDefinition />
                                     <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
                                 </Grid.RowDefinitions>
                                 <Label Grid.Row="0">Standoff</Label>
                                 <TextBox Grid.Row="0" Grid.Column="1" Name="tbStandoff"></TextBox>
@@ -94,52 +96,59 @@
                                 <Label Grid.Row="4">Mark Text</Label>
                                 <TextBox Grid.Row="4" Grid.Column="1" Name="tbMarkText"></TextBox>
 
-                                <Label Grid.Row="5" Margin="0,0,1,0">Mark Text Position</Label>
-                                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
+                                <Label Grid.Row="5">Mark Text Height</Label>
+                                <TextBox Grid.Row="5" Grid.Column="1" Name="tbMarkTextHeight"></TextBox>
+
+                                <Label Grid.Row="6" Margin="0,0,1,0">Mark Text Position</Label>
+                                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal">
                                     <TextBox Name="tbMarkTextPositionX" Width="40" HorizontalAlignment="Left"></TextBox>
                                     <TextBox Name="tbMarkTextPositionY" Width="20" Margin="3 0" HorizontalAlignment="Left"></TextBox>
                                 </StackPanel>
 
-                                <Label Grid.Row="6">Cut Holes</Label>
-                                <CheckBox Grid.Row="6" Grid.Column="1" Name="cbCutHoles"></CheckBox>
+                                <Label Grid.Row="7">Mark Text Angle</Label>
+                                <ComboBox Grid.Row="7" Grid.Column="1" Name="cbMarkTextAngle" SelectedIndex="0"></ComboBox>
+                                <Label Grid.Row="7" Grid.Column="2" Style="{StaticResource Unit}">deg</Label>
 
-                                <Label Grid.Row="7">Cut Notches</Label>
-                                <CheckBox Grid.Row="7" Grid.Column="1" Name="cbCutNotches"></CheckBox>
+                                <Label Grid.Row="8">Cut Holes</Label>
+                                <CheckBox Grid.Row="8" Grid.Column="1" Name="cbCutHoles"></CheckBox>
 
-                                <Label Grid.Row="8">Cut Cutouts</Label>
-                                <CheckBox Grid.Row="8" Grid.Column="1" Name="cbCutCutouts"></CheckBox>
+                                <Label Grid.Row="9">Cut Notches</Label>
+                                <CheckBox Grid.Row="9" Grid.Column="1" Name="cbCutNotches"></CheckBox>
 
-                                <Label Grid.Row="9">Cut Marks</Label>
-                                <CheckBox Grid.Row="9" Grid.Column="1" Name="cbCutMarks"></CheckBox>
+                                <Label Grid.Row="10">Cut Cutouts</Label>
+                                <CheckBox Grid.Row="10" Grid.Column="1" Name="cbCutCutouts"></CheckBox>
 
-                                <Label Grid.Row="10" VerticalAlignment="Top">Part Configuration</Label>
-                                <StackPanel Grid.Row="10" Grid.Column="1" Margin="0 7 0 0">
+                                <Label Grid.Row="11">Cut Marks</Label>
+                                <CheckBox Grid.Row="11" Grid.Column="1" Name="cbCutMarks"></CheckBox>
+
+                                <Label Grid.Row="12" VerticalAlignment="Top">Part Configuration</Label>
+                                <StackPanel Grid.Row="12" Grid.Column="1" Margin="0 7 0 0">
                                     <RadioButton GroupName="PartConfig" Name="rbLHComponent">LH Component</RadioButton>
                                     <RadioButton GroupName="PartConfig" Name="rbRHComponent">RH Component</RadioButton>
                                 </StackPanel>
 
-                                <Label Grid.Row="11">Approach Length</Label>
-                                <TextBox Grid.Row="11" Grid.Column="1" Name="tbApproachLength"></TextBox>
-                                <Label Grid.Row="11" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
-
-                                <Label Grid.Row="12">Notch Approach Length</Label>
-                                <TextBox Grid.Row="12" Grid.Column="1" Name="tbNotchApproachLength"></TextBox>
-                                <Label Grid.Row="12" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
-
-                                <Label Grid.Row="13">Notch Wire Joint Distance</Label>
-                                <TextBox Grid.Row="13" Grid.Column="1" Name="tbNotchWireJointDistance"></TextBox>
+                                <Label Grid.Row="13">Approach Length</Label>
+                                <TextBox Grid.Row="13" Grid.Column="1" Name="tbApproachLength"></TextBox>
                                 <Label Grid.Row="13" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                                <Label Grid.Row="14">Min Notch Length Threshold</Label>
-                                <TextBox Grid.Row="14" Grid.Column="1" Name="tbMinNotchLengthThreshold"></TextBox>
+                                <Label Grid.Row="14">Notch Approach Length</Label>
+                                <TextBox Grid.Row="14" Grid.Column="1" Name="tbNotchApproachLength"></TextBox>
                                 <Label Grid.Row="14" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                                <Label Grid.Row="15">Min Partition Length Threshold</Label>
-                                <TextBox Grid.Row="15" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
+                                <Label Grid.Row="15">Notch Wire Joint Distance</Label>
+                                <TextBox Grid.Row="15" Grid.Column="1" Name="tbNotchWireJointDistance"></TextBox>
                                 <Label Grid.Row="15" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                                <Label Grid.Row="16">DIN Filename Suffix</Label>
-                                <TextBox Grid.Row="16" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
+                                <Label Grid.Row="16">Min Notch Length Threshold</Label>
+                                <TextBox Grid.Row="16" Grid.Column="1" Name="tbMinNotchLengthThreshold"></TextBox>
+                                <Label Grid.Row="16" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+
+                                <Label Grid.Row="17">Min Partition Length Threshold</Label>
+                                <TextBox Grid.Row="17" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
+                                <Label Grid.Row="17" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+
+                                <Label Grid.Row="18">DIN Filename Suffix</Label>
+                                <TextBox Grid.Row="18" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
                             </Grid>
                         </StackPanel>
                     </Grid>
@@ -232,7 +241,7 @@
 
                             <Label Grid.Row="2">Simulation Step Length</Label>
                             <TextBox Grid.Row="2" Grid.Column="1" Name="tbStepLength"></TextBox>
-                            
+
                             <Label Grid.Row="3">Show Tooling Names</Label>
                             <CheckBox Grid.Row="3" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
 
