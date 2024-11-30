@@ -22,7 +22,7 @@ SectionGroup /e "Installation" ;
         File "C:\FluxSDK\bin\FChassis.exe"
         File "C:\FluxSDK\bin\FChassis.dll"
         File "C:\FluxSDK\bin\FChassis.runtimeconfig.json"
-        File "files\bin\FChassis.ico"
+        File "files\FChassis.ico"
         
         ; Copy the entire FChassis folder to C:\FlushSDK\map
         SetOutPath "$INSTDIR"  
