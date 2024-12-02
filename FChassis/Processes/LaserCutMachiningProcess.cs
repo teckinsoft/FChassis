@@ -60,9 +60,11 @@ public class Processor : INotifyPropertyChanged {
    #region Simulation and Redraw Data members
    public delegate void TriggerRedrawDelegate ();
    public delegate void SetSimulationStatusDelegate (Processor.ESimulationStatus status);
+   public delegate void ZoomExtentsWithBound3Delegate (Bound3 bound);
    public event TriggerRedrawDelegate TriggerRedraw;
    public event Action SimulationFinished;
    public event SetSimulationStatusDelegate SetSimulationStatus;
+   public event ZoomExtentsWithBound3Delegate zoomExtentsWithBound3Delegate;
    readonly Dispatcher mDispatcher;
    ESimulationStatus mSimulationStatus = ESimulationStatus.NotRunning;
    public ESimulationStatus SimulationStatus {
@@ -79,6 +81,8 @@ public class Processor : INotifyPropertyChanged {
       PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
    }
    double mPrevStepLen;
+   private int mCutScopeIndex = 0;
+   private readonly object mCutScopeLockObject = new ();
    #endregion
 
    #region Constructor
@@ -197,9 +201,17 @@ public class Processor : INotifyPropertyChanged {
          mTraces[1] = CutScopeTraces[0][1];
       }
    }
-
+   bool mIsZoomedToCutScope = false;
    XForm4 mTransform0, mTransform1;
    void DrawToolSim (int head) {
+      var mcCss = GCodeGen.MachinableCutScopes;
+      Bound3 bound = new ();
+      if (mcCss.Count > 0) bound = mcCss[0].Bound;
+      if (!mIsZoomedToCutScope) {
+         zoomExtentsWithBound3Delegate?.Invoke (bound);
+         mIsZoomedToCutScope = true;
+      }
+
       while (true) {
          if (head == 3) {
             mTransform0 = GetNextToolXForm (0);
@@ -210,11 +222,13 @@ public class Processor : INotifyPropertyChanged {
          if (mTransform0 == null && mTransform1 == null && SimulationStatus != ESimulationStatus.NotRunning) {
             // If Multipass
             if (CutScopeTraces.Count > 1 && GetCutScopeIndex () + 1 < CutScopeTraces.Count) {
-               
+
                // Safe incrementor
                IncrementCutScopeIndex ();
                int csIdx = GetCutScopeIndex ();
-               
+               if (csIdx >= 0 && csIdx < mcCss.Count) 
+                  zoomExtentsWithBound3Delegate?.Invoke (mcCss[csIdx].Bound);
+
                // Reset enumerator
                RewindEnumerator (0);
                RewindEnumerator (1);
@@ -252,6 +266,9 @@ public class Processor : INotifyPropertyChanged {
                if (MCSettings.It.EnableMultipassCut) MCSettings.It.StepLength = mPrevStepLen;
                Lux.StopContinuousRender (GFXCallback);
                TriggerRedraw ();
+
+               // Restore the zoom to cover entire part
+               zoomExtentsWithBound3Delegate?.Invoke (Workpiece.Bound);
                return;
             }
          } else {
@@ -329,26 +346,23 @@ public class Processor : INotifyPropertyChanged {
          DrawGCode (CutScopeTraces[GetCutScopeIndex ()]);
    }
 
-   private int mCutScopeIndex = 0;
-   private readonly object _lockObject = new ();
-
    // Method to set the index
    public void SetCutScopeIndex (int value) {
-      lock (_lockObject) {
+      lock (mCutScopeLockObject) {
          mCutScopeIndex = value;
       }
    }
 
    // Method to get the index
    public int GetCutScopeIndex () {
-      lock (_lockObject) {
+      lock (mCutScopeLockObject) {
          return mCutScopeIndex;
       }
    }
 
    //// Method to increment the index safely
    public void IncrementCutScopeIndex () {
-      lock (_lockObject) {
+      lock (mCutScopeLockObject) {
          mCutScopeIndex++;
       }
    }

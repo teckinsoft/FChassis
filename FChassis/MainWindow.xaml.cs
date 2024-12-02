@@ -43,13 +43,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Event handlers
-   void TriggerRedraw () 
+   void TriggerRedraw ()
       => Dispatcher.Invoke (() => mOverlay?.Redraw ());
-
+   void ZoomWithExtents (Bound3 bound) => Dispatcher.Invoke (() => mScene.Bound3 = bound);
    void OnSimulationFinished () 
       => Process.SimulationStatus = Processor.ESimulationStatus.NotRunning;
 
-   protected virtual void OnPropertyChanged (string propertyName) 
+   protected virtual void OnPropertyChanged (string propertyName)
       => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
 
    void OnFileSelected (object sender, RoutedEventArgs e) {
@@ -120,7 +120,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnUnbendExport2D (object sender, RoutedEventArgs e) {
-      if (mPart == null) 
+      if (mPart == null)
          return;
 
       // Get the original file name (assuming mPart.FileName gives you the file name with extension)
@@ -195,7 +195,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             if (Process.SimulationStatus == ESimulationStatus.Running ||
             Process.SimulationStatus == ESimulationStatus.Paused) Process.Stop ();
          }
-         
+
          Work = null;
          Lux.UIScene = null;
          mOverlay = null;
@@ -214,10 +214,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       mProcess = new Processor (this.Dispatcher);
       mProcess.TriggerRedraw += TriggerRedraw;
       mProcess.SetSimulationStatus += status => SimulationStatus = status;
+      mProcess.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
 
       SettingServices.It.LoadSettings (MCSettings.It);
-      if (String.IsNullOrEmpty (MCSettings.It.NCFilePath)) 
-        MCSettings.It.NCFilePath = Process?.Workpiece?.NCFilePath ?? "";
+      if (String.IsNullOrEmpty (MCSettings.It.NCFilePath))
+         MCSettings.It.NCFilePath = Process?.Workpiece?.NCFilePath ?? "";
    }
 
    void OnSanityCheck (object sender, RoutedEventArgs e) {
@@ -277,7 +278,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                if (mProcess != null) {
                   mProcess.PropertyChanged += OnProcessPropertyChanged;
                }
-               
+
                OnPropertyChanged (nameof (Process));
                OnPropertyChanged (nameof (SimulationStatus));
             }
@@ -290,43 +291,43 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #region Draw Related Methods
    void DrawOverlay () {
       DrawTooling ();
-      if (Process.SimulationStatus == ESimulationStatus.Running 
-         || Process.SimulationStatus == ESimulationStatus.Paused) 
+      if (Process.SimulationStatus == ESimulationStatus.Running
+         || Process.SimulationStatus == ESimulationStatus.Paused)
          Process.DrawGCodeForCutScope ();
-      else 
+      else
          Process.DrawGCode ();
 
       Process.DrawToolInstance ();
    }
 
    void DrawTooling () {
-      if (Process.SimulationStatus == Processor.ESimulationStatus.NotRunning 
+      if (Process.SimulationStatus == Processor.ESimulationStatus.NotRunning
          || Process.SimulationStatus == Processor.ESimulationStatus.Paused) {
          Lux.HLR = false;
          Lux.Color = new Color32 (255, 255, 0);
          switch (Sys.Selection) {
-            case E3Plane ep: 
-               Lux.Draw (EMarker2D.CSMarker, ep.Xfm.ToCS (), 25); 
+            case E3Plane ep:
+               Lux.Draw (EMarker2D.CSMarker, ep.Xfm.ToCS (), 25);
                break;
 
-            case E3Flex ef: 
-               Lux.Draw (EMarker2D.CSMarker, ef.Socket, 25); 
+            case E3Flex ef:
+               Lux.Draw (EMarker2D.CSMarker, ef.Socket, 25);
                break;
 
-            default: 
-               if (Work.Cuts.Count == 0) 
-                  Lux.Draw (EMarker2D.CSMarker, CoordSystem.World, 25); 
+            default:
+               if (Work.Cuts.Count == 0)
+                  Lux.Draw (EMarker2D.CSMarker, CoordSystem.World, 25);
                break;
          }
 
          // Draw LH and RH coordinate systems
          if (Work != null) {
             foreach (var cut in Work.Cuts) {
-               if (cut.Head == 0) 
+               if (cut.Head == 0)
                   cut.DrawSegs (Utils.LHToolColor, 10);
-               else if (cut.Head == 1) 
+               else if (cut.Head == 1)
                   cut.DrawSegs (Utils.RHToolColor, 10);
-               else 
+               else
                   cut.DrawSegs (Color32.Yellow, 10);
 
                if (MCSettings.It.ShowToolingNames) {
@@ -339,8 +340,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                if (MCSettings.It.ShowToolingExtents) {
                   // Draw the tool extents
                   var tXMin = $"{cut.XMin:F2}"; var tXMax = $"{cut.XMax:F2}";
-                  var ptXMin = new Point3(cut.XMin, cut.Segs[0].Curve.Start.Y, cut.Segs[0].Curve.Start.Z+5);
-                  var ptXMax = new Point3 (cut.XMax, cut.Segs[0].Curve.Start.Y, cut.Segs[0].Curve.Start.Z+5);
+                  var ptXMin = new Point3 (cut.XMin, cut.Segs[0].Curve.Start.Y, cut.Segs[0].Curve.Start.Z + 5);
+                  var ptXMax = new Point3 (cut.XMax, cut.Segs[0].Curve.Start.Y, cut.Segs[0].Curve.Start.Z + 5);
                   Lux.Color = new Color32 (128, 0, 128);
                   Lux.DrawBillboardText (tXMin, ptXMin, (float)12);
                   Lux.DrawBillboardText (tXMax, ptXMax, (float)12);
@@ -356,7 +357,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       file = file.Replace ('\\', '/');
       mPart = Part.Load (file);
       mPart.Info.FileName = file;
-      if (mPart.Info.MatlName == "NONE") 
+      if (mPart.Info.MatlName == "NONE")
          mPart.Info.MatlName = "1.0038";
 
       try {
@@ -375,17 +376,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       //} else 
       {
          if (mPart.Model == null) {
-            if (mPart.Dwg != null) 
+            if (mPart.Dwg != null)
                mPart.FoldTo3D ();
-            else if (mPart.SurfaceModel != null) 
+            else if (mPart.SurfaceModel != null)
                mPart.SheetMetalize ();
-            else 
+            else
                throw new Exception ("Invalid part");
          }
       }
 
       mOverlay = new SimpleVM (DrawOverlay);
-      Lux.UIScene = mScene = new Scene (new GroupVModel (VModel.For (mPart.Model), 
+      Lux.UIScene = mScene = new Scene (new GroupVModel (VModel.For (mPart.Model),
                                         mOverlay), mPart.Model.Bound);
 
       Work = new Workpiece (mPart.Model, mPart);
@@ -394,7 +395,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       // Clear the zombies if any
       mProcess?.ClearZombies ();
    }
-   
+
    void DoAlign (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          Work.Align ();
@@ -403,39 +404,40 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          mOverlay.Redraw ();
       }
    }
-   
+
    void DoAddHoles (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
-         if (Work.DoAddHoles ()) 
+         if (Work.DoAddHoles ())
             mProcess?.ClearZombies ();
          mOverlay.Redraw ();
       }
    }
-   
+
    void DoTextMarking (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
-         if (Work.DoTextMarking (MCSettings.It)) 
+         if (Work.DoTextMarking (MCSettings.It))
             mProcess?.ClearZombies ();
-            
+
          mOverlay.Redraw ();
       }
    }
-   
+
    void DoCutNotches (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
-         if (Work.DoCutNotchesAndCutouts ()) 
+         if (Work.DoCutNotchesAndCutouts ())
             mProcess?.ClearZombies ();
-            
+
          mOverlay.Redraw ();
       }
    }
 
    void DoSorting (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) { 
-         Work.DoSorting (); 
-         mOverlay.Redraw (); }
+      if (!HandleNoWorkpiece ()) {
+         Work.DoSorting ();
+         mOverlay.Redraw ();
+      }
    }
-   
+
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
 #if DEBUG
@@ -469,12 +471,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void PauseSimulation (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) 
+      if (!HandleNoWorkpiece ())
          Process.Pause ();
    }
-   
+
    void StopSimulation (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) 
+      if (!HandleNoWorkpiece ())
          Process.Stop ();
    }
    #endregion
@@ -482,7 +484,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #region Actionable Methods
    bool HandleNoWorkpiece () {
       if (Work == null) {
-         MessageBox.Show ("No Part is Loaded.", "Error", 
+         MessageBox.Show ("No Part is Loaded.", "Error",
                            MessageBoxButton.OK, MessageBoxImage.Error);
          return true;
       }
@@ -490,10 +492,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       return false;
    }
 
-   void SaveSettings () 
+   void SaveSettings ()
      => SettingServices.It.SaveSettings (MCSettings.It);
 
-   void LoadGCode (string filename) 
+   void LoadGCode (string filename)
       => mProcess.LoadGCode (filename);
    #endregion
 }

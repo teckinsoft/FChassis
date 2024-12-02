@@ -1629,7 +1629,7 @@ public class Notch {
                      Math.Abs (mSegments[notchSequence.mStartIndex].Vec0.Normalized ().Y - 1.0).EQ (0, mSplit ? 1e-4 : 1e-6))
                      scrapSideNormal = notchAttr.Item4;
                   else scrapSideNormal = notchAttr.Item5;
-                  bool zeroVec = scrapSideNormal.IsZero;
+                  
                   Point3 pt = mSegments[notchSequence.mStartIndex].Curve.End;
                   Vector3 stNormal = mSegments[notchSequence.mStartIndex].Vec0.Normalized ();
                   Vector3 endNormal = mSegments[notchSequence.mStartIndex].Vec1.Normalized ();

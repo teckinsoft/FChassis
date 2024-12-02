@@ -344,7 +344,7 @@ public class Workpiece : INotifyPropertyChanged {
                   
                if (Geom.GetToolingWinding (n, q, cutSegs) == Geom.ToolingWinding.CW) 
                   cut.Reverse ();
-               cutSegs = cut.Segs.ToList ();
+               cutSegs = [.. cut.Segs];
                cut.CutoutKind = Tooling.GetCutKind (cut, (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys));
                cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm); 
             } else {
@@ -373,7 +373,7 @@ public class Workpiece : INotifyPropertyChanged {
                   if (cutSegs.First ().Curve.Start.Y > cutSegs.Last ().Curve.End.Y) 
                      cut.Reverse ();
                }
-               cutSegs = cut.Segs.ToList ();
+               cutSegs = [.. cut.Segs];
             }
             
             // Calculate the bound3 for each cut
