@@ -1472,7 +1472,7 @@ public static class Utils {
       List<ToolingSegment> splitSegs; Point3 lineEndPoint; Line3 line;
       if (doesIntersect) {
          splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized ());
-         lineEndPoint = new Point3 (notchXPt.X, notchXPt.Y, segs[0].Curve.Start.Z);
+         lineEndPoint = new Point3 (notchXPt.X, notchXPt.Y, segs[index].Curve.End.Z);
 
          // Create a new line tooling segment.
          //if (splitSegs.Count > 0 && lineEndPoint != null) {
