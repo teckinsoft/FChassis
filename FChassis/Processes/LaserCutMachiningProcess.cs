@@ -204,11 +204,8 @@ public class Processor : INotifyPropertyChanged {
          if (head == 3) {
             mTransform0 = GetNextToolXForm (0);
             mTransform1 = GetNextToolXForm (1);
-         } else if (head == 0) {
-            mTransform0 = GetNextToolXForm (0);
-         } else if (head == 1) {
-            mTransform1 = GetNextToolXForm (1);
-         }
+         } else if (head == 0) mTransform0 = GetNextToolXForm (0);
+         else if (head == 1) mTransform1 = GetNextToolXForm (1);
 
          if (mTransform0 == null && mTransform1 == null && SimulationStatus != ESimulationStatus.NotRunning) {
             // If Multipass

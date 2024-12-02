@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using Microsoft.Win32;
 
 namespace FChassis;
@@ -107,6 +108,10 @@ public partial class SettingsDlg : Window {
       });
 
       btnOK.Bind (OnOk);
+   }
+   private void OnKeyDownHandler (object sender, KeyEventArgs e) {
+      if (e.Key == Key.Enter) OnOk ();
+      else if (e.Key == Key.Escape) Close ();
    }
 
    void OnOk () {
