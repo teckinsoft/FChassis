@@ -1428,7 +1428,12 @@ public class Notch {
             bestPoint = segs[segIndex].Curve.End;
             bestSegIndex = segIndex; bestPointFound = true;
          }
+      }else if (pToCurveEndAlongX  !=  double.MaxValue && ((flangeTypeAtSegEnd == EFlange.Top || flangeTypeAtSegEnd == EFlange.Bottom))){
+         bestPoint = segs[segIndex].Curve.End;
+         bestSegIndex = segIndex; bestPointFound = true;
       }
+
+      // Special Notch
       if (!bestPointFound) {
          Point3[] paramPts = new Point3[51];
          double[] percentPos = new double[51];
