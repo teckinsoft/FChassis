@@ -390,7 +390,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                                         mOverlay), mPart.Model.Bound);
 
       Work = new Workpiece (mPart.Model, mPart);
-      GCodeGenerator.EvaluateToolConfigXForms (null, Work.Bound);
+      GCodeGenerator.EvaluateToolConfigXForms (Work);
 
       // Clear the zombies if any
       mProcess?.ClearZombies ();
@@ -401,6 +401,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          Work.Align ();
          mScene.Bound3 = Work.Model.Bound;
          mProcess?.ClearZombies ();
+         if (MCSettings.It.RotateX180)
+            Work.DeleteCuts ();
          mOverlay.Redraw ();
       }
    }

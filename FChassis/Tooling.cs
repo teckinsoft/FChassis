@@ -275,19 +275,19 @@ public class Tooling {
       bool TopPlaneFeat = segs.Any (cutSeg => ((trf * cutSeg.Vec0.Normalized ()).Z).EQ (1));
       foreach (var seg in segs) {
          var nn = (trf * seg.Vec0.Normalized ());
-         if (nn.Y < -0.1 && nn.Y.SGT (-1.0)) {
+         if (nn.Y < -1e-6 && nn.Y.SGT (-1.0)) {
             cutKindAtFlex = ECutKind.YNegFlex;
             break;
-         } else if (nn.Y > 0.2 && nn.Y.SLT (1.0)) {
+         } else if (nn.Y > 1e-6 && nn.Y.SLT (1.0)) {
             cutKindAtFlex = ECutKind.YPosFlex;
             break;
          }
       }
       if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat)
          cutKindAtFlange = ECutKind.YNegToYPos;
-      else if (TopPlaneFeat && YNegPlaneFeat)
+      else if (TopPlaneFeat && ( YNegPlaneFeat || cutKindAtFlex == ECutKind.YNegFlex))
          cutKindAtFlange = ECutKind.Top2YNeg;
-      else if (TopPlaneFeat && YPosPlaneFeat)
+      else if (TopPlaneFeat && (YNegPlaneFeat || cutKindAtFlex == ECutKind.YPosFlex))
          cutKindAtFlange = ECutKind.Top2YPos;
       else if (TopPlaneFeat)
          cutKindAtFlange = ECutKind.Top;

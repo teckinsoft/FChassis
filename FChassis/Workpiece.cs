@@ -37,7 +37,7 @@ public class Workpiece : INotifyPropertyChanged {
 
    public bool SortingComplete => sortingComplete;
    bool sortingComplete = false;
-
+   double mRotTimes = 1;
    /// <summary>Align the model for processing</summary>
    public void Align () {
       // First, align the baseplane so that it is aligned with the XY plane
@@ -46,8 +46,8 @@ public class Workpiece : INotifyPropertyChanged {
       // The baseplane should have the maximum extent in X - if that is in Y instead,
       // rotate it 90 degrees about the Z axis. Model extrusion is now in the X direction
       var size = mModel.Baseplane.Bound.Size;
-      if (size.Y > size.X) 
-         Apply (Matrix3.Rotation (EAxis.Z, Geo.HalfPI));
+      if (size.Y > size.X ) 
+         Apply (Matrix3.Rotation (EAxis.Z, Geo.HalfPI * mRotTimes));
 
       // If the flanges are protruding 'downward', then rotate the model by 180 
       // degrees about the X axis
@@ -55,8 +55,10 @@ public class Workpiece : INotifyPropertyChanged {
          Apply (Matrix3.Rotation (EAxis.X, Geo.PI));
 
       // Additional 180 degrees rotation if the user has prescribed
-      if (MCSettings.It.RotateX180)
-         Apply (Matrix3.Rotation (EAxis.Z, Geo.PI));
+      if (MCSettings.It.RotateX180) {
+         Apply (Matrix3.Rotation (EAxis.Z, Geo.PI * mRotTimes));
+         mRotTimes += 2;
+      }
 
       // Now shift the origin:
       var (mbound, pbound) = (mModel.Bound, mModel.Baseplane.Bound);
@@ -73,7 +75,7 @@ public class Workpiece : INotifyPropertyChanged {
             ent.Xform (xfm);
       }
    }
-
+   public void DeleteCuts() => Cuts.Clear ();
    public bool DoAddHoles () {
       int cutIndex = Cuts.Count + 1;
       foreach (var ep in mModel.Entities.OfType<E3Plane> ()) {

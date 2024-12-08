@@ -1,7 +1,10 @@
 using FChassis.GCodeGen;
 using Flux.API;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using static System.Math;
 namespace FChassis;
 
@@ -805,7 +808,7 @@ public static class Utils {
             res = bdyPtZMin - pt;
             proxBdy = XForm4.EAxis.NegZ;
             break;
-         
+
          default:
             throw new Exception ("Unknown notch type encountered");
       }
@@ -862,7 +865,6 @@ public static class Utils {
          notchPoint = Geom.GetPointAtLengthFromStart (segments[occuranceIndex].Curve,
                                                       segments[occuranceIndex].Vec0.Normalized (),
                                                       segmentLength);
-
          notchPointOccuranceParams = new (occuranceIndex, notchPoint);
       }
 
@@ -1024,47 +1026,102 @@ public static class Utils {
    /// <param name="tolerance">The epsilon tolerance, which is by default 1e-6</param>
    public static void SplitToolingSegmentsAtPoints (ref List<ToolingSegment> segments,
                                                     ref List<NotchPointInfo> notchPtsInfo,
+                                                    double[] percentPos,
+                                                    double curveLeastLength,
+                                                    bool wireJointCuts,
                                                     double tolerance = 1e-6) {
+      //int ptIndex;
+      List<Point3> nptInterestPts = [], nptPts = [];
       for (int ii = 0; ii < notchPtsInfo.Count; ii++) {
-         if (notchPtsInfo[ii].mSegIndex == -1) continue;
-         var crvs = Geom.SplitCurve (segments[notchPtsInfo[ii].mSegIndex].Curve,
-                                     notchPtsInfo[ii].mPoints,
-                                     segments[notchPtsInfo[ii].mSegIndex].Vec0.Normalized (),
-                                     deltaBetween: 0, tolerance);
-         int stIndex = notchPtsInfo[ii].mSegIndex;
-         List<NotchPointInfo> newNPInfo = [];
-         if (crvs.Count > 1) {
-            var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (segments[notchPtsInfo[ii].mSegIndex], crvs);
-            segments.RemoveAt (notchPtsInfo[ii].mSegIndex);
-            segments.InsertRange (notchPtsInfo[ii].mSegIndex, toolSegsForCrvs);
+         nptInterestPts = [];
+         // ptIndex = 0;
+         for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++) {
+            //if (ptIndex < notchPtsInfo[ii].mPoints.Count) {
+            nptInterestPts.Add (notchPtsInfo[ii].mPoints[jj]);
 
-            // Create new entries for notchPointsInfo for segindex 
-            for (int jj = 0; jj < crvs.Count; jj++) {
-               int nptIdx = notchPtsInfo[ii].mPoints
-                                 .FindIndex (pt => pt.DistTo (crvs[jj].End).EQ (0));
-               if (nptIdx != -1) {
-                  NotchPointInfo nInfo = new () {
-                     mSegIndex = stIndex++,
-                     mPercentage = notchPtsInfo[ii].mPercentage,
-                     mPoints = [],
-                     mPosition = notchPtsInfo[ii].mPosition
-                  };
 
-                  nInfo.mPoints.Add (crvs[jj].End);
-                  newNPInfo.Add (nInfo);
+            //}
+         }
+
+         for (int pp = 0; pp < nptInterestPts.Count; pp++) {
+            var npt = nptInterestPts[pp];
+            int segIndex = segments.FindIndex (s => s.Curve.End.DistTo (npt).EQ (0, tolerance));
+            if (segIndex == -1) {
+               //segIndex = segments.FindIndex (s => Geom.IsPointOnCurve (s.Curve, npt, s.Vec0, tolerance, constrainedWithinSegment: false));
+               for (int kk = 0; kk < segments.Count; kk++) {
+                  if (Geom.IsPointOnCurve (segments[kk].Curve, npt, segments[kk].Vec0, tolerance, true)) {
+                     segIndex = kk; break;
+                  }
                }
             }
 
-            notchPtsInfo.RemoveAt (ii);
-            notchPtsInfo.InsertRange (ii, newNPInfo);
+            //if (notchPtsInfo[ii].mSegIndex == -1) continue;
 
-            // Update SegIndex in indexObjects
-            for (int jj = ii + newNPInfo.Count; jj < notchPtsInfo.Count; jj++) {
-               var npInfoObj = notchPtsInfo[jj];
-               npInfoObj.mSegIndex += crvs.Count - 1;
-               if (notchPtsInfo[jj].mSegIndex != -1)
-                  notchPtsInfo[jj] = npInfoObj;
+            var crvs = Geom.SplitCurve (segments[segIndex].Curve,
+                                        [npt],
+                                        segments[segIndex].Vec0.Normalized (),
+                                        deltaBetween: 0, tolerance);
+            //var npt = notchPtsInfo[ii];
+            //int sgIndex = -1;
+            //if (ii==0) sgIndex = notchPtsInfo[ii].mSegIndex;
+            //else sgIndex = segments.FindIndex (s => s.Curve.End.DistTo (npt.mPoints[0]).EQ (0, tolerance));
+
+            //List<NotchPointInfo> newNPInfo = [];
+            if (crvs.Count > 1) {
+               var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (segments[segIndex], crvs);
+               segments.RemoveAt (segIndex);
+               segments.InsertRange (segIndex, toolSegsForCrvs);
+
+               var (segIndices, notchPoints) = Notch.ComputeNotchPointOccuranceParams (segments, percentPos, curveLeastLength);
+               notchPtsInfo = Notch.GetNotchPointsInfo (segIndices, notchPoints, percentPos);
+
+               nptInterestPts = [];
+               // ptIndex = 0;
+               for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++) {
+                  //if (ptIndex < notchPtsInfo[ii].mPoints.Count) {
+                  nptInterestPts.Add (notchPtsInfo[ii].mPoints[jj]);
+
+
+                  //}
+               }
             }
+
+         }
+      }
+
+      for (int ii = 0; ii < notchPtsInfo.Count; ii++) {
+         nptInterestPts = [];
+         // ptIndex = 0;
+         for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++) {
+            //if (ptIndex < notchPtsInfo[ii].mPoints.Count) {
+            nptPts.Add (notchPtsInfo[ii].mPoints[jj]);
+            //}
+         }
+      }
+      //var oldNPInfo = notchPtsInfo;
+      notchPtsInfo = [];
+      string[] atPos = ["@25", "@50", "@75"];
+      for (int ii = 0; ii < nptPts.Count; ii++) {
+         var npt = nptPts[ii];
+         double dd;
+         int idx = -1;
+         for (int jj = 0; jj < segments.Count; jj++) {
+            dd = segments[jj].Curve.End.DistTo (npt);
+            if (dd.EQ (0, tolerance)) {
+               idx = jj; break;
+            }
+         }
+         NotchPointInfo nptInfo = new();
+         if (idx != -1) {
+            double atpc = 0;
+            if (percentPos.Length == 1) {
+               atpc = percentPos[0];
+               nptInfo = new (idx, npt, atpc, atPos[1]);
+            } else if (percentPos.Length == 3) {
+               atpc = percentPos[ii];
+               nptInfo = new (idx, npt, atpc, atPos[ii]);
+            }
+            notchPtsInfo.Add (nptInfo);
          }
       }
    }
@@ -1413,9 +1470,11 @@ public static class Utils {
          } else {
             var x1 = segs[kk].Curve.Start.X; var x2 = segs[kk].Curve.End.X;
             var z1 = segs[kk].Curve.Start.Z; var z2 = segs[kk].Curve.End.Z;
+            var y1 = segs[kk].Curve.Start.Y; var y2 = segs[kk].Curve.End.Y;
             t = (xVal - x1) / (x2 - x1);
             var z = z1 + t * (z2 - z1);
-            p = new Point3 (xVal, segs[kk].Curve.Start.Y, z);
+            var y = y1 + t * (y2 - y1);
+            p = new Point3 (xVal, y, z);
          }
 
          if (t.LieWithin (0, 1)) {
@@ -1441,7 +1500,7 @@ public static class Utils {
    /// <returns>List of tooling segments, split.</returns>
    /// <exception cref="Exception">This exception is thrown if the tooling does not intersect
    /// between the X values stored in the tooling scope.</exception>
-   public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight) {
+   public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight, double tolerance = 1e-6) {
       var segs = ts.Tooling.Segs; var toolingItem = ts.Tooling;
       List<ToolingSegment> resSegs = [];
       if (segs[^1].Curve.End.X < segs[0].Curve.Start.X && (ts.Tooling.ProfileKind == ECutKind.YPos || ts.Tooling.ProfileKind == ECutKind.YNeg))
@@ -1471,7 +1530,7 @@ public static class Utils {
       var (notchXPt, paramAtIxn, index, doesIntersect) = GetPointParamsAtXVal (segs, xPartition);
       List<ToolingSegment> splitSegs; Point3 lineEndPoint; Line3 line;
       if (doesIntersect) {
-         splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized ());
+         splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized (), tolerance);
          lineEndPoint = new Point3 (notchXPt.X, notchXPt.Y, segs[index].Curve.End.Z);
 
          // Create a new line tooling segment.
@@ -1517,12 +1576,13 @@ public static class Utils {
    /// <param name="npsInfo">The data structure that holds the notch points specs</param>
    /// <exception cref="Exception">Exception is thrown if an error is found</exception>
    public static void CheckSanityNotchPointsInfo (List<ToolingSegment> segs,
-                                                  List<NotchPointInfo> npsInfo) {
+                                                  List<NotchPointInfo> npsInfo,
+                                                  double tolerance = 1e-6) {
       for (int ii = 0; ii < npsInfo.Count; ii++) {
          if (npsInfo[ii].mSegIndex == -1) continue;
          var npInfoPt = npsInfo[ii].mPoints[0];
          var segEndPt = segs[npsInfo[ii].mSegIndex].Curve.End;
-         if (!npInfoPt.DistTo (segEndPt).EQ (0))
+         if (!npInfoPt.DistTo (segEndPt).EQ (0, tolerance))
             throw new Exception ("NOtchpoint and segment's point do not match");
       }
    }
@@ -1607,14 +1667,16 @@ public static class Utils {
    /// </summary>
    /// <param name="segs">The input tooling segments</param>
    /// <param name="notchPointsInfo">The input notch points info, also used to mark the indices</param>
-   public static void ReIndexNotchPointsInfo (List<ToolingSegment> segs, ref List<NotchPointInfo> notchPointsInfo) {
+   public static void ReIndexNotchPointsInfo (List<ToolingSegment> segs, ref List<NotchPointInfo> notchPointsInfo,
+      bool isWireJointsNeeded, double tolerance = 1e-6) {
       // Update the ordinate notch points ( 25,50, and 75)
       string[] atPos = ["@25", "@50", "@75"];
+      //if (!isWireJointsNeeded) atPos = ["@50"]; CHANGED_AGAIN
       int posCnt = 0;
       for (int ii = 0; ii < notchPointsInfo.Count; ii++) {
          var npinfo = notchPointsInfo[ii];
          if (npinfo.mSegIndex != -1) {
-            int index = segs.FindIndex (s => s.Curve.End.DistTo (npinfo.mPoints[0]).EQ (0));
+            int index = segs.FindIndex (s => s.Curve.End.DistTo (npinfo.mPoints[0]).EQ (0, tolerance));
             npinfo.mSegIndex = index;
          }
 
@@ -1638,7 +1700,7 @@ public static class Utils {
    /// <exception cref="Exception">If the given point is not participating in the tooling segments list</exception>
    public static void UpdateNotchPointsInfo (List<ToolingSegment> segs,
                                              ref List<NotchPointInfo> notchPointsInfo,
-      string position, double percent, Point3 pt) {
+      string position, double percent, Point3 pt, bool isWireJointsNeeded, double tolerance = 1e-6) {
       var npinfo = new NotchPointInfo () {
          mPercentage = percent,
          mPoints = [],
@@ -1651,7 +1713,7 @@ public static class Utils {
 
       npinfo.mSegIndex = index;
       notchPointsInfo.Add (npinfo);
-      ReIndexNotchPointsInfo (segs, ref notchPointsInfo);
+      ReIndexNotchPointsInfo (segs, ref notchPointsInfo, isWireJointsNeeded, tolerance);
    }
 
    /// <summary>
@@ -1675,6 +1737,19 @@ public static class Utils {
                                               a.ToString ("F3"));
    }
 
+   public static string RapidPosition (StreamWriter sw, double x, OrdinateAxis oaxis, double val,
+                                     double a, MachineType machine = MachineType.LCMMultipass2H,
+                                     bool slaveRun = false, string extraToken = "", string comment = "") {
+      if (machine == MachineType.LCMMultipass2H && slaveRun) return "";
+      string gcodeStatement = "";
+      if (oaxis == OrdinateAxis.Y)
+         gcodeStatement = $"G0 X{x:F3} Y{val:F3} A{a:F3} {extraToken} ({comment})";
+      else if (oaxis == OrdinateAxis.Z)
+         gcodeStatement = $"G0 X{x:F3} Z{val:F3} A{a:F3} {extraToken} ({comment})";
+      sw.WriteLine (gcodeStatement);
+      return gcodeStatement;
+   }
+
    /// <summary>
    /// This method writes Rapid position G Code statement as [G0  X Y/Z  Comment]
    /// Y/Z means either of one.
@@ -1687,17 +1762,18 @@ public static class Utils {
    /// <param name="machine">Machine type</param>
    /// <param name="slaveRun">The flag specifies if the head is a slave. In the case of slave for 
    /// machine type LCMMultipass2H, no g code statement is written</param>
-   public static void RapidPosition (StreamWriter sw, double x, OrdinateAxis oaxis,
+   public static string RapidPosition (StreamWriter sw, double x, OrdinateAxis oaxis,
                                      double val, string comment, string extraToken = "",
                                      MachineType machine = MachineType.LCMMultipass2H,
                                      bool slaveRun = false) {
-      if (machine == MachineType.LCMMultipass2H && slaveRun) return;
+      if (machine == MachineType.LCMMultipass2H && slaveRun) return "";
+      string gcodeStatement = "";
       if (oaxis == OrdinateAxis.Y)
-         sw.WriteLine ("G0 X{0} Y{1} {2} ({3})", x.ToString ("F3"),
-                                             val.ToString ("F3"), extraToken, comment);
+         gcodeStatement = $"G0 X{x:F3} Y{val:F3} {extraToken} ({comment})";
       else if (oaxis == OrdinateAxis.Z)
-         sw.WriteLine ("G0 X{0} Z{1} {2} ({3})", x.ToString ("F3"),
-                                             val.ToString ("F3"), extraToken, comment);
+         gcodeStatement = $"G0 X{x:F3} Z{val:F3} {extraToken} ({comment})";
+      sw.WriteLine (gcodeStatement);
+      return gcodeStatement;
    }
 
    /// <summary>
@@ -1950,8 +2026,8 @@ public static class Utils {
          var prevVal = gcodeGen.EnableMultipassCut;
          gcodeGen.EnableMultipassCut = false;
          gcodeGen.CreatePartition (gcodeGen.Process.Workpiece.Cuts, gcodeGen.OptimizePartition, gcodeGen.Process.Workpiece.Model.Bound);
-         gcodeGen.GenerateGCode (0);
-         gcodeGen.GenerateGCode (1);
+         gcodeGen.GenerateGCode (GCodeGenerator.ToolHeadType.Head1);
+         gcodeGen.GenerateGCode (GCodeGenerator.ToolHeadType.Head2);
          traces[0] = gcodeGen.CutScopeTraces[0][0];
          traces[1] = gcodeGen.CutScopeTraces[0][1];
          gcodeGen.EnableMultipassCut = prevVal;
