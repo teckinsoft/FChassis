@@ -1671,7 +1671,7 @@ public static class Utils {
       bool isWireJointsNeeded, double tolerance = 1e-6) {
       // Update the ordinate notch points ( 25,50, and 75)
       string[] atPos = ["@25", "@50", "@75"];
-      //if (!isWireJointsNeeded) atPos = ["@50"]; CHANGED_AGAIN
+      if (!isWireJointsNeeded) atPos = ["@50"];
       int posCnt = 0;
       for (int ii = 0; ii < notchPointsInfo.Count; ii++) {
          var npinfo = notchPointsInfo[ii];
@@ -1680,8 +1680,10 @@ public static class Utils {
             npinfo.mSegIndex = index;
          }
 
-         if (npinfo.mPosition == "@25" || npinfo.mPosition == "@50" || npinfo.mPosition == "@75")
-            npinfo.mPosition = atPos[posCnt++];
+         if (npinfo.mPosition == "@25" || npinfo.mPosition == "@50" || npinfo.mPosition == "@75") {
+            if (isWireJointsNeeded) npinfo.mPosition = atPos[posCnt++];
+            else npinfo.mPosition = atPos[0];
+         }
 
          notchPointsInfo[ii] = npinfo;
       }

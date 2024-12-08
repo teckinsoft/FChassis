@@ -1982,7 +1982,7 @@ public class GCodeGenerator {
    public void InitializeNotchToolingBlock (Tooling toolingItem, Tooling prevToolingItem,
       List<ToolingSegment> segs, Vector3 segmentNormal, /*double frameFeed,*/
       double xStart, double xPartition, double xEnd, bool isFlexCut, bool isLast, int startIndex = -1, int endIndex = -1,
-      bool circularMotionCmd = true, int refSegIndex = 0, string comment = "") {
+      bool circularMotionCmd = true, int refSegIndex = 0, string comment = "", bool isShortPerimeterNotch = false) {
       int offset;
       switch (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ())) {
          case Utils.EFlange.Top:
@@ -2019,7 +2019,10 @@ public class GCodeGenerator {
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
       if (circularMotionCmd) WritePlaneForCircularMotionCommand (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ()), angleCorrection: false);
       sw.WriteLine ("G61\t( Stop Block Preparation )");
-      sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parametes )");
+      if (isShortPerimeterNotch)
+         sw.WriteLine ("PM=ENotch_PM CM=ENotch_CM EM=ENotch_EM ZRH=ENotch_YRH\t( Block Process Specific Parametes )");
+      else
+         sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parametes )");
       sw.WriteLine ("Update_Param\t( Update Cutting Parameters )");
       sw.WriteLine ($"Lead_In={NotchApproachLength:F3}\t( Approach Length )");
       sw.WriteLine ();
@@ -2038,7 +2041,7 @@ public class GCodeGenerator {
    /// <param name="comment">User's comment</param>
    public void InitializeNotchToolingBlock (Tooling toolingItem, Tooling prevToolingItem, List<Point3> points,
       Vector3 segmentNormal, /*double frameFeed,*/double xStart, double xPartition, double xEnd, bool isFlexCut, bool isLast,
-      ToolingSegment? refSeg, string comment = "") {
+      ToolingSegment? refSeg, string comment = "", bool shortPerimeterNotch = false) {
 
       int offset;
       switch (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ())) {
@@ -2075,7 +2078,10 @@ public class GCodeGenerator {
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
 
       sw.WriteLine ("G61\t( Stop Block Preparation )");
-      sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parametes )");
+      if (shortPerimeterNotch)
+         sw.WriteLine ("PM=ENotch_PM CM=ENotch_CM EM=ENotch_EM ZRH=ENotch_YRH\t( Block Process Specific Parametes )");
+      else
+         sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parametes )");
       sw.WriteLine ("Update_Param\t( Update Cutting Parameters )");
       sw.WriteLine ($"Lead_In={NotchApproachLength:F3}\t( Approach Length )");
       sw.WriteLine ();
@@ -2134,7 +2140,7 @@ public class GCodeGenerator {
       else if (lastToolingSegment != null) MoveToRetract (lastToolingSegment.Value.Curve.End, lastToolingSegment.Value.Vec0, prevToolingItem?.Name);
       if (isValidNotch) {
          var notchEntry = Notch.GetNotchEntry (Process.Workpiece.Bound, toolingItem, mPercentLengths,
-            NotchApproachLength, NotchWireJointDistance, !NotchWireJointDistance.EQ(0), mCurveLeastLength, toolingItem.FeatType.ToLower ().Contains ("split") ? 1e-4 : 1e-6);
+            NotchApproachLength, NotchWireJointDistance, !NotchWireJointDistance.EQ (0), mCurveLeastLength, toolingItem.FeatType.ToLower ().Contains ("split") ? 1e-4 : 1e-6);
          if (lastToolingSegment != null)
             MoveToNextTooling (lastToolingSegment.Value.Vec0, lastToolingSegment,
             notchEntry.Item1, notchEntry.Item2.Normalized (), prevToolingItem != null ? prevToolingItem.Name : "",
@@ -2163,7 +2169,7 @@ public class GCodeGenerator {
       if (!toolingItem.IsMark ()) {
          sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
          bool validNotch = false;
-         if (toolingItem.IsNotch () && !(Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths, 
+         if (toolingItem.IsNotch () && !(Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths,
             NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0))))
             validNotch = true;
          if (validNotch)
@@ -2191,7 +2197,7 @@ public class GCodeGenerator {
       // Compute the total tooling lengths of Hole, Cutouts and Notches
       double totalToolingCutLength = toolingItems.Where (a => (a.IsCutout () || a.IsHole ())).Sum (a => a.Perimeter);
 
-      
+
       // For notches, compute the length
       foreach (var ti in toolingItems) {
          if (ti.IsNotch ()) {
@@ -2220,7 +2226,7 @@ public class GCodeGenerator {
          ResetNotchCutoutBlockTypes ();
          Tooling toolingItem = toolingItems[i];
 
-         if (Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths, NotchApproachLength, 
+         if (Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths, NotchApproachLength,
             mCurveLeastLength, !NotchWireJointDistance.EQ (0)))
             continue;
 
@@ -2291,10 +2297,10 @@ public class GCodeGenerator {
 
             // Write the Notch first
             bool isWireJointsNeeded = !NotchWireJointDistance.EQ (0);
-            if (!isWireJointsNeeded) 
+            if (!isWireJointsNeeded)
                mPercentLengths = [0.5];
             Notch notch;
-            notch = new (toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, lastToolingSegment, prevToolingSegs, first, 
+            notch = new (toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, lastToolingSegment, prevToolingSegs, first,
                previousPlaneType, xStart, xPartition, xEnd, NotchWireJointDistance,
                NotchApproachLength, MinNotchLengthThreshold, mPercentLengths, prevCutToolingsLength, totalToolingCutLength,
                isWireJointsNeeded: isWireJointsNeeded, curveLeastLength: mCurveLeastLength);
@@ -2321,8 +2327,8 @@ public class GCodeGenerator {
          // Compute the cut tooling length
          if (!toolingItem.IsMark ()) {
             if (toolingItem.IsNotch () && isValidNotch)
-               prevCutToolingsLength += Notch.GetTotalNotchToolingLength (Process.Workpiece.Bound, toolingItem, [0.25, 0.5, 0.75], 
-                  NotchWireJointDistance,NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0));
+               prevCutToolingsLength += Notch.GetTotalNotchToolingLength (Process.Workpiece.Bound, toolingItem, [0.25, 0.5, 0.75],
+                  NotchWireJointDistance, NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0));
             else prevCutToolingsLength += toolingItem.Perimeter;
          } else prevMarkToolingsLength += toolingItem.Perimeter;
 
@@ -2445,7 +2451,20 @@ public class GCodeGenerator {
       double xStart, double xPartition, double xEnd, string comment = "Notch: Wire Joint Jump Trace") {
       Utils.EPlane currPlaneType = Utils.GetArcPlaneType (wjtSeg.Vec1, GetXForm ());
       var nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance;
-
+      
+      // Changes to accommodate the length of the wire joint machining start point away from
+      // tooling profile. If the length is more than the part boundary itself, the notch approach
+      // length is to be halved
+      if (scrapSideNormal.Dot (XForm4.mZAxis * -1.0).SGT (0)) {
+         if (nextMachiningStart.Z.SLT (Process.Workpiece.Bound.ZMin))
+            nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
+      } else if (scrapSideNormal.Dot (XForm4.mXAxis).SGT (0)) {
+         if (nextMachiningStart.X.SGT (Process.Workpiece.Bound.XMax))
+            nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
+      } else if (scrapSideNormal.Dot (XForm4.mXAxis * -1).SGT (0)) {
+         if (nextMachiningStart.X.SLT (Process.Workpiece.Bound.XMin))
+            nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
+      }
       prevPlaneType = currPlaneType;
       var fromPt = GetLastToolHeadPosition ().Item1;
       List<Point3> pts = [];
