@@ -100,11 +100,11 @@ public class CutOut {
 
    public void WriteTooling () {
       bool firstTime = true;
-      for (int ii=0; ii<mSegValLists.Count; ii++ ) {
+      for (int ii = 0; ii < mSegValLists.Count; ii++) {
          var (Segs, FlexSegs) = mSegValLists[ii];
          double currSegsLen = 0;
          GCGen.InitializeToolingBlock (ToolingItem, mPrevToolingItem, /*frameFeed,*/
-              mXStart, mXPartition, mXEnd, ToolingSegments, /*isValidNotch:*/false, ii==mSegValLists.Count-1, FlexSegs);
+              mXStart, mXPartition, mXEnd, ToolingSegments, /*isValidNotch:*/false, ii == mSegValLists.Count - 1, FlexSegs);
          if (firstTime) {
             GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mLastToolingSegment, mPrevToolingItem, mPrevTlgSegs, mIsFirstTooling, /*isValidNotch:*/false);
             GCGen.WriteToolCorrectionData (ToolingItem);
@@ -123,7 +123,7 @@ public class CutOut {
       Utils.EPlane previousPlaneType = Utils.EPlane.None;
       Utils.EPlane currPlaneType;
       if (ToolingItem.IsFlexFeature ()) currPlaneType = Utils.EPlane.Flex;
-      else currPlaneType = Utils.GetFeatureNormalPlaneType (CurveStartNormal, new ());
+      else currPlaneType = Utils.GetFeatureNormalPlaneType (CurveStartNormal, GCGen.GetXForm ());
       // Write any feature other than notch
       GCGen.MoveToMachiningStartPosition (curve.Start, CurveStartNormal, ToolingItem.Name);
       {
@@ -135,11 +135,11 @@ public class CutOut {
             endNormal = endNormal.Normalized ();
             var startPoint = Curve.Start;
             var endPoint = Curve.End;
-            if (i > 0) currPlaneType = Utils.GetFeatureNormalPlaneType (endNormal, new ());
+            if (i > 0) currPlaneType = Utils.GetFeatureNormalPlaneType (endNormal, GCGen.GetXForm ());
 
             if (Curve is Arc3) { // This is a 2d arc. 
-               var arcPlaneType = Utils.GetArcPlaneType (startNormal, new ());
-               var arcFlangeType = Utils.GetArcPlaneFlangeType (startNormal, new ());
+               var arcPlaneType = Utils.GetArcPlaneType (startNormal, GCGen.GetXForm ());
+               var arcFlangeType = Utils.GetArcPlaneFlangeType (startNormal, GCGen.GetXForm ());
                (var center, _) = Geom.EvaluateCenterAndRadius (Curve as Arc3);
                GCGen.WriteArc (Curve as Arc3, arcPlaneType, arcFlangeType, center, startPoint, endPoint, startNormal,
                   ToolingItem.Name);

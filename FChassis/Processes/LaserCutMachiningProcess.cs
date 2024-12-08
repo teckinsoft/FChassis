@@ -226,7 +226,7 @@ public class Processor : INotifyPropertyChanged {
                // Safe incrementor
                IncrementCutScopeIndex ();
                int csIdx = GetCutScopeIndex ();
-               if (csIdx >= 0 && csIdx < mcCss.Count) 
+               if (csIdx >= 0 && csIdx < mcCss.Count)
                   zoomExtentsWithBound3Delegate?.Invoke (mcCss[csIdx].Bound);
 
                // Reset enumerator

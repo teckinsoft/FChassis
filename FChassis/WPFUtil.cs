@@ -6,7 +6,7 @@ static class WPFUtil {
    /// <summary>Binds an action to the 'Click' event of a button</summary>
    /// <param name="button">The button to bind</param>
    /// <param name="action">The action to execute when the button is clicked</param>
-   public static void Bind (this Button button, Action action) 
+   public static void Bind (this Button button, Action action)
       => button.Click += (s, e) => action ();
 
    /// <summary>Binds a check-box to a boolean getter / setter</summary>
@@ -28,10 +28,10 @@ static class WPFUtil {
    /// <param name="setter">Setter is called with an enumerable of newly ordered items, whenever the list-box is shuffled</param>
    /// <param name="up">The button that is used to shuffle the selected item UP</param>
    /// <param name="down">The button that is used to shuffle the selected item DOWN</param>
-   public static void Bind (this ListBox lb, Button up, Button down, 
+   public static void Bind (this ListBox lb, Button up, Button down,
                             Func<IEnumerable> getter, Action<IEnumerable> setter) {
       lb.Items.Clear ();
-      foreach (var obj in getter ()) 
+      foreach (var obj in getter ())
          lb.Items.Add (obj);
 
       lb.SelectedIndex = 0;
@@ -39,16 +39,16 @@ static class WPFUtil {
       down.Bind (() => _shuffle (lb, 1, setter));
 
       void _shuffle (ListBox lb, int delta, Action<IEnumerable> setter) {
-         int n = lb.SelectedIndex; 
-         if (n == -1) 
+         int n = lb.SelectedIndex;
+         if (n == -1)
             return;
 
-         int n2 = n + delta; 
-         if (n2 < 0 || n2 >= lb.Items.Count) 
+         int n2 = n + delta;
+         if (n2 < 0 || n2 >= lb.Items.Count)
             return;
 
-         var item = lb.Items[n]; 
-         lb.Items.RemoveAt (n); 
+         var item = lb.Items[n];
+         lb.Items.RemoveAt (n);
          lb.Items.Insert (n2, item);
          lb.SelectedIndex = n2;
          setter (lb.Items);
@@ -87,7 +87,7 @@ static class WPFUtil {
       tb.Text = getter ().ToString ();
       tb.GotFocus += (s, e) => tb.SelectAll ();
       tb.LostFocus += (s, e) => {
-         if (double.TryParse (tb.Text, out var f)) 
+         if (double.TryParse (tb.Text, out var f))
             setter (f);
 
          tb.Text = getter ().ToString ();
@@ -121,11 +121,11 @@ static class WPFUtil {
       cb.SelectedItem = getter ();
 
       // When the selection changes, update the bound property
-      cb.SelectionChanged += (s, e) =>{
+      cb.SelectionChanged += (s, e) => {
          if (cb.SelectedItem is T selectedItem)
             setter (selectedItem);
       };
    }
-   
+
    public static int IndexOf<T> (this T[] array, T item) => Array.IndexOf (array, item);
 }

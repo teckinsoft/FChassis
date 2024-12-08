@@ -1111,7 +1111,7 @@ public static class Utils {
                idx = jj; break;
             }
          }
-         NotchPointInfo nptInfo = new();
+         NotchPointInfo nptInfo = new ();
          if (idx != -1) {
             double atpc = 0;
             if (percentPos.Length == 1) {
@@ -1602,17 +1602,17 @@ public static class Utils {
    public static void MarkfeasibleSegments (ref List<ToolingSegment> segments) {
       int sgn;
       string about = "";
-      sgn = Math.Sign (segments.Last ().Curve.End.Y - segments.First ().Curve.Start.Y);
+      sgn = Math.Sign (segments[^1].Curve.End.Y - segments.First ().Curve.Start.Y);
       if (sgn != 0)
          about = "Y";
 
       if (sgn == 0) {
-         sgn = Math.Sign (segments.Last ().Curve.End.Z - segments.First ().Curve.Start.Z);
+         sgn = Math.Sign (segments[^1].Curve.End.Z - segments.First ().Curve.Start.Z);
          about = "Z";
       }
 
       if (sgn == 0) {
-         sgn = Math.Sign (segments.Last ().Curve.End.X - segments.First ().Curve.Start.X);
+         sgn = Math.Sign (segments[^1].Curve.End.X - segments.First ().Curve.Start.X);
          about = "X";
       }
 
@@ -1928,17 +1928,17 @@ public static class Utils {
       // LCMMultipass2H machine's G2 and G3 functions are reversed in sense for BOTTOM flange. So
       // CW is G3 and counter-clockwise is G2
       if (oaxis == OrdinateAxis.Y) {
-         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
-            sw.Write ("G{0} I{1} J{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
-                                                   val.ToString ("F3"));
-         else
+         //if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+         //   sw.Write ("G{0} I{1} J{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
+         //                                          val.ToString ("F3"));
+         //else
             sw.Write ("G{0} I{1} J{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                                                    val.ToString ("F3"));
       } else if (oaxis == OrdinateAxis.Z) {
-         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
-            sw.Write ("G{0} I{1} K{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
-                                                   val.ToString ("F3"));
-         else
+         //if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+         //   sw.Write ("G{0} I{1} K{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
+         //                                          val.ToString ("F3"));
+         //else
             sw.Write ("G{0} I{1} K{2} ( Circle )", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                                                    val.ToString ("F3"));
       }
@@ -1971,19 +1971,19 @@ public static class Utils {
       // LCMMultipass2H machine's G2 and G3 functions are reversed in sense for BOTTOM flange. So
       // CW is G3 and counter-clockwise is G2
       if (oaxis == OrdinateAxis.Y) {
-         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
-            sw.Write ("G{0} I{1} J{2}", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
-                                        val.ToString ("F3"));
-         else
+         //if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+         //   sw.Write ("G{0} I{1} J{2}", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
+         //                               val.ToString ("F3"));
+         //else
             sw.Write ("G{0} I{1} J{2}", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                                         val.ToString ("F3"));
 
          sw.Write (" X{0} Y{1}", x.ToString ("F3"), y.ToString ("F3"));
       } else if (oaxis == OrdinateAxis.Z) {
-         if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
-            sw.Write ("G{0} I{1} K{2}", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
-                                        val.ToString ("F3"));
-         else
+         //if (machine == MachineType.LCMMultipass2H && flange == EFlange.Bottom)
+         //   sw.Write ("G{0} I{1} K{2}", arcSense == Utils.EArcSense.CW ? 3 : 2, i.ToString ("F3"),
+         //                               val.ToString ("F3"));
+         //else
             sw.Write ("G{0} I{1} K{2}", arcSense == Utils.EArcSense.CW ? 2 : 3, i.ToString ("F3"),
                                         val.ToString ("F3"));
 

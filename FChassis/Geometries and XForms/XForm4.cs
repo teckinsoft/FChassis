@@ -536,7 +536,7 @@ public class Geom {
          var line = curve as Line3;
          var stToEndVec = line.End - line.Start; var stToPtVec = pt - line.Start;
          var cp = Geom.Cross (stToPtVec.Normalized (), stToEndVec.Normalized ());
-         if (!cp.Length.EQ (0.0, tolerance)) 
+         if (!cp.Length.EQ (0.0, tolerance))
             return false;
          var param = stToPtVec.Dot (stToEndVec) / (stToEndVec.Dot (stToEndVec));
          if (constrainedWithinSegment) {
@@ -548,14 +548,14 @@ public class Geom {
 
    public static Point3 NudgeToPlane (Point3 center, double radius, Point3 point, Vector3 normal) {
       // Compute the vector from the center to the point
-      Vector3 centerToPoint = (point - center).Normalized();
+      Vector3 centerToPoint = (point - center).Normalized ();
       normal = normal.Normalized ();
       int cnt = 0;
       var costheta = centerToPoint.Dot (normal);
       var sinTheta = Math.Sqrt (1.0 - (costheta * costheta));
-      while (Math.Abs(costheta) > 1e-6) {
+      while (Math.Abs (costheta) > 1e-6) {
          // Compute the projection of the point onto the arc plane
-         
+
          //Point3 nudgedPoint;
 
          point = Geom.V2P (point - Geom.V2P (normal) * costheta);
@@ -693,7 +693,7 @@ public class Geom {
          double lengthRatio = (length) / arc.Length;
          thetaAtPoint = arcAngle * lengthRatio;
          pointAtLengthFromStart = Geom.V2P (transform * new Point3 (radius * Math.Cos (thetaAtPoint), radius * Math.Sin (thetaAtPoint), 0.0));
-         if ( !Geom.IsPointOnCurve(arc as Curve3, pointAtLengthFromStart, planeNormal))
+         if (!Geom.IsPointOnCurve (arc as Curve3, pointAtLengthFromStart, planeNormal))
             pointAtLengthFromStart = Geom.NudgeToPlane (cen, radius, pointAtLengthFromStart, planeNormal);
       } else {
          double t = length / curve.Length;
@@ -1210,7 +1210,7 @@ public class Geom {
          var pt = Geom.Evaluate (segs[currIndex].Curve, t, segs[currIndex].Vec0.Normalized ());
          if (true) {
             var chk = Geom.IsPointOnCurve (segs[currIndex].Curve, pt, segs[currIndex].Vec0.Normalized ());
-            if (!chk) 
+            if (!chk)
                throw new Exception ("What the heck!");
          }
          res = new (pt, currIndex);

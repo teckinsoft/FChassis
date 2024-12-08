@@ -824,14 +824,14 @@ public class GCodeGenerator {
       }
       double midX = -10;
       if (resHead0.Count > 0 && resHead1.Count > 0) {
-         if (LeftToRightMachining) midX = (resHead0.Last ().XMax + resHead1.First ().XMin) / 2.0;
-         else midX = (resHead0.Last ().XMin + resHead1.First ().XMax) / 2.0;
+         if (LeftToRightMachining) midX = (resHead0[^1].XMax + resHead1.First ().XMin) / 2.0;
+         else midX = (resHead0[^1].XMin + resHead1.First ().XMax) / 2.0;
       } else if (resHead0.Count > 0) {
-         if (LeftToRightMachining) midX = resHead0.Last ().XMax;
-         else midX = resHead0.Last ().XMin;
+         if (LeftToRightMachining) midX = resHead0[^1].XMax;
+         else midX = resHead0[^1].XMin;
       } else if (resHead1.Count > 0) {
-         if (LeftToRightMachining) midX = resHead1.Last ().XMax;
-         else midX = resHead1.Last ().XMin;
+         if (LeftToRightMachining) midX = resHead1[^1].XMax;
+         else midX = resHead1[^1].XMin;
       }
       return midX;
    }
@@ -1210,7 +1210,7 @@ public class GCodeGenerator {
    }
 
    public bool IgnoreSafety => SafetyZone.EQ (0);
-   XForm4 GetXForm () => PartConfigType == PartConfigType.LHComponent ? mXformLHInv : mXformRHInv;
+   public XForm4 GetXForm () => PartConfigType == PartConfigType.LHComponent ? mXformLHInv : mXformRHInv;
    public void WriteCurve (ToolingSegment segment, string toolingName) {
       var stNormal = segment.Vec0.Normalized ();
       var endNormal = segment.Vec1.Normalized ();
@@ -1667,11 +1667,11 @@ public class GCodeGenerator {
             endNormal = endNormal.Normalized ();
             var startPoint = Curve.Start;
             var endPoint = Curve.End;
-            if (i > 0) currPlaneType = Utils.GetFeatureNormalPlaneType (endNormal, new ());
+            if (i > 0) currPlaneType = Utils.GetFeatureNormalPlaneType (endNormal, GetXForm ());
 
             if (Curve is Arc3) { // This is a 2d arc. 
-               var arcPlaneType = Utils.GetArcPlaneType (startNormal, new ());
-               var arcFlangeType = Utils.GetArcPlaneFlangeType (startNormal, new ());
+               var arcPlaneType = Utils.GetArcPlaneType (startNormal, GetXForm ());
+               var arcFlangeType = Utils.GetArcPlaneFlangeType (startNormal, GetXForm ());
                (var center, _) = Geom.EvaluateCenterAndRadius (Curve as Arc3);
                WriteArc (Curve as Arc3, arcPlaneType, arcFlangeType, center, startPoint, endPoint, startNormal,
                   toolingItem.Name);
@@ -2017,7 +2017,10 @@ public class GCodeGenerator {
       // Output X tool compensation
       if (Utils.GetArcPlaneType (segmentNormal, GetXForm ()) == Utils.EPlane.Top) sw.WriteLine ($"G93 Z0 T1");
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
-      if (circularMotionCmd) WritePlaneForCircularMotionCommand (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ()), angleCorrection: false);
+      if (circularMotionCmd)
+         WritePlaneForCircularMotionCommand (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ()), angleCorrection: false);
+      else
+         throw new Exception ("G17/G18 not written");
       sw.WriteLine ("G61\t( Stop Block Preparation )");
       if (isShortPerimeterNotch)
          sw.WriteLine ("PM=ENotch_PM CM=ENotch_CM EM=ENotch_EM ZRH=ENotch_YRH\t( Block Process Specific Parametes )");
@@ -2076,7 +2079,7 @@ public class GCodeGenerator {
       // Output X tool compensation
       if (Utils.GetArcPlaneType (segmentNormal, GetXForm ()) == Utils.EPlane.Top) sw.WriteLine ($"G93 Z0 T1");
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
-
+      WritePlaneForCircularMotionCommand (Utils.GetFlangeType (toolingItem, GetXForm ()), angleCorrection: false);
       sw.WriteLine ("G61\t( Stop Block Preparation )");
       if (shortPerimeterNotch)
          sw.WriteLine ("PM=ENotch_PM CM=ENotch_CM EM=ENotch_EM ZRH=ENotch_YRH\t( Block Process Specific Parametes )");
@@ -2203,7 +2206,7 @@ public class GCodeGenerator {
          if (ti.IsNotch ()) {
             mPercentLengths = [0.25, 0.5, 0.75];
             double tPerim = ti.Segs.Sum (ts => ts.Curve.Length);
-            if (tPerim < MinNotchLengthThreshold || (ti.Segs.Last ().Curve.End.DistTo (ti.Segs.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
+            if (tPerim < MinNotchLengthThreshold || (ti.Segs[^1].Curve.End.DistTo (ti.Segs.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
                //mShortPerimeterNotch = true;
                //mPercentLengths = [0.5]; // CHANGED_AGAIN
                ;
@@ -2338,7 +2341,7 @@ public class GCodeGenerator {
          SetProgNo (toolingItem, mProgramNumber);
       }
 
-      //if (toolingItems.Count > 0) SetProgNo (toolingItems.Last (), mProgramNumber);
+      //if (toolingItems.Count > 0) SetProgNo (toolingItems[^1], mProgramNumber);
       // Digit will be made 0 if it doesn't belong to this head
       if (shouldOutputDigit) {
          double x = MarkTextPosX, y = MarkTextPosY;
@@ -2451,7 +2454,7 @@ public class GCodeGenerator {
       double xStart, double xPartition, double xEnd, string comment = "Notch: Wire Joint Jump Trace") {
       Utils.EPlane currPlaneType = Utils.GetArcPlaneType (wjtSeg.Vec1, GetXForm ());
       var nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance;
-      
+
       // Changes to accommodate the length of the wire joint machining start point away from
       // tooling profile. If the length is more than the part boundary itself, the notch approach
       // length is to be halved

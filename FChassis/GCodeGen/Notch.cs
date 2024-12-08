@@ -256,15 +256,15 @@ public class Notch {
       if (Notch.IsEdgeNotch (mGCodeGen.Process.Workpiece.Bound, toolingItem, percentlength, notchApproachLength, curveLeastLength, mIsWireJointsNeeded))
          EdgeNotch = true;
       else if (mToolingPerimeter < MinNotchLengthThreshold ||
-            (mSegments.Last ().Curve.End.DistTo (mSegments.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
+            (mSegments[^1].Curve.End.DistTo (mSegments.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
          mShortPerimeterNotch = true;
          mPercentLength = [0.5];
          mIsWireJointsNeeded = false;
       } else {
-         
+
          mShortPerimeterNotch = false;
          //if (mToolingPerimeter < MinNotchLengthThreshold ||
-         //   (mSegments.Last ().Curve.End.DistTo (mSegments.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
+         //   (mSegments[^1].Curve.End.DistTo (mSegments.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
          //   mShortPerimeterNotch = true;
          //   mPercentLength = [0.5];
          //   mIsWireJointsNeeded = false;
@@ -317,7 +317,7 @@ public class Notch {
    double mBlockCutLength = 0;
    double mTotalToolingsCutLength = 0;
    double mCutLengthTillPrevTooling = 0;
-   bool mIsWireJointsNeeded = true; 
+   bool mIsWireJointsNeeded = true;
 
    // Find the flex segment indices
    List<Tuple<int, int>> mFlexIndices = [];
@@ -477,14 +477,12 @@ public class Notch {
          };
          if (!mIsWireJointsNeeded) {
             if (notchPointsInfo.Count > 1) throw new Exception ("Notchpoints info size > 1 for no WJT case");
-            
-            if (notchPointsInfo[0].mPercentage.EQ (0.25)) { 
+
+            if (notchPointsInfo[0].mPercentage.EQ (0.25)) {
                pos = "@25"; percent = 0.25;
-            }
-            else if (notchPointsInfo[0].mPercentage.EQ (0.50)) {
+            } else if (notchPointsInfo[0].mPercentage.EQ (0.50)) {
                pos = "@50"; percent = 0.50;
-            }
-            else if (notchPointsInfo[0].mPercentage.EQ (0.75)) {
+            } else if (notchPointsInfo[0].mPercentage.EQ (0.75)) {
                pos = "@75"; percent = 0.75;
             }
          }
@@ -546,7 +544,7 @@ public class Notch {
             }
 
          }
-         Utils.UpdateNotchPointsInfo (segs, ref notchPointsInfo, pos, percent, splitToolSegs[0].Curve.End, 
+         Utils.UpdateNotchPointsInfo (segs, ref notchPointsInfo, pos, percent, splitToolSegs[0].Curve.End,
             mIsWireJointsNeeded, tolerance: mSplit ? 1e-4 : 1e-6);
          Utils.CheckSanityNotchPointsInfo (segs, notchPointsInfo, tolerance: mSplit ? 1e-4 : 1e-6);
 
@@ -577,7 +575,7 @@ public class Notch {
                   pos = "@7499"; percent = 0.7499;
                }
             }
-            Utils.UpdateNotchPointsInfo (segs, ref notchPointsInfo, pos, percent, splitToolSegs[0].Curve.End, 
+            Utils.UpdateNotchPointsInfo (segs, ref notchPointsInfo, pos, percent, splitToolSegs[0].Curve.End,
                mIsWireJointsNeeded, tolerance: mSplit ? 1e-4 : 1e-6);
             Utils.CheckSanityNotchPointsInfo (segs, notchPointsInfo, tolerance: mSplit ? 1e-4 : 1e-6);
             (mWireJointPts[ptCount], mWireJointPts[ptCount - 1]) = (mWireJointPts[ptCount - 1], mWireJointPts[ptCount]);
@@ -1056,7 +1054,7 @@ public class Notch {
 
             case IndexType.Max:
                if (!started) continue;
-               if (notchIndexSequence.Last ().Index != prevIdx)
+               if (notchIndexSequence[^1].Index != prevIdx)
                   startIndex = prevIdx + 1;
                else startIndex = prevIdx;
                if (startIndex <= notchIndexSequence[ii].Index) {
@@ -1217,7 +1215,7 @@ public class Notch {
                else if (mPercentLength[mSegsCount].EQ (0.5)) atpc = 0.5;
                else if (mPercentLength[mSegsCount].EQ (0.75)) atpc = 0.75;
                NotchPointInfo np = new (invalidSeg ? -1 : segIx, pt, atpc,
-                  atpc.EQ(0.25)?"@25" : (atpc.EQ (0.5) ? "@50" : "@75"));
+                  atpc.EQ (0.25) ? "@25" : (atpc.EQ (0.5) ? "@50" : "@75"));
                mNotchPointsInfo.Add (np);
             }
          }
@@ -1357,7 +1355,7 @@ public class Notch {
             else if (mInvalidIndices.Contains (2)) mApproachIndex = 2;
          }
          //else throw new Exception ("Notch Indices are invalid for all of 25, 50 and 75% of notch lengths");
-      } 
+      }
       if (mPercentLength.Length == 1) {
          mApproachIndex = 0;
       }
@@ -1411,13 +1409,13 @@ public class Notch {
       // a small strip (wire notch distance) to hold on to the otherwise cut parts, which require a minimal
       // physical force to cut away the scrap side material
       ComputeWireJointPositionsOnFlanges (mSegments, mNotchPoints, ref mNotchPointsInfo, mNotchWireJointDistance, mApproachIndex);
-      Utils.CheckSanityNotchPointsInfo (mSegments, mNotchPointsInfo, mSplit?1e-4:1e-6);
+      Utils.CheckSanityNotchPointsInfo (mSegments, mNotchPointsInfo, mSplit ? 1e-4 : 1e-6);
 
       // Compute the wire joint positions on the flexes. The start and end positions of the 
       // flexes are created with this wire joints
       ComputeWireJointPositionsOnFlexes ();
       Utils.CheckSanityNotchPointsInfo (mSegments, mNotchPointsInfo, mSplit ? 1e-4 : 1e-6);
-      
+
       // Compute the indices of notch points and wire joint skip(jump) trace points
       ComputeNotchToolingIndices (mSegments, mNotchPoints, mWireJointPts, mFlexWireJointPts);
 
@@ -1462,7 +1460,7 @@ public class Notch {
       double tolerance = 1e-6) {
       int count = 0;
       Point3[] notchPoints = new Point3[percentPos.Length];
-      
+
       int[] segIndices = [-1, -1, -1];
       if (percentPos.Length == 1) segIndices = [-1];
       else if (percentPos.Length == 2) segIndices = [-1, -1];
@@ -1541,16 +1539,16 @@ public class Notch {
 
       var flangeTypeAt50pc = Utils.GetArcPlaneFlangeType (segs[segIndex].Vec0, XForm4.IdentityXfm);
       var flangeTypeAtSegStart = Utils.GetArcPlaneFlangeType (segs.First ().Vec0, XForm4.IdentityXfm);
-      var flangeTypeAtSegEnd = Utils.GetArcPlaneFlangeType (segs.Last ().Vec0, XForm4.IdentityXfm);
+      var flangeTypeAtSegEnd = Utils.GetArcPlaneFlangeType (segs[^1].Vec0, XForm4.IdentityXfm);
       if (flangeTypeAt50pc == flangeTypeAtSegStart && ((flangeTypeAtSegStart == EFlange.Top || flangeTypeAtSegStart == EFlange.Bottom)))
          // Compare Distance in X
          pToCurveStartAlongX = Math.Abs (segs.First ().Curve.Start.X - segs[segIndex].Curve.End.X);
       if (flangeTypeAt50pc == flangeTypeAtSegEnd && ((flangeTypeAtSegEnd == EFlange.Top || flangeTypeAtSegEnd == EFlange.Bottom)))
          // Compare Distance in X
-         pToCurveEndAlongX = Math.Abs (segs.Last ().Curve.End.X - segs[segIndex].Curve.End.X);
+         pToCurveEndAlongX = Math.Abs (segs[^1].Curve.End.X - segs[segIndex].Curve.End.X);
       if (flangeTypeAt50pc == flangeTypeAtSegEnd && flangeTypeAtSegEnd == EFlange.Web)
          // Compute distance in Y
-         pToCurveEndAlongY = Math.Abs (segs.Last ().Curve.End.Y - segs[segIndex].Curve.End.Y);
+         pToCurveEndAlongY = Math.Abs (segs[^1].Curve.End.Y - segs[segIndex].Curve.End.Y);
       if (flangeTypeAt50pc == flangeTypeAtSegStart && flangeTypeAtSegStart == EFlange.Web)
          // Compute distance in Y
          pToCurveStartAlongY = Math.Abs (segs.First ().Curve.Start.Y - segs[segIndex].Curve.End.Y);
@@ -1583,7 +1581,7 @@ public class Notch {
          int[] segIndices = new int[51];
          for (int ii = 0; ii < 51; ii++)
             (segIndices[ii], paramPts[ii]) = Utils.GetNotchPointsOccuranceParams (segs, percentPos[ii], 0.5);
-         var Sp = segs.First ().Curve.Start; var Ep = segs.Last ().Curve.End;
+         var Sp = segs.First ().Curve.Start; var Ep = segs[^1].Curve.End;
 
          // By default, 1-th index is assumed to be approach index.
          double minDifference = double.MaxValue;
@@ -1654,7 +1652,7 @@ public class Notch {
       if (EdgeNotch) {
          WriteEdgeNotch ();
          return;
-      }else if (mShortPerimeterNotch) {
+      } else if (mShortPerimeterNotch) {
          WriteShortPerimeterNotch ();
          return;
       }
@@ -1849,7 +1847,7 @@ public class Notch {
                }
             case NotchSectionType.WireJointTraceJumpForward:
             case NotchSectionType.WireJointTraceJumpReverse: {
-                  
+
                   NotchAttribute notchAttr;
                   if (notchSequence.mSectionType == NotchSectionType.WireJointTraceJumpForward)
                      notchAttr = ComputeNotchAttribute (mFullPartBound, mToolingItem, mSegments, notchSequence.mStartIndex,
@@ -1964,10 +1962,10 @@ public class Notch {
                continuousMachining = false;
                break;
             case NotchSectionType.MachineFlexToolingReverse: {
-                  
+
                   if (notchSequence.mStartIndex < notchSequence.mEndIndex) throw new Exception ("In WriteNotchGCode: MachineFlexToolingReverse : startIndex < endIndex");
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments, mSegments[notchSequence.mStartIndex].Vec0,
-                     mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mNotchSequences.Count - 1, 
+                     mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mNotchSequences.Count - 1,
                      notchSequence.mStartIndex, notchSequence.mEndIndex, circularMotionCmd: false, notchSequence.mStartIndex,
                      "NotchSequence: Flex machining Reverse Direction");
                   {
@@ -1993,7 +1991,7 @@ public class Notch {
                   if (notchSequence.mStartIndex > notchSequence.mEndIndex)
                      throw new Exception ("In WriteNotch: MachineFlexToolingForward : startIndex > endIndex");
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments, mSegments[notchSequence.mStartIndex].Vec0,
-                     mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mNotchSequences.Count - 1, notchSequence.mStartIndex, 
+                     mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mNotchSequences.Count - 1, notchSequence.mStartIndex,
                      notchSequence.mEndIndex, circularMotionCmd: false, notchSequence.mStartIndex,
                      "Notch: Flex machining Forward Direction");
                   {
@@ -2078,16 +2076,16 @@ public class Notch {
          mGCodeGen.WriteCurve (seg, mToolingItem.Name);
          mGCodeGen.DisableMachiningDirective ();
       }
-      Exit = mSegments.Last();
+      Exit = mSegments[^1];
    }
 
    public void WriteShortPerimeterNotch () {
       // Debug
-      var toolingLength = mSegments.Sum(t=>t.Curve.Length);
+      var toolingLength = mSegments.Sum (t => t.Curve.Length);
       mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments, mSegments[0].Vec0,
-                     mXStart, mXPartition, mXEnd, isFlexCut: true, isLast:true, 0,
-                     mSegments.Count-1, circularMotionCmd: false, 0,
-                     "NotchSequence: Short Edge Notch", isShortPerimeterNotch:true);
+                     mXStart, mXPartition, mXEnd, isFlexCut: true, isLast: true, 0,
+                     mSegments.Count - 1, circularMotionCmd: true, 0,
+                     "NotchSequence: Short Edge Notch", isShortPerimeterNotch: true);
       {
          var notchEntry = new Tuple<Point3, Vector3> (mSegments[0].Curve.Start, mSegments[0].Vec0);
          mGCodeGen.PrepareforToolApproach (mToolingItem, mSegments, PreviousToolingSegment, PreviousTooling, mPrevToolingSegments, mFirstTooling, isValidNotch: true);
@@ -2109,7 +2107,7 @@ public class Notch {
          mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
       }
       mGCodeGen.FinalizeNotchToolingBlock (mToolingItem, mBlockCutLength, mTotalToolingsCutLength);
-      Exit = mSegments.Last();
+      Exit = mSegments[^1];
    }
    #endregion
 
@@ -2315,7 +2313,7 @@ public class Notch {
          }
       }
       if (attrs.Count > 0) {
-         int approachSegIndex=-1;
+         int approachSegIndex = -1;
          if (attrs.Count == 1) {
             if (invalidSegIndices.Contains (0))
                throw new Exception ("For No Wire Joints case: The only approach index 0 is invalid");

@@ -791,7 +791,7 @@ public class MultiPassCuts {
       featsWithInIxs = featsWithInIxs.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)).ToList ();
       var featsWithIn = featsWithInIxs
           .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
-           //.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)) // Exclude deadband indices
+                                                            //.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)) // Exclude deadband indices
           .Select (index => tss[index])
           .Where (ts => ts.IsProcessed == false) // Only unprocessed tooling scopes
           .ToList ();
@@ -976,7 +976,7 @@ public class MultiPassCuts {
                   tss = mpc.ToolingScopes;
                   featsWithIn = GetUncutToolingScopesWithin (cs, tss);
                }
-               
+
                splitToolScopes = false;
                if (passType == PassType.CutScope)
                   (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
@@ -1115,7 +1115,7 @@ public class MultiPassCuts {
                   // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
 
                   (mpc.ToolingScopes, split1) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, endXPos, mpc.Bound,
-                     thresholdLength: -1, splitNotches: true, splitNonNotches: false); 
+                     thresholdLength: -1, splitNotches: true, splitNonNotches: false);
                   if (split1) {
                      CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
                      cs.CategorizeToolings ();
@@ -1214,11 +1214,11 @@ public class MultiPassCuts {
             var dbTScopesAscEndX = dbTScopesAscStartX.OrderBy (t => t.EndX).ToList ();
             if (dbTScopesAscStartX.Count > 0) {
                var stxToolScPos = dbTScopesAscStartX[0].StartX;
-               var endxToolScPos = dbTScopesAscEndX.Last ().EndX;
+               var endxToolScPos = dbTScopesAscEndX[^1].EndX;
                startXPos += ((endxToolScPos - stxToolScPos) < cs.DeadBandWidth ? cs.DeadBandWidth : (endxToolScPos - stxToolScPos));
                endXPos += ((endxToolScPos - stxToolScPos) < cs.DeadBandWidth ? cs.DeadBandWidth : (endxToolScPos - stxToolScPos));
             } else {
-               if (featsWithinByEndX.Count > 0) startXPos = featsWithinByEndX.Last ().EndX;
+               if (featsWithinByEndX.Count > 0) startXPos = featsWithinByEndX[^1].EndX;
                else if (forwardIxnHoles.Count > 0)
                   startXPos = forwardIxnHoles.First ().StartX;
                else
@@ -1234,7 +1234,7 @@ public class MultiPassCuts {
             var dbTScopesAscEndX = dbTScopesAscStartX.OrderBy (t => t.EndX).ToList ();
             if (dbTScopesAscStartX.Count > 0) {
                var stxToolScPos = dbTScopesAscStartX[0].StartX;
-               var endxToolScPos = dbTScopesAscEndX.Last ().EndX;
+               var endxToolScPos = dbTScopesAscEndX[^1].EndX;
                startXPos += ((endxToolScPos - stxToolScPos) < cs.DeadBandWidth ? cs.DeadBandWidth : (endxToolScPos - stxToolScPos));
                endXPos += ((endxToolScPos - stxToolScPos) < cs.DeadBandWidth ? cs.DeadBandWidth : (endxToolScPos - stxToolScPos));
             } else {
