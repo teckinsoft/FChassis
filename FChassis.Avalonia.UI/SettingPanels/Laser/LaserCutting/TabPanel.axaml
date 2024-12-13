@@ -1,0 +1,66 @@
+<base:Panel
+	    xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+		d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="FChassis.UI.Settings.Laser.LaserCutting.TabPanel"
+		xmlns:base="FChassis.UI.Settings"
+		>
+	<Grid x:Name="Grid" RowDefinitions="64, *" ColumnDefinitions="*, 75">
+		<TabControl x:Name="TabControl" Margin="5"
+					Grid.Row="1"
+					TabStripPlacement="Left">
+			<TabItem Header="Piercing"/>
+			<TabItem Header="Cutting"/>
+			<TabItem Header="Marking"/>
+			<TabItem Header="Evapourating"/>
+		</TabControl>
+		
+		<Grid RowDefinitions="32,32" ColumnDefinitions="*,*,*,*,*,*,*,*">
+			<TextBlock Text="Material" VerticalAlignment="Center"/>
+			<ComboBox Grid.Row="1" Width="100"/>
+
+			<TextBlock Text="Thickness:"
+				Grid.Column="1" VerticalAlignment="Center"/>
+			<ComboBox Grid.Row="1" Grid.Column="1" Width="100"/>
+
+			<TextBlock Text="Nozzle Diameter Dropdown:"
+				Grid.Column="2" VerticalAlignment="Center"/>
+			<ComboBox Grid.Row="1" Grid.Column="2" Width="100"/>
+
+			<TextBlock Text="Gas Type Dropdown:"
+				Grid.Column="3" VerticalAlignment="Center"/>
+			<ComboBox Grid.Row="1" Grid.Column="3" Width="100"/>
+
+			<TextBlock Text="Treatment Dropdown:"
+				Grid.Column="4" VerticalAlignment="Center"/>
+			<ComboBox Grid.Row="1" Grid.Column="4" Width="100"/>
+
+			<TextBlock Text="Film Dropdown:"
+				Grid.Column="5" VerticalAlignment="Center"/>
+			<ComboBox Grid.Row="1" Grid.Column="5" Width="100"/>
+
+			<TextBlock Text="Focus Diameter Dropdown:"
+				Grid.Column="6" VerticalAlignment="Center"/>
+			<ComboBox Grid.Column="6" Grid.Row="1" Width="100"/>
+		</Grid>
+		<StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="1">
+			<Button Height="50">
+				<TextBlock Text="Copy Laser Settings" TextWrapping="Wrap"/></Button>
+			<Button Height="50" Margin="0,0,0,25">
+				<TextBlock Text="Import Laser Settings" TextWrapping="Wrap"/></Button>
+			<Button Content="+"/>
+			<Button Content="Clone"/>
+			<Button Content="Delete"/>
+			<Button Content="Import"/>
+			<Button Content="Export"/>
+			<Button Content="Settings"/>
+			<Button Height="50">
+				<TextBlock Text="Defaults Settings" TextWrapping="Wrap"/></Button>
+			<Button Height="50">
+				<TextBlock Text="Save as Default" TextWrapping="Wrap"/></Button>
+		</StackPanel>
+	</Grid>
+</base:Panel>

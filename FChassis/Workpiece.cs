@@ -38,9 +38,6 @@ public class Workpiece : INotifyPropertyChanged {
    public bool SortingComplete => sortingComplete;
    bool sortingComplete = false;
 
-   public bool HoleCutsComplete { get; set; } = false;
-   public bool NotchCutsComplete { get; set; } = false;
-   public bool MarkingsComplete { get; set; } = false;
    /// <summary>Align the model for processing</summary>
    public void Align () {
       // First, align the baseplane so that it is aligned with the XY plane
@@ -78,8 +75,6 @@ public class Workpiece : INotifyPropertyChanged {
    }
 
    public bool DoAddHoles () {
-      if (HoleCutsComplete) 
-         return false;
       int cutIndex = Cuts.Count + 1;
       foreach (var ep in mModel.Entities.OfType<E3Plane> ()) {
          foreach (var con in ep.Contours.Skip (1)) {
@@ -169,35 +164,38 @@ public class Workpiece : INotifyPropertyChanged {
       //sw.Stop ();
       //TimeSpan ts = sw.Elapsed;
 
-      HoleCutsComplete = true;
       Dirty ();
       return true;
    }
 
-   public bool DoTextMarking () {
-      if (MarkingsComplete) 
-         return false;
+   public bool DoTextMarking (MCSettings mcs) {
+      // Remove any previous Mark
+      for ( int ii=0; ii<Cuts.Count; ii++) {
+         if (Cuts[ii].IsMark ()) {
+            Cuts.RemoveAt (ii);
+            ii--;
+         }
+      }
       int cutIndex = Cuts.Count + 1;
       var bp = mModel.Baseplane;
       var xfm = bp.Xfm.GetInverse () * Matrix3.Translation (0, 0, Offset);
       var textPt = new Point2 (400.0, -12.5);
-      if (MCSettings.It.MarkTextPosX.LieWithin (mModel.Bound.XMin, mModel.Bound.XMax))
-         textPt = new Point2 (MCSettings.It.MarkTextPosX, MCSettings.It.MarkTextPosY);
+      if (mcs.MarkTextPosX.LieWithin (mModel.Bound.XMin, mModel.Bound.XMax))
+         textPt = new Point2 (mcs.MarkTextPosX, mcs.MarkTextPosY);
 
-      var e2t = new E2Text (MCSettings.It.MarkText, textPt, 25, "SIMPLEX", 0);
+      var e2t = new E2Text (mcs.MarkText, textPt, mcs.MarkTextHeight, "SIMPLEX", 0);
       foreach (var pline in e2t.Plines) {
          Pline p2 = pline.Xformed (xfm);
          Cuts.Add (new Tooling (this, mModel.Baseplane, p2, EKind.Mark));
          Cuts[^1].Name = $"Tooling-{cutIndex++}";
          Cuts[^1].FeatType = $"{Utils.GetFlangeType (Cuts[^1],
-                                MCSettings.It.PartConfig == PartConfigType.LHComponent 
+                                mcs.PartConfig == PartConfigType.LHComponent 
                                                                ? GCodeGenerator.LHCSys 
                                                                : GCodeGenerator.RHCSys)} - {Cuts[^1].Kind}";
          // Calculate the bound3 for each cut
          Cuts[^1].Bound3 = Utils.CalculateBound3 ([.. Cuts[^1].Segs], Model.Bound);
       }
 
-      MarkingsComplete = true;
       Dirty ();
       return true;
    }
@@ -251,8 +249,6 @@ public class Workpiece : INotifyPropertyChanged {
    }
 
    public bool DoCutNotchesAndCutouts () {
-      if (NotchCutsComplete) 
-         return false;
       int cutIndex = Cuts.Count + 1;
       var mb = mBound;
       List<Tooling> cuts = [];
@@ -349,12 +345,14 @@ public class Workpiece : INotifyPropertyChanged {
                if (Geom.GetToolingWinding (n, q, cutSegs) == Geom.ToolingWinding.CW) 
                   cut.Reverse ();
                   
-               cut.CutoutKind = Tooling.GetCutKind (cut);
+               cutSegs = [.. cut.Segs];
+               cut.CutoutKind = Tooling.GetCutKind (cut, (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys));
+               cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm); 
             } else {
                if (!MCSettings.It.CutNotches) 
                   continue;
-               cut.NotchKind = Tooling.GetCutKind (cut);
-               cut.ProfileKind = Tooling.GetCutKindWRTPartOrigin (cut);
+               cut.NotchKind = Tooling.GetCutKind (cut, (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys));
+               cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
                var NotchStFlType = Utils.GetArcPlaneFlangeType (cutSegs.First ().Vec0,
                                                                 MCSettings.It.PartConfig == PartConfigType.LHComponent 
                                                                      ? GCodeGenerator.LHCSys 
@@ -363,18 +361,20 @@ public class Workpiece : INotifyPropertyChanged {
                                                                  MCSettings.It.PartConfig == PartConfigType.LHComponent 
                                                                      ? GCodeGenerator.LHCSys 
                                                                      : GCodeGenerator.RHCSys);
-               if (NotchStFlType != Utils.EFlange.Flex && NotchEndFlType != Utils.EFlange.Flex) {
+               if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg || cut.ProfileKind == ECutKind.YNegToYPos) {
                   var endX = cutSegs.Last ().Curve.End.X;
-                  if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX) 
+                  if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
                      cut.Reverse ();
-                  else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX) 
+                  else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX)
                      cut.Reverse ();
-               }
-               
-               if (cut.ProfileKind == ECutKind.Top) {
+               } else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) {
+                  if (cutSegs.First ().Curve.Start.X > cutSegs.Last ().Curve.End.X)
+                     cut.Reverse ();
+               }else if (cut.ProfileKind == ECutKind.Top) {
                   if (cutSegs.First ().Curve.Start.Y > cutSegs.Last ().Curve.End.Y) 
                      cut.Reverse ();
                }
+               cutSegs = [.. cut.Segs];
             }
             
             // Calculate the bound3 for each cut
@@ -383,7 +383,6 @@ public class Workpiece : INotifyPropertyChanged {
          }
       }
 
-      NotchCutsComplete = true;
       Dirty ();
       
       return true;

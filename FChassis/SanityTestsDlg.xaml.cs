@@ -1,12 +1,11 @@
-﻿using Microsoft.Win32;
-using System.Text.Json.Serialization;
-using System.Text.Json;
+﻿using FChassis.Processes;
+
+using Microsoft.Win32;
+
 using System.Windows;
 using System.Windows.Controls;
-using System.IO;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using FChassis.Processes;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -27,7 +26,6 @@ namespace FChassis {
       const string mDefaultTestSuiteDir = @"W:\FChassis\SanityTests";
       const string mDefaultFxFileDir = @"W:\FChassis\Sample";
       const string mDefaultBaselineDir = @"W:\FChassis\TData";
-      JsonSerializerOptions mJSONWriteOptions, mJSONReadOptions;
       string mTestSuiteDir;
       string mTestFileName;
       int mNFixedTopRows = 2;
@@ -477,44 +475,22 @@ namespace FChassis {
          mSelectedTestIndices.Clear ();
       }
 
+      const string SanityTestDatasName = "SanityTestDatas";
       void SaveToJson (string filePath) {
-         mJSONWriteOptions ??= new JsonSerializerOptions {
-            WriteIndented = true, // For pretty-printing the JSON
-            Converters = { new JsonStringEnumConverter () } // Converts Enums to their string representation
-         };
-
-         var jsonObject = new {
-            Tests = SanityTests
-         };
-
-         var json = JsonSerializer.Serialize (jsonObject, mJSONWriteOptions);
-         File.WriteAllText (filePath, json);
+         Core.File.JSONFileWrite writer = new ();
+         if(!writer.Write (filePath, SanityTestDatasName, this.SanityTests))
+            MessageBox.Show ($"Setting file '{filePath}' write failed: Reason: {writer.error}");
       }
 
       void LoadFromJson (string filePath) {
-         mJSONReadOptions ??= new JsonSerializerOptions {
-            Converters = { new JsonStringEnumConverter () } // Converts Enums from their string representation
-         };
-
-         if (File.Exists (filePath)) {
-            var json = File.ReadAllText (filePath);
-            var jsonObject = JsonSerializer.Deserialize<JsonElement> (json, mJSONReadOptions);
-
-            if (jsonObject.TryGetProperty ("Tests", out JsonElement testsElement) 
-                && testsElement.ValueKind == JsonValueKind.Array) {
-               SanityTests.Clear ();
-               cachedControls.Clear ();
-               foreach (var element in testsElement.EnumerateArray ()) {
-                  var sanityTestData = new SanityTestData ().LoadFromJsonElement (element);
-                  SanityTests.Add (sanityTestData);
-
-                  // Create UI elements to match the loaded data, starting from row index 2 onwards
-                  AddSanityTestRow (sanityTestData);
-               }
-
-               isDirty = false; // Reset the dirty flag after loading
-            }
+         Core.File.JSONFileRead reader = new ();
+         if (!reader.Read (filePath, this.SanityTests, SanityTestDatasName)) {
+            MessageBox.Show ($"Setting file '{filePath}' read failed: Reason: {reader.error}");
+            return;
          }
+
+         foreach (var st in this.SanityTests)
+            this.AddSanityTestRow (st);         
       }
 
       void AddSanityTestRow (SanityTestData sanityTestData) {

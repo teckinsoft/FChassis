@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FChassis"
-        mc:Ignorable="d" Background="#E0E0E0" 
-        MinHeight="400" MinWidth="430"
+        KeyDown="OnKeyDownHandler"
+        mc:Ignorable="d" Background="White" 
+        MinHeight="400" MinWidth="410"
         Title="Settings" SizeToContent="WidthAndHeight">
     <Window.Resources>
         <Style TargetType="Label">
@@ -15,6 +16,7 @@
         </Style>
         <Style TargetType="Label" x:Key="Unit">
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style TargetType="TextBox">
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -38,183 +40,221 @@
             <Setter Property="Height" Value="18"/>
         </Style>
     </Window.Resources>
-    
+
     <DockPanel>
         <Grid Background="White" DockPanel.Dock="Bottom">
             <Button Name="btnOK" Margin="10 5" HorizontalAlignment="Right"
                      IsDefault="True" Background="#E0E0E0" Height="22" Width="80">OK</Button>
         </Grid>
-        <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto">
-            <Grid Margin="5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                    <RowDefinition />
-                </Grid.RowDefinitions>
-                <Label Grid.Row="0">Standoff</Label>
-                <TextBox Grid.Row="0" Grid.Column="1" Name="tbStandoff"></TextBox>
-                <Label Grid.Row="0" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+        <TabControl Margin="5" Background="#E0E0E0" Grid.IsSharedSizeScope="True">
+            <TabItem Header="G Code Gen">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition SharedSizeGroup="TabHeight" />
+                        </Grid.RowDefinitions>
+                        <StackPanel>
+                            <Grid Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <Label Grid.Row="0">Standoff</Label>
+                                <TextBox Grid.Row="0" Grid.Column="1" Name="tbStandoff"></TextBox>
+                                <Label Grid.Row="0" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="1">Ping-pong</Label>
-                <CheckBox Grid.Row="1" Grid.Column="1" Name="cbPingPong"></CheckBox>
+                                <Label Grid.Row="1">Ping-pong</Label>
+                                <CheckBox Grid.Row="1" Grid.Column="1" Name="cbPingPong"></CheckBox>
 
-                <Label Grid.Row="2">Optimize Partition</Label>
-                <CheckBox Grid.Row="2" Grid.Column="1" Name="cbOptimize"></CheckBox>
+                                <Label Grid.Row="2">Optimize Partition</Label>
+                                <CheckBox Grid.Row="2" Grid.Column="1" Name="cbOptimize"></CheckBox>
 
-                <Label Grid.Row="3">Partition Ratio</Label>
-                <TextBox Grid.Row="3" Grid.Column="1" Name="tbPartition"></TextBox>
+                                <Label Grid.Row="3">Partition Ratio</Label>
+                                <TextBox Grid.Row="3" Grid.Column="1" Name="tbPartition"></TextBox>
 
-                <Label Grid.Row="4">Mark Text</Label>
-                <TextBox Grid.Row="4" Grid.Column="1" Name="tbMarkText"></TextBox>
+                                <Label Grid.Row="4">Mark Text</Label>
+                                <TextBox Grid.Row="4" Grid.Column="1" Name="tbMarkText"></TextBox>
 
-                <Label Grid.Row="5" Margin="0,0,1,0">Mark Text Position</Label>
-                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox Name="tbMarkTextPositionX" Width="40" HorizontalAlignment="Left"></TextBox>
-                    <TextBox Name="tbMarkTextPositionY" Width="20" Margin="3 0" HorizontalAlignment="Left"></TextBox>
-                </StackPanel>
+                                <Label Grid.Row="5">Mark Text Height</Label>
+                                <TextBox Grid.Row="5" Grid.Column="1" Name="tbMarkTextHeight"></TextBox>
 
-                <Label Grid.Row="6">Simulation Step Length</Label>
-                <TextBox Grid.Row="6" Grid.Column="1" Name="tbStepLength"></TextBox>
+                                <Label Grid.Row="6" Margin="0,0,1,0">Mark Text Position</Label>
+                                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal">
+                                    <TextBox Name="tbMarkTextPositionX" Width="40" HorizontalAlignment="Left"></TextBox>
+                                    <TextBox Name="tbMarkTextPositionY" Width="20" Margin="3 0" HorizontalAlignment="Left"></TextBox>
+                                </StackPanel>
 
-                <Label Grid.Row="7">Cut Holes</Label>
-                <CheckBox Grid.Row="7" Grid.Column="1" Name="cbCutHoles"></CheckBox>
+                                <Label Grid.Row="7">Mark Text Angle</Label>
+                                <ComboBox Grid.Row="7" Grid.Column="1" Name="cbMarkTextAngle" SelectedIndex="0"></ComboBox>
+                                <Label Grid.Row="7" Grid.Column="2" Style="{StaticResource Unit}">deg</Label>
 
-                <Label Grid.Row="8">Cut Notches</Label>
-                <CheckBox Grid.Row="8" Grid.Column="1" Name="cbCutNotches"></CheckBox>
+                                <Label Grid.Row="8">Cut Holes</Label>
+                                <CheckBox Grid.Row="8" Grid.Column="1" Name="cbCutHoles"></CheckBox>
 
-                <Label Grid.Row="9">Cut Cutouts</Label>
-                <CheckBox Grid.Row="9" Grid.Column="1" Name="cbCutCutouts"></CheckBox>
+                                <Label Grid.Row="9">Cut Notches</Label>
+                                <CheckBox Grid.Row="9" Grid.Column="1" Name="cbCutNotches"></CheckBox>
 
-                <Label Grid.Row="10">Cut Marks</Label>
-                <CheckBox Grid.Row="10" Grid.Column="1" Name="cbCutMarks"></CheckBox>
+                                <Label Grid.Row="10">Cut Cutouts</Label>
+                                <CheckBox Grid.Row="10" Grid.Column="1" Name="cbCutCutouts"></CheckBox>
 
-                <!--<Label Grid.Row="7" VerticalAlignment="Top" Margin="0,2,6,0">Priority</Label>
-                <ListBox Grid.Row="7" Grid.Column="1" Margin="0,4,0,0" Name="lbPriority">
-                <ListBoxItem>One</ListBoxItem>
-                <ListBoxItem>Two</ListBoxItem>
-                <ListBoxItem>Three</ListBoxItem>
-                <ListBoxItem>Four</ListBoxItem>
-                </ListBox>
-                <DockPanel Grid.Row="7" Grid.Column="2" Margin="0,4,0,0">
-                    <Button Name="btnPrioUp" Padding="3,0,3,0" Background="Transparent" Foreground="#666" BorderThickness="0" HorizontalAlignment="Left" DockPanel.Dock="Top">▲</Button>
-                    <Button Name="btnPrioDown" Padding="3,0,3,0" Background="Transparent" Foreground="#666" BorderThickness="0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">▼</Button>
-                    <Border />
-                </DockPanel>-->
+                                <Label Grid.Row="11">Cut Marks</Label>
+                                <CheckBox Grid.Row="11" Grid.Column="1" Name="cbCutMarks"></CheckBox>
 
-                <Label Grid.Row="11" VerticalAlignment="Top" VerticalContentAlignment="Top">Head Configuration</Label>
-                <StackPanel Grid.Row="11" Grid.Column="1" Margin="0 7 0 0">
-                    <RadioButton GroupName="Heads" Name="rbBoth">Both</RadioButton>
-                    <RadioButton GroupName="Heads" Name="rbLeft">Left</RadioButton>
-                    <RadioButton GroupName="Heads" Name="rbRight">Right</RadioButton>
-                </StackPanel>
+                                <Label Grid.Row="12" VerticalAlignment="Top">Part Configuration</Label>
+                                <StackPanel Grid.Row="12" Grid.Column="1" Margin="0 7 0 0">
+                                    <RadioButton GroupName="PartConfig" Name="rbLHComponent">LH Component</RadioButton>
+                                    <RadioButton GroupName="PartConfig" Name="rbRHComponent">RH Component</RadioButton>
+                                </StackPanel>
 
-                <Label Grid.Row="12" VerticalAlignment="Top">Part Configuration</Label>
-                <StackPanel Grid.Row="12" Grid.Column="1" Margin="0 7 0 0">
-                    <RadioButton GroupName="PartConfig" Name="rbLHComponent">LH Component</RadioButton>
-                    <RadioButton GroupName="PartConfig" Name="rbRHComponent">RH Component</RadioButton>
-                </StackPanel>
+                                <Label Grid.Row="13">Approach Length</Label>
+                                <TextBox Grid.Row="13" Grid.Column="1" Name="tbApproachLength"></TextBox>
+                                <Label Grid.Row="13" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="13">Approach Length</Label>
-                <TextBox Grid.Row="13" Grid.Column="1" Name="tbApproachLength"></TextBox>
-                <Label Grid.Row="13" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+                                <Label Grid.Row="14">Notch Approach Length</Label>
+                                <TextBox Grid.Row="14" Grid.Column="1" Name="tbNotchApproachLength"></TextBox>
+                                <Label Grid.Row="14" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="14">Notch Approach Length</Label>
-                <TextBox Grid.Row="14" Grid.Column="1" Name="tbNotchApproachLength"></TextBox>
-                <Label Grid.Row="14" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+                                <Label Grid.Row="15">Notch Wire Joint Distance</Label>
+                                <TextBox Grid.Row="15" Grid.Column="1" Name="tbNotchWireJointDistance"></TextBox>
+                                <Label Grid.Row="15" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="15">Notch Wire Joint Distance</Label>
-                <TextBox Grid.Row="15" Grid.Column="1" Name="tbNotchWireJointDistance"></TextBox>
-                <Label Grid.Row="15" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+                                <Label Grid.Row="16">Min Notch Length Threshold</Label>
+                                <TextBox Grid.Row="16" Grid.Column="1" Name="tbMinNotchLengthThreshold"></TextBox>
+                                <Label Grid.Row="16" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="16">Min Notch Length Threshold</Label>
-                <TextBox Grid.Row="16" Grid.Column="1" Name="tbMinNotchLengthThreshold"></TextBox>
-                <Label Grid.Row="16" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+                                <Label Grid.Row="17">Min Partition Length Threshold</Label>
+                                <TextBox Grid.Row="17" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
+                                <Label Grid.Row="17" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="17">Enable Multiple Pass Cut</Label>
-                <CheckBox Grid.Row="17" Grid.Column="1" Name="chbMPC"></CheckBox>
+                                <Label Grid.Row="18">DIN Filename Suffix</Label>
+                                <TextBox Grid.Row="18" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Machine">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition SharedSizeGroup="TabHeight" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Label Grid.Row="0" VerticalAlignment="Top" VerticalContentAlignment="Top">Head Configuration</Label>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="0 7 0 0">
+                                <RadioButton GroupName="Heads" Name="rbBoth">Both</RadioButton>
+                                <RadioButton GroupName="Heads" Name="rbLeft">Left</RadioButton>
+                                <RadioButton GroupName="Heads" Name="rbRight">Right</RadioButton>
+                            </StackPanel>
 
-                <Label Grid.Row="18">Max Frame Length</Label>
-                <TextBox Grid.Row="18" Grid.Column="1" Name="tbMaxFrameLength"></TextBox>
-                <Label Grid.Row="18" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+                            <Label Grid.Row="1">Enable Multiple Pass Cut</Label>
+                            <CheckBox Grid.Row="1" Grid.Column="1" Name="chbMPC"></CheckBox>
 
-                <Label Grid.Row="19">Dead Band Width</Label>
-                <TextBox Grid.Row="19" Grid.Column="1" Name="tbDeadBandWidth"></TextBox>
-                <Label Grid.Row="19" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+                            <Label Grid.Row="2">Max Frame Length</Label>
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="tbMaxFrameLength"></TextBox>
+                            <Label Grid.Row="2" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="20" VerticalAlignment="Top" >Flow Optim Criterion</Label>
-                <StackPanel Grid.Row="20" Grid.Column="1" Margin="0,7,0,0">
-                    <RadioButton GroupName="OptimCriterion" Name="rbMaxFrameLength">Maximize Frame length</RadioButton>
-                    <RadioButton GroupName="OptimCriterion" Name="rbMinNotchCuts">Minimize Notch Cuts</RadioButton>
-                </StackPanel>
+                            <Label Grid.Row="3">Dead Band Width</Label>
+                            <TextBox Grid.Row="3" Grid.Column="1" Name="tbDeadBandWidth"></TextBox>
+                            <Label Grid.Row="3" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                <Label Grid.Row="21">Rotate 180 degrees</Label>
-                <CheckBox Grid.Row="21" Grid.Column="1" Name="cbRotate180AbZ"></CheckBox>
+                            <Label Grid.Row="4" VerticalAlignment="Top" >Flow Optim Criterion</Label>
+                            <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,7,0,0">
+                                <RadioButton GroupName="OptimCriterion" Name="rbMaxFrameLength">Maximize Frame length</RadioButton>
+                                <RadioButton GroupName="OptimCriterion" Name="rbMinNotchCuts">Minimize Notch Cuts</RadioButton>
+                            </StackPanel>
 
-                <!--<Label Grid.Row="20">Output Directory</Label>
-                <StackPanel Grid.Row="20" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox Name="tbDirectoryPath" IsReadOnly="False" MinWidth="200" VerticalAlignment="Center" />
-                    <Button Name="btnBrowse" Content="Browse..." Margin="5,0,0,0" Click="BtnBrowse_Click" VerticalAlignment="Center" />
-                </StackPanel>-->
-                <!--<Label Grid.Row="20">Output Directory</Label>-->
-                <!--<TextBox x:Name="tbOutputDir" Grid.Row="20" Grid.Column="1" Text="{Binding OutputDirectory, UpdateSourceTrigger=PropertyChanged}" />
-                <Button Grid.Row="20" Grid.Column="2" Content="Browse" Command="{Binding BrowseCommand}" />-->
+                            <Label Grid.Row="5">LCM Machine</Label>
+                            <ComboBox Grid.Row="5" Grid.Column="1" Name="cbLCMMachine" SelectedIndex="1">
+                                <!--<ComboBoxItem Content="LCM Legacy" />
+                                <ComboBoxItem Content="LCM Multipass 2H" />-->
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
 
-                <Label Grid.Row="22">Output Directory</Label>
-                <TextBox Name="tbDirectoryPath" Grid.Row="22" Grid.Column="1" IsReadOnly="False"/>
-                <Button Name="btnSelOpDir" Grid.Row="22" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
-                        Width="60" Height="20" Margin="5 0" Click="OnOutputFolderSelect"/>
 
-                <Label Grid.Row="23">Min Partition Length Threshold</Label>
-                <TextBox Grid.Row="23" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
-                <Label Grid.Row="23" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+            </TabItem>
+            <TabItem Header="General">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition SharedSizeGroup="TabHeight" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Label Grid.Row="0">Output Directory</Label>
+                            <TextBox Name="tbDirectoryPath" Grid.Row="0" Grid.Column="1" IsReadOnly="False"/>
+                            <Button Name="btnSelOpDir" Grid.Row="0" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+                                    Width="60" Height="20" Margin="5 0" Click="OnOutputFolderSelect"/>
 
-                <Label Grid.Row="24">DIN Filename Suffix</Label>
-                <TextBox Grid.Row="24" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
+                            <Label Grid.Row="1">Workpiece Options</Label>
+                            <TextBox Name="tbWPOptions" Grid.Row="1" Grid.Column="1" IsReadOnly="False"/>
+                            <Button Name="btnWPOptionsSelOpFile" Grid.Row="1" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+                                    Width="60" Height="20" Margin="5 0" Click="OnWorkpieceOptionsFileSelect"/>
 
-                <Label Grid.Row="25">Workpiece Options</Label>
-                <TextBox Name="tbWPOptions" Grid.Row="25" Grid.Column="1" IsReadOnly="False"/>
-                <Button Name="btnWPOptionsSelOpFile" Grid.Row="25" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
-                Width="60" Height="20" Margin="5 0" Click="OnWorkpieceOptionsFileSelect"/>
+                            <Label Grid.Row="2">Simulation Step Length</Label>
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="tbStepLength"></TextBox>
 
-                <Label Grid.Row="26">LCM Machine</Label>
-                <ComboBox Grid.Row="26" Grid.Column="1" Name="cbLCMMachine" SelectedIndex="1">
-                    <!--<ComboBoxItem Content="LCM Legacy" />
-                    <ComboBoxItem Content="LCM Multipass 2H" />-->
-                </ComboBox>
+                            <Label Grid.Row="3">Show Tooling Names</Label>
+                            <CheckBox Grid.Row="3" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
 
-                <Label Grid.Row="27">Show Tooling Names</Label>
-                <CheckBox Grid.Row="27" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
-            </Grid>
-        </ScrollViewer>
+                            <Label Grid.Row="4">Show Tooling Extents</Label>
+                            <CheckBox Grid.Row="4" Grid.Column="1" Name="cbShowTlgExtents"></CheckBox>
+
+                            <Label Grid.Row="5">Rotate 180 degrees</Label>
+                            <CheckBox Grid.Row="5" Grid.Column="1" Name="cbRotate180AbZ"></CheckBox>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>

@@ -12,38 +12,61 @@
         <local:SimulationStatusToVisibilityConverter x:Key="SimulationStatusToVisibilityConverter" />
     </Window.Resources>
     <DockPanel LastChildFill="True">
-        <!-- Menu at the top of the window -->
+        <!-- Menu at the top of the window --> 
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="Files">
-                <MenuItem Header="Open" Click="OnMenuFileOpen"/>
-                <MenuItem Header="Import" Click="OnMenuImportFile"/>
-                <MenuItem Header="Unbend Export 2D" Click="OnUnbendExport2D"/>
-                <MenuItem Header="Save" Click= "OnMenuFileSave"/>
-                <MenuItem Header="Close" Click="OnFileClose"/>
+                <MenuItem Header="Open" Command="{Binding FileOpenCommand}"/>
+                <MenuItem Header="Import" Command="{Binding ImportFileCommand}"/>
+                <MenuItem Header="Unbend Export 2D" Command="{Binding UnbendExport2DCommand}"/>
+                <MenuItem Header="Save" Command="{Binding MenuFileSaveCommand}"/>
+                <MenuItem Header="Close" Command="{Binding FileCloseCommand}"/>
             </MenuItem>
             <MenuItem Header="Options">
-                <MenuItem Header="Settings" Click="OnSettings"/>
-                <MenuItem x:Name="SanityCheckMenuItem" Header="Sanity Check" Click="OnSanityCheck" Visibility="Collapsed"/>
+                <MenuItem Header="Settings" Command="{Binding OpenSettingsCommand}"/>
+                <MenuItem x:Name="SanityCheckMenuItem" Header="Sanity Check" 
+                          Command="{Binding OpenSanityCheckCommand}" 
+                          Visibility="Collapsed"/>
             </MenuItem>
         </Menu>
         <DockPanel DockPanel.Dock="Left">
-            <!-- Simulate Button -->
-            <Button DockPanel.Dock="Bottom" Margin="4" Content="Simulate" Click="Simulate"
-                        Visibility="{Binding SimulationStatus, Converter={StaticResource SimulationStatusToVisibilityConverter}, ConverterParameter='Simulate'}" />
-            <!-- Pause Button -->
-            <Button DockPanel.Dock="Bottom" Content="Pause" Click="PauseSimulation" Margin="4,4,4,0"
-                        Visibility="{Binding SimulationStatus, Converter={StaticResource SimulationStatusToVisibilityConverter}, ConverterParameter='Pause'}" />
-            <!-- Stop Button -->
-            <Button DockPanel.Dock="Bottom" Content="Stop" Click="StopSimulation" Margin="4,4,4,0"
-                        Visibility="{Binding SimulationStatus, Converter={StaticResource SimulationStatusToVisibilityConverter}, ConverterParameter='Stop'}" />
+            <Button DockPanel.Dock="Bottom" Margin="4" Content="Simulate" 
+                    Command="{Binding SimulateCommand}"  
+                    Visibility="{Binding SimulationStatus, 
+                    Converter={StaticResource SimulationStatusToVisibilityConverter}, 
+                    ConverterParameter='Simulate'}" />
+            
+            <Button DockPanel.Dock="Bottom" Content="Pause" 
+                    Command="{Binding PauseSimulationCommand}" Margin="4,4,4,0"
+                    Visibility="{Binding SimulationStatus, 
+                    Converter={StaticResource SimulationStatusToVisibilityConverter}, 
+                    ConverterParameter='Pause'}" />
+            
+            <Button DockPanel.Dock="Bottom" Content="Stop" 
+                    Command="{Binding StopSimulationCommand}" Margin="4,4,4,0"
+                    Visibility="{Binding SimulationStatus, 
+                    Converter={StaticResource SimulationStatusToVisibilityConverter}, 
+                    ConverterParameter='Stop'}" />
 
-            <Button DockPanel.Dock="Bottom" Click="DoGenerateGCode" Margin="4,4,4,0">Generate G Code</Button>
-            <Button DockPanel.Dock="Bottom" Click="DoSorting" Margin="4,4,4,0">Sequence</Button>
-            <Button DockPanel.Dock="Bottom" Click="DoCutNotches" Margin="4,4,4,0">Cut Notches</Button>
-            <Button DockPanel.Dock="Bottom" Click="DoTextMarking" Margin="4,4,4,0">Text Marking</Button>
-            <Button DockPanel.Dock="Bottom" Click="DoAddHoles" Margin="4,4,4,0">Cut Holes</Button>
-            <Button DockPanel.Dock="Bottom" Click="DoAlign" Margin="4,4,4,0">Align</Button>
-            <ListBox Name="Files" MinWidth="150" SelectionChanged="OnFileSelected" />
+            <Button DockPanel.Dock="Bottom" Content="Generate G Code"
+                    Command="{Binding GenerateGCodeCommand}" Margin="4,4,4,0"/>
+
+            <Button DockPanel.Dock="Bottom" Content="Sequence" 
+                    Command="{Binding SortingCommand}" Margin="4,4,4,0"/>
+
+            <Button DockPanel.Dock="Bottom" Content="Cut Notches" 
+                    Command="{Binding CutNotchesCommand}" Margin="4,4,4,0"/>
+
+            <Button DockPanel.Dock="Bottom" Content="Text Marking" 
+                    Command="{Binding TextMarkingCommand}" Margin="4,4,4,0"/>
+
+            <Button DockPanel.Dock="Bottom" Content="Cut Holes" 
+                    Command="{Binding AddHolesCommand}" Margin="4,4,4,0"/>
+
+            <Button DockPanel.Dock="Bottom" Content="Align" 
+                    Command="{Binding AlignCommand}" Margin="4,4,4,0"/>
+
+            <ListBox Name="PartFiles" MinWidth="150" 
+                    SelectedItem="{Binding Parts_SelectedFileItem}" />
         </DockPanel>
         <Border Name="Area" />
     </DockPanel>

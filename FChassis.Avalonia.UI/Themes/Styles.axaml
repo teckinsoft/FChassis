@@ -1,0 +1,77 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+	<!--Border Styles-->
+	<Style Selector="Border.header">
+		<Setter Property="Background" Value="#3D87B4"/>
+		<Setter Property="Height" Value="35"/>
+		<Setter Property="Margin" Value="0,3,0,3"/>
+	</Style>
+	<!--TextBlock Styles-->
+	<Style Selector="Border.header > TextBlock">
+		<Setter Property="Margin" Value="5 0 0 0"/>
+		<Setter Property="Foreground" Value="White"/>
+		<Setter Property="HorizontalAlignment" Value="Left"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+	<!--Check Box Styles-->
+	<Style Selector="CheckBox.advance">
+		<Setter Property="Margin" Value="10 0"/>
+		<Setter Property="VerticalContentAlignment" Value="Center"/>
+	</Style>
+	<Style Selector="CheckBox">
+		<Setter Property="Margin" Value="5 0"/>
+	</Style>
+	<Style Selector="CheckBox.header">
+		<Setter Property="Height" Value="27"/>
+		<Setter Property="Margin" Value="5,5,30,5"/>
+		<Setter Property="HorizontalAlignment" Value="Right"/>
+	</Style>
+	<!--Combo Box Styles-->
+	<Style Selector="ComboBox">
+		<Setter Property="Margin" Value="5"/>
+		<Setter Property="Width" Value="150"/>
+		<Setter Property="Height" Value="25"/>
+		<Setter Property="HorizontalAlignment" Value="Left"/>
+	</Style>
+	<Style Selector="ComboBox.long">
+		<Setter Property="Width" Value="150"/>
+	</Style>
+
+	<!--TextBox Styles-->
+	<Style Selector="TextBox">
+		<Setter Property="Margin" Value="5"/>
+		<Setter Property="Padding" Value="1"/>
+		<Setter Property="Width" Value="150"/>
+		<Setter Property="Height" Value="25"/>
+		<Setter Property="HorizontalAlignment" Value="Left"/>
+	</Style>
+
+	<!--Label Styles-->
+	<Style Selector="Label">
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+	<Style Selector="Label.info">
+		<Setter Property="HorizontalAlignment" Value="Right"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+	<Style Selector="Label.blue">
+		<Setter Property="Foreground" Value="Blue"/>
+		<Setter Property="HorizontalAlignment" Value="Left"/>
+		<Setter Property="VerticalContentAlignment" Value="Center"/>
+		<Setter Property="Padding" Value="0"/>
+		<Setter Property="Margin" Value="2,0,0,0"/>
+	</Style>
+	
+	<!--DataGrid Styles-->
+	<Style Selector="DataGrid">
+		<Setter Property="GridLinesVisibility" Value="All"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="BorderBrush" Value="Gray"/>
+		<Setter Property="Width" Value="650"/>
+		<Setter Property="Margin" Value="5"/>
+		<Setter Property="HorizontalAlignment" Value="Left"/>
+		<Setter Property="ColumnWidth" Value="*"/>
+		<Setter Property="AutoGenerateColumns" Value="False"/>
+	</Style>
+</Styles>

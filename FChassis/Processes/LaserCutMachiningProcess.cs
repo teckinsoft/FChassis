@@ -27,7 +27,7 @@ public class Processor : INotifyPropertyChanged {
    List<List<GCodeSeg>> mTraces = [[], []];
    public List<List<GCodeSeg>> Traces { get => mTraces; }
    public List<List<GCodeSeg>[]> CutScopeTraces { get => mGCodeGenerator.CutScopeTraces; }
-   MultiPassCuts mMultipassCuts;
+   //MultiPassCuts mMultipassCuts;
 
    public void ClearTraces () {
       mTraces[0]?.Clear ();
@@ -60,10 +60,12 @@ public class Processor : INotifyPropertyChanged {
    #region Simulation and Redraw Data members
    public delegate void TriggerRedrawDelegate ();
    public delegate void SetSimulationStatusDelegate (Processor.ESimulationStatus status);
+   public delegate void ZoomExtentsWithBound3Delegate (Bound3 bound);
    public event TriggerRedrawDelegate TriggerRedraw;
    public event Action SimulationFinished;
    public event SetSimulationStatusDelegate SetSimulationStatus;
-   readonly Dispatcher mDispatcher;
+   public event ZoomExtentsWithBound3Delegate zoomExtentsWithBound3Delegate;
+   public readonly dynamic mDispatcher;
    ESimulationStatus mSimulationStatus = ESimulationStatus.NotRunning;
    public ESimulationStatus SimulationStatus {
       get => mSimulationStatus;
@@ -79,10 +81,12 @@ public class Processor : INotifyPropertyChanged {
       PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
    }
    double mPrevStepLen;
+   private int mCutScopeIndex = 0;
+   private readonly object mCutScopeLockObject = new ();
    #endregion
 
    #region Constructor
-   public Processor (Dispatcher dispatcher) {
+   public Processor (dynamic dispatcher) {
       mDispatcher = dispatcher;
       MachiningTool = new Nozzle (9.0, 100.0, 100);
       mGCodeGenerator = new GCodeGenerator (this, true/* Left to right machining*/);
@@ -119,7 +123,8 @@ public class Processor : INotifyPropertyChanged {
       RewindEnumerator (0);
       RewindEnumerator (1);
       TriggerRedraw?.Invoke ();
-      mMultipassCuts?.ClearZombies ();
+      //mMultipassCuts?.ClearZombies ();
+      mGCodeGenerator.ClearZombies ();
    }
    public void LoadGCode (string filename) {
       try {
@@ -143,7 +148,7 @@ public class Processor : INotifyPropertyChanged {
    //public void ComputeGCode (bool testing = false, double ratio = 0.5) {
    public void ComputeGCode (bool testing = false) {
       ClearZombies ();
-      mTraces = Utils.ComputeGCode(mGCodeGenerator, testing);
+      mTraces = Utils.ComputeGCode (mGCodeGenerator, testing);
    }
    #endregion
 
@@ -189,32 +194,53 @@ public class Processor : INotifyPropertyChanged {
    void RewindEnumerator (int head) {
       mNextXFormIndex[head].wayPointIndex = 0;
       mNextXFormIndex[head].gCodeSegIndex = 0;
+      mWayPoints = new List<Tuple<Point3, Vector3>>[2];
+      SetCutScopeIndex (0);
+      if (CutScopeTraces.Count > 0) {
+         mTraces[0] = CutScopeTraces[0][0];
+         mTraces[1] = CutScopeTraces[0][1];
+      }
    }
-
+   bool mIsZoomedToCutScope = false;
    XForm4 mTransform0, mTransform1;
    void DrawToolSim (int head) {
+      var mcCss = GCodeGen.MachinableCutScopes;
+      Bound3 bound = new ();
+      if (mcCss.Count > 0) bound = mcCss[0].Bound;
+      if (!mIsZoomedToCutScope) {
+         zoomExtentsWithBound3Delegate?.Invoke (bound);
+         mIsZoomedToCutScope = true;
+      }
+
       while (true) {
          if (head == 3) {
             mTransform0 = GetNextToolXForm (0);
             mTransform1 = GetNextToolXForm (1);
-         } else if (head == 0) {
-            mTransform0 = GetNextToolXForm (0);
-         } else if (head == 1) {
-            mTransform1 = GetNextToolXForm (1);
-         }
+         } else if (head == 0) mTransform0 = GetNextToolXForm (0);
+         else if (head == 1) mTransform1 = GetNextToolXForm (1);
 
          if (mTransform0 == null && mTransform1 == null && SimulationStatus != ESimulationStatus.NotRunning) {
-            // If MUltipass
+            // If Multipass
             if (CutScopeTraces.Count > 1 && GetCutScopeIndex () + 1 < CutScopeTraces.Count) {
+
+               // Safe incrementor
                IncrementCutScopeIndex ();
                int csIdx = GetCutScopeIndex ();
+               if (csIdx >= 0 && csIdx < mcCss.Count) 
+                  zoomExtentsWithBound3Delegate?.Invoke (mcCss[csIdx].Bound);
+
+               // Reset enumerator
                RewindEnumerator (0);
                RewindEnumerator (1);
+
+               // Rewind will reset everything. So
+               // The cutscope index needs to be restored
+               SetCutScopeIndex (csIdx);
                if (head == 3) {
                   mTraces[0] = CutScopeTraces[csIdx][0];
                   mTraces[1] = CutScopeTraces[csIdx][1];
                } else {
-                  mTraces[head] = CutScopeTraces[mCutScopeIndex][head];
+                  mTraces[head] = CutScopeTraces[GetCutScopeIndex ()][head];
                }
                mMachiningTool.Draw (mTransform0, Utils.LHToolColor, mTransform1, Utils.RHToolColor, mDispatcher);
                return; // Exit the loop after drawing
@@ -240,11 +266,14 @@ public class Processor : INotifyPropertyChanged {
                if (MCSettings.It.EnableMultipassCut) MCSettings.It.StepLength = mPrevStepLen;
                Lux.StopContinuousRender (GFXCallback);
                TriggerRedraw ();
+
+               // Restore the zoom to cover entire part
+               zoomExtentsWithBound3Delegate?.Invoke (Workpiece.Bound);
                return;
             }
          } else {
             mMachiningTool.Draw (mTransform0, Utils.LHToolColor, mTransform1, Utils.RHToolColor, mDispatcher);
-            return; 
+            return;
          }
       }
    }
@@ -257,7 +286,7 @@ public class Processor : INotifyPropertyChanged {
          else DrawToolSim (head);
       }
    }
-   
+
    /// <summary>Called when the SIMULATE button is clicked</summary>
    public void Run () {
       if (SimulationStatus == ESimulationStatus.Running) return;
@@ -288,7 +317,7 @@ public class Processor : INotifyPropertyChanged {
       // should be calculated.
       TriggerRedraw?.Invoke ();
    }
-   
+
    public void Stop () {
       Lux.StopContinuousRender (GFXCallback);
       if (MCSettings.It.EnableMultipassCut) MCSettings.It.StepLength = mPrevStepLen;
@@ -307,41 +336,39 @@ public class Processor : INotifyPropertyChanged {
 
    #region GCode Draw Implementation
    public void DrawGCode () {
-      foreach (var cutScopeTooling in CutScopeTraces) 
+      foreach (var cutScopeTooling in CutScopeTraces)
          DrawGCode (cutScopeTooling);
    }
    public void DrawGCodeForCutScope () {
       // If simulation runs and when a new part is loaded, this 
       // check is necessary
-      if (CutScopeTraces.Count > 0) 
+      if (CutScopeTraces.Count > 0)
          DrawGCode (CutScopeTraces[GetCutScopeIndex ()]);
    }
 
-   private int mCutScopeIndex = 0;
-   private readonly object _lockObject = new ();
-
    // Method to set the index
    public void SetCutScopeIndex (int value) {
-      lock (_lockObject) {
+      lock (mCutScopeLockObject) {
          mCutScopeIndex = value;
       }
    }
 
    // Method to get the index
    public int GetCutScopeIndex () {
-      lock (_lockObject) {
+      lock (mCutScopeLockObject) {
          return mCutScopeIndex;
       }
    }
 
    //// Method to increment the index safely
    public void IncrementCutScopeIndex () {
-      lock (_lockObject) {
+      lock (mCutScopeLockObject) {
          mCutScopeIndex++;
       }
    }
 
    public void DrawGCode (List<GCodeSeg>[] cutScopeTooling) {
+
       List<List<GCodeSeg>> listOfListOfDrawables = [];
       if (cutScopeTooling[0].Count > 0) listOfListOfDrawables.Add (cutScopeTooling[0]);
       if (cutScopeTooling[1].Count > 0) listOfListOfDrawables.Add (cutScopeTooling[1]);
@@ -380,40 +407,44 @@ public class Processor : INotifyPropertyChanged {
             }
          }
       }
-      mDispatcher.Invoke (() => {
+
+      mDispatcher.Invoke ((Action)(() => {
          Lux.HLR = true;
          Lux.Color = Utils.G3SegColor;
          foreach (var arcPoints in G3DrawPoints) {
             Lux.Draw (EDraw.Lines, arcPoints);
-            
+
             // The following draw call is to terminate drawing of the 
             // above arc points. Else, the arcs are connected continuously
             // There has to be a better/elegant solution: TODO
             Lux.Draw (EDraw.LineStrip, [arcPoints[^1], arcPoints[^1]]);
          }
-      });
-      mDispatcher.Invoke (() => {
+      }));
+
+      mDispatcher.Invoke ((Action)(() => {
          Lux.HLR = true;
          Lux.Color = Utils.G2SegColor;
          foreach (var arcPoints in G2DrawPoints) {
             Lux.Draw (EDraw.Lines, arcPoints);
-            
+
             // The following draw call is to terminate drawing of the 
             // above arc points. Else, the arcs are connected continuously
             // There has to be a better/elegant solution: TODO
             Lux.Draw (EDraw.LineStrip, [arcPoints[^1], arcPoints[^1]]);
          }
-      });
-      mDispatcher.Invoke (() => {
+      }));
+
+      mDispatcher.Invoke ((Action)(() => {
          Lux.HLR = true;
          Lux.Color = Utils.G0SegColor;
          Lux.Draw (EDraw.Lines, G0DrawPoints);
-      });
-      mDispatcher.Invoke (() => {
+      }));
+
+      mDispatcher.Invoke ((Action)(() => {
          Lux.HLR = true;
          Lux.Color = Utils.G1SegColor;
          Lux.Draw (EDraw.Lines, G1DrawPoints);
-      });
+      }));
    }
    #endregion
 }

@@ -1,0 +1,27 @@
+<base:Panel
+	    xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+	    d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="FChassis.UI.Settings.WorkOffsets.Panel"
+	    xmlns:base="FChassis.UI.Settings"
+        >
+	<Grid RowDefinitions="32 * 40" ColumnDefinitions="* 100"
+		  Background="AliceBlue">
+		<TextBlock Grid.Row="0" HorizontalAlignment="Stretch"
+					Margin="5,0,0,0" Text="Work Offsets"/>
+		<Grid x:Name="offsetGrid" ColumnDefinitions="20* 20* 20* 20* 20*"
+			  Grid.Row="1" Grid.RowSpan="2"
+			  Background="White">			
+		</Grid>
+		<TextBlock Grid.Row="1" Grid.Column="1"				   
+				   HorizontalAlignment="Center"
+				   Height="32">Import Position</TextBlock>
+		<Button Grid.Row="2" Grid.Column="1"
+				Margin="5" Height="32"
+				Background="Black" Foreground="White"
+				Click="CloseBtn_Click">Close</Button>
+	</Grid>
+</base:Panel>

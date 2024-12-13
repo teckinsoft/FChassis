@@ -1,23 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Windows;
 
 namespace FChassis;
 
 /// <summary>
 /// This structure holds the information for each sanity test.
 /// </summary>
-public struct SanityTestData {
+public partial class SanityTestData : ObservableObject {
    public SanityTestData () { }
-   public string FxFileName { get; set; }
-   public bool ToRun { get; set; }
-   public MCSettings MCSettings { get; set; } = new MCSettings ();
-
-   #region Data Members
-   JsonSerializerOptions mJSONWriteOptions, mJSONReadOptions;
-   #endregion
+   [ObservableProperty] string fxFileName;
+   [ObservableProperty] bool toRun;
+   [ObservableProperty] MCSettings mCSettings = new MCSettings ();
 
    #region JSON read/write utilities
    /// <summary>
@@ -27,14 +22,18 @@ public struct SanityTestData {
    /// <returns>Sanity Data Instance</returns>
    /// <exception cref="FileNotFoundException">Throws this exception if the file is not found</exception>
    public SanityTestData LoadFromJsonElement (JsonElement element) {
-      mJSONReadOptions = new JsonSerializerOptions {
-         Converters = { new JsonStringEnumConverter () } // Converts Enums from their string representation
-      };
+      
+      string filePath = element.GetProperty (nameof (FxFileName)).GetString ();
+      FChassis.MCSettings mcSettings = new ();
+      if (!mcSettings.LoadFromJson (filePath)) {
+         MessageBox.Show ($"Setting file '{filePath}' read failed");
+         return null;
+      }
 
       return new SanityTestData {
-         FxFileName = element.GetProperty (nameof(FxFileName)).GetString (),
-         ToRun = element.GetProperty (nameof(ToRun)).GetBoolean (),
-         MCSettings = JsonSerializer.Deserialize<MCSettings> (element.GetProperty (nameof(MCSettings)).GetRawText (), mJSONReadOptions)
+         FxFileName = filePath,
+         ToRun = element.GetProperty (nameof (ToRun)).GetBoolean (),
+         MCSettings = mcSettings
       };
    }
    #endregion

@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+	  
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <UseWindowsForms>True</UseWindowsForms>
+    <UseWPF>True</UseWPF>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+
+	<PlatformTarget>x64</PlatformTarget>
+	<StartupObject>FChassis.UI.Program</StartupObject>
+	<OutDir>C:\FluxSDK\Bin</OutDir>
+  </PropertyGroup>
+	
+  <ItemGroup>
+    <AvaloniaXaml Remove="ModelViewer\Coin3DViewer.axaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="ModelViewer\Coin3dViewer.axaml.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Remote.Protocol" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FChassis.Coin3D\Coin3D.vcxproj" />
+    <ProjectReference Include="..\FChassis.Core\FChassis.Core.csproj" />
+    <ProjectReference Include="..\FChassis.Data\FChassis.Data.csproj" />
+    <ProjectReference Include="..\FChassis\FChassis.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="SettingPanels\Machine\TechParams\XParams.axaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="SettingPanels\Machine\AxisParams\AxisSettingsPanel.axaml.cs">
+      <DependentUpon>AxisSettingsPanel.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="SettingPanels\Machine\ProcessingDefaults\SequenceSettings.axaml" />
+  </ItemGroup>
+</Project>

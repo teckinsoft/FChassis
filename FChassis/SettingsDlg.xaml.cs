@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using Microsoft.Win32;
 
 namespace FChassis;
@@ -16,7 +17,7 @@ public partial class SettingsDlg : Window {
       SettingServices.It.LoadSettings (set);
       Bind (set);
    }
-   
+
    /// <summary>
    /// This method binds the dialog controls with setters and getters
    /// </summary>
@@ -30,6 +31,9 @@ public partial class SettingsDlg : Window {
       cbPingPong.Bind (() => Settings.UsePingPong, b => { Settings.UsePingPong = b; IsModified = true; });
       cbOptimize.Bind (() => Settings.OptimizePartition, b => { Settings.OptimizePartition = b; IsModified = true; });
       tbMarkText.Bind (() => Settings.MarkText, s => { Settings.MarkText = s; IsModified = true; });
+      tbMarkTextHeight.Bind (() => Settings.MarkTextHeight, h => { Settings.MarkTextHeight = h.Clamp (8, 80); IsModified = true; });
+      cbMarkTextAngle.ItemsSource = Enum.GetValues (typeof (ERotate)).Cast<ERotate> ().ToList ();
+      cbMarkTextAngle.Bind (() => Settings.MarkAngle, s => { Settings.MarkAngle = s; IsModified = true; });
       tbMarkTextPositionX.Bind (() => Settings.MarkTextPosX, f => { Settings.MarkTextPosX = f.Clamp (0.05, 100000); IsModified = true; });
       tbMarkTextPositionY.Bind (() => Settings.MarkTextPosY, f => { Settings.MarkTextPosY = f.Clamp (0.05, 100000); IsModified = true; });
 
@@ -55,8 +59,9 @@ public partial class SettingsDlg : Window {
       cbCutMarks.Bind (() => Settings.CutMarks, b => { Settings.CutMarks = b; IsModified = true; });
       cbRotate180AbZ.Bind (() => Settings.RotateX180, b => { Settings.RotateX180 = b; IsModified = true; });
       cbShowTlgNames.Bind (() => Settings.ShowToolingNames, b => { Settings.ShowToolingNames = b; IsModified = true; });
+      cbShowTlgExtents.Bind (() => Settings.ShowToolingExtents, b => { Settings.ShowToolingExtents = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
-      tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
+      tbDinFilenameSuffix.Bind (() => Settings.DinFilenameSuffix, b => { Settings.DinFilenameSuffix = b; IsModified = true; });
 
       chbMPC.Bind (() => {
          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
@@ -103,6 +108,10 @@ public partial class SettingsDlg : Window {
       });
 
       btnOK.Bind (OnOk);
+   }
+   private void OnKeyDownHandler (object sender, KeyEventArgs e) {
+      if (e.Key == Key.Enter) OnOk ();
+      else if (e.Key == Key.Escape) Close ();
    }
 
    void OnOk () {

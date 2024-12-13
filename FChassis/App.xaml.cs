@@ -47,7 +47,7 @@ public partial class App : Application {
    }
 
    public void BeforeExit () {
-      if (AbnormalTermination) 
+      if ( AbnormalTermination ) 
          SettingServices.It.SaveSettings (MCSettings.It, backupNew: true);
    }
 

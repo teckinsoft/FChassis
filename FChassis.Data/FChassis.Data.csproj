@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	 <OutDir>C:\FluxSDK\Bin</OutDir>
+    <LangVersion>latest</LangVersion>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>	
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FChassis.Core\FChassis.Core.csproj" />
+  </ItemGroup>
+
+	<PropertyGroup>
+		<NoWarn>$(NoWarn);MSB3277</NoWarn>
+		<ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+	</PropertyGroup>
+</Project>

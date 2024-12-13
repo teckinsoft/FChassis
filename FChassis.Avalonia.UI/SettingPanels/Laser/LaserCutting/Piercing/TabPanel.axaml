@@ -1,0 +1,20 @@
+<base:TabPanel
+	    xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+		d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="FChassis.UI.Settings.Laser.LaserCutting.Piercing.TabPanel"
+		xmlns:base="FChassis.UI.Settings"
+		>
+	<TabControl x:Name="TabControl" Margin="5">
+		<TabItem Header="Peck"/>
+		<TabItem Header="Multiple"/>
+		<TabItem Header="Ramp"/>
+		<TabItem Header="Single"/>
+		<TabItem Header="Normal"/>
+		<TabItem Header="Gentle"/>
+		<TabItem Header="Dot Punch"/>
+	</TabControl>
+</base:TabPanel>

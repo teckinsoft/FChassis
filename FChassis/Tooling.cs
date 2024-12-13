@@ -12,8 +12,8 @@ public readonly struct PointVec {
 }
 
 public enum EKind { Hole, Notch, Mark, Cutout };
-public enum ECutKind { YNegFlex, YNegToYPos, Top, 
-                       YPos, YNeg, YPosFlex, None };
+public enum ECutKind { Top2YNeg, YNegToYPos, Top, 
+                       YPos, YNeg, Top2YPos, YPosFlex, YNegFlex, None };
 public struct ToolingSegment {
    Curve3 mCurve;
    Vector3 mVec0;
@@ -267,70 +267,37 @@ public class Tooling {
       return new (pt2.X, pt2.Y);
    }
 
-   public static ECutKind GetCutKind (Tooling cut) {
-      var segs = cut.Segs.ToList ();
-      bool YNegPlaneFeat = false, 
-           YPosPlaneFeat = false, 
-           TopPlaneFeat = false;
-      var trf = (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent 
-                                                   ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys);
-      foreach (var seg in segs) {
-         var nn = trf * seg.Vec0.Normalized ();
-         if (Math.Abs (nn.Y - 1.0).EQ (0) && !YPosPlaneFeat) 
-            YPosPlaneFeat = true;
-         else if (Math.Abs (nn.Y + 1.0).EQ (0) && !YNegPlaneFeat) 
-            YNegPlaneFeat = true;
-         else if (Math.Abs (nn.Z - 1.0).EQ (0) && !TopPlaneFeat) 
-            TopPlaneFeat = true;
-         else if (nn.Y < -0.1) 
-            return ECutKind.YNegFlex;
-         else if ( nn.Y > 0.1 ) 
-            return ECutKind.YPosFlex;
-      }
-      
-      if (TopPlaneFeat && YNegPlaneFeat) 
-         return ECutKind.YNegFlex;
-      else if (TopPlaneFeat && YPosPlaneFeat) 
-         return ECutKind.YPosFlex;
-      else if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat) 
-         return ECutKind.YNegToYPos;
-      else if (TopPlaneFeat) 
-         return ECutKind.Top;
-      else if (YNegPlaneFeat) 
-         return ECutKind.YNeg;
-      else if (YPosPlaneFeat) 
-         return ECutKind.YPos;
-      else
-         throw new Exception ("Unsupported Notch Type");
-   }
-
-   public static ECutKind GetCutKindWRTPartOrigin (Tooling cut) {
+   public static ECutKind GetCutKind (Tooling cut, XForm4 trf) {
       var segs = cut.Segs;
-      bool YNegPlaneFeat = segs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Dot (XForm4.mYAxis)).EQ (-1.0));
-      bool YPosPlaneFeat = segs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Dot (XForm4.mYAxis)).EQ (1.0));
-      bool TopPlaneFeat = segs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Dot (XForm4.mZAxis)).EQ (1.0));
+      ECutKind cutKindAtFlex = ECutKind.None, cutKindAtFlange = ECutKind.None;
+      bool YNegPlaneFeat = segs.Any (cutSeg => ((trf * cutSeg.Vec0.Normalized ()).Y).EQ (-1));
+      bool YPosPlaneFeat = segs.Any (cutSeg => ((trf * cutSeg.Vec0.Normalized ()).Y).EQ (1));
+      bool TopPlaneFeat = segs.Any (cutSeg => ((trf * cutSeg.Vec0.Normalized ()).Z).EQ (1));
       foreach (var seg in segs) {
-         var nn = (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys) * seg.Vec0.Normalized ();
-         if (nn.Y < -0.1) 
-            return ECutKind.YNegFlex;
-         else if (nn.Y > 0.2) 
-            return ECutKind.YPosFlex;
+         var nn = (trf * seg.Vec0.Normalized ());
+         if (nn.Y < -0.1 && nn.Y.SGT (-1.0)) {
+            cutKindAtFlex = ECutKind.YNegFlex;
+            break;
+         } else if (nn.Y > 0.2 && nn.Y.SLT (1.0)) {
+            cutKindAtFlex = ECutKind.YPosFlex;
+            break;
+         }
       }
-
-      if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat) 
-         return ECutKind.YNegToYPos;
-      else if (TopPlaneFeat && YNegPlaneFeat) 
-         return ECutKind.YNegFlex;
-      else if (TopPlaneFeat && YPosPlaneFeat) 
-         return ECutKind.YPosFlex;
-      else if (TopPlaneFeat) 
-         return ECutKind.Top;
-      else if (YNegPlaneFeat) 
-         return ECutKind.YNeg;
-      else if (YPosPlaneFeat) 
-         return ECutKind.YPos;
-      else
+      if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat)
+         cutKindAtFlange = ECutKind.YNegToYPos;
+      else if (TopPlaneFeat && YNegPlaneFeat)
+         cutKindAtFlange = ECutKind.Top2YNeg;
+      else if (TopPlaneFeat && YPosPlaneFeat)
+         cutKindAtFlange = ECutKind.Top2YPos;
+      else if (TopPlaneFeat)
+         cutKindAtFlange = ECutKind.Top;
+      else if (YNegPlaneFeat)
+         cutKindAtFlange = ECutKind.YNeg;
+      else if (YPosPlaneFeat)
+         cutKindAtFlange = ECutKind.YPos;
+      if (cutKindAtFlex == ECutKind.None && cutKindAtFlange == ECutKind.None)
          throw new Exception ("Unsupported Notch Type");
+      return cutKindAtFlange != ECutKind.None ? cutKindAtFlange : cutKindAtFlex;
    }
 
    public IEnumerable<ToolingSegment> ExtractSegs {

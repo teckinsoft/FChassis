@@ -84,7 +84,7 @@ public class SanityCheck (Processor process) {
                Processor.Workpiece.DoAddHoles ();
 
             if (test.MCSettings.CutMarks) 
-               Processor.Workpiece.DoTextMarking ();
+               Processor.Workpiece.DoTextMarking (test.MCSettings);
 
             if (test.MCSettings.CutNotches || test.MCSettings.CutCutouts) 
                Processor.Workpiece.DoCutNotchesAndCutouts ();
