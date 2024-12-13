@@ -62,7 +62,7 @@ public partial class MainWindow : ObservableObject {
          OnPropertyChanged (nameof (SimulationStatus)); }
 
    [RelayCommand]
-   protected void FileOpen () {
+   protected void OpenFile () {
       OpenFileDialog openFileDialog = new () {
          Filter = "STEP Files (*.stp;*.step)|*.stp;*.step|FX Files (*.fx)|*.fx|IGS Files (*.igs;*.iges)|*.igs;*.iges|All files (*.*)|*.*",
          InitialDirectory = @"W:\FChassis\Sample" };
@@ -165,7 +165,7 @@ public partial class MainWindow : ObservableObject {
    }
 
    [RelayCommand]
-   protected void FileSave () {
+   protected void SaveFile () {
       SaveFileDialog saveFileDialog = new () {
          Filter = "FX files (*.fx)|*.fx|All files (*.*)|*.*",
          DefaultExt = "fx",
@@ -183,7 +183,7 @@ public partial class MainWindow : ObservableObject {
    }
 
    [RelayCommand]
-   protected void FileClose () {
+   protected void CloseApp () {
       if (Work != null) {
          if (Process != null) {
             if (Process.SimulationStatus == ESimulationStatus.Running ||

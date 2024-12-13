@@ -1,0 +1,12 @@
+using FChassis.Data.Model.Settings.Laser.LaserCutting.Cutting;
+using FChassis.Data.ViewModel;
+
+using Avalonia.Markup.Xaml;
+
+namespace FChassis.Avalonia.Settings.Laser.LaserCutting.Cutting;
+public partial class SpecialSettings : Panel {
+   public SpecialSettings () {
+      AvaloniaXamlLoader.Load (this);
+      this.AddPropControls (typeof (Special), Configuration.specialVM);
+   }
+}

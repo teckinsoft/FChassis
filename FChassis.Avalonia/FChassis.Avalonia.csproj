@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+	<PlatformTarget>x64</PlatformTarget>	
+
+    <UseWindowsForms>True</UseWindowsForms>
+    <UseWPF>True</UseWPF>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	  
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+
+	<OutDir>C:\FluxSDK\Bin</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Flux.API">
+      <HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Remote.Protocol" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FChassis.Coin3D\Coin3D.vcxproj" />
+    <ProjectReference Include="..\FChassis.Control.Avalonia\FChassis.Control.Avalonia.csproj" />
+    <ProjectReference Include="..\FChassis.Core\FChassis.Core.csproj" />
+    <ProjectReference Include="..\FChassis.Data\FChassis.Data.csproj" />
+    <ProjectReference Include="..\FChassis\FChassis.csproj" />
+  </ItemGroup>
+</Project>

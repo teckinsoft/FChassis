@@ -1,19 +1,12 @@
-<?xml version="1.0" encoding="IBM437"?>
-<Project DefaultTargets="Build">
+<Project>
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>	
     <Nullable>enable</Nullable>
-	
-    <Company>TeckinSoft</Company> 
+	<LangVersion>latest</LangVersion>
 
-	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
-	<BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(SolutionDir)\output\obj\$(MSBuildProjectName)\$(Configuration)</BaseIntermediateOutputPath>
-	<PackageOutputPath>$(SolutionDir)\output\$(OutputPath)</PackageOutputPath>      
+	<TargetFramework>net8.0</TargetFramework>
+	<AvaloniaVersion>11.1.3</AvaloniaVersion>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
   </ItemGroup>
-  
- </Project>
+</Project>

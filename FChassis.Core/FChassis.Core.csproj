@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutDir>C:\FluxSDK\Bin</OutDir>
-		<TargetFramework>net8.0</TargetFramework>
 	</PropertyGroup>
 	<ItemGroup>		
 		<Reference Include="Flux.API">
@@ -10,7 +9,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<NoWarn>$(NoWarn);MSB3277</NoWarn>
-		<ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+	  <NoWarn>$(NoWarn);MSB3277</NoWarn>
+	  <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
 	</PropertyGroup>
 </Project>

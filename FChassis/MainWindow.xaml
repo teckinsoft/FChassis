@@ -15,12 +15,12 @@
         <!-- Menu at the top of the window --> 
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="Files">
-                <MenuItem Header="Open" Command="{Binding FileOpenCommand}"/>
+                <MenuItem Header="Open" Command="{Binding OpenFileCommand}"/>
                 <MenuItem Header="Import" Command="{Binding ImportFileCommand}"/>
                 <MenuItem Header="Unbend Export 2D" Command="{Binding UnbendExport2DCommand}"/>
-                <MenuItem Header="Save" Command="{Binding MenuFileSaveCommand}"/>
-                <MenuItem Header="Close" Command="{Binding FileCloseCommand}"/>
-            </MenuItem>
+                <MenuItem Header="Save" Command="{Binding SaveFileCommand}"/>
+                <MenuItem Header="Close" Command="{Binding CloseAppCommand}"/>
+            </MenuItem>-
             <MenuItem Header="Options">
                 <MenuItem Header="Settings" Command="{Binding OpenSettingsCommand}"/>
                 <MenuItem x:Name="SanityCheckMenuItem" Header="Sanity Check" 
