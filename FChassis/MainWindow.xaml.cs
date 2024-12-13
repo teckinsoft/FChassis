@@ -15,7 +15,7 @@ public partial class MainWindow : Window {
       this.vm.Initialize (this.Dispatcher, this.PartFiles, this);
       Area.Child = (UIElement)Lux.CreatePanel ();
 #if DEBUG
-      //SanityCheckMenuItem.Visibility = Visibility.Visible;
+      SanityCheckMenuItem.Visibility = Visibility.Visible;
 #endif
    }
 }
