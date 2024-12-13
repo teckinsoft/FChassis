@@ -10,7 +10,7 @@ public class FChassisMainWindowHost : NativeControlHost {
       if (RuntimeInformation.IsOSPlatform (OSPlatform.Windows)) {
          // Model Viewer
          ElementHost elementHost = new ElementHost ();
-         elementHost.Child = FChassis.ViewModel.MainWindow.CreateViewerPanel ();
+         //elementHost.Child = FChassis.ViewModel.MainWindow.CreateViewerPanel ();
 
          // use ElementHost to produce a win32 Handle for embedding
          //elementHost.Child = new FChassis.MainWindow ();

@@ -6,18 +6,17 @@ using Avalonia.Controls;
 
 namespace FChassis.Avalonia;
 public partial class ModelViewer : Child {
-
+   FChassis.ViewModel.MainWindow vm = new ();
    public ModelViewer () {
       AvaloniaXamlLoader.Load (this);
-      this.DataContext = new FChassis.ViewModel.MainWindow ();
-
+      this.DataContext = this.vm;
       this.initializeControls ();
    }
 
    #region "Implementation" ---------------------------------------------------
    void initializeControls () {
       this.initElementNameField ();
-      //ViewModel.Context.MainWindow.Initialize (Avalonia.Threading.Dispatcher.UIThread, this.Files);
+      this.vm.Initialize(global::Avalonia.Threading.Dispatcher.UIThread, this.Files, this);
       if(this.FChassisHost != null)
          this.FChassisHost.Content = new FChassisMainWindowHost ();
 
