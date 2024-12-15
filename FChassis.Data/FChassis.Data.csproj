@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	 <OutDir>C:\FluxSDK\Bin</OutDir>
+	<TargetFramework>net8.0</TargetFramework>
+    <OutDir>C:\FluxSDK\Bin</OutDir>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>	
 

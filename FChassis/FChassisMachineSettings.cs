@@ -85,7 +85,7 @@ public partial class MCSettings : ObservableObject {
    [ObservableProperty] double stepLength = 1.0;
    [ObservableProperty] bool enableMultipassCut = true;
    [ObservableProperty] double maxFrameLength = 3500;
-   [ObservableProperty] bool maximizeFrameLengthInMultipass= true;
+   [ObservableProperty] bool maximizeFrameLengthInMultipass = true;
    [ObservableProperty] bool cutHoles = true;
    [ObservableProperty] bool cutNotches = true;
    [ObservableProperty] bool cutCutouts = true;

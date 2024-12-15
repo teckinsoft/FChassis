@@ -1,15 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
 		<OutDir>C:\FluxSDK\Bin</OutDir>
 	</PropertyGroup>
-	<ItemGroup>		
+	
+	<ItemGroup>
 		<Reference Include="Flux.API">
 			<HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
 	<PropertyGroup>
-	  <NoWarn>$(NoWarn);MSB3277</NoWarn>
-	  <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+		<NoWarn>$(NoWarn);MSB3277</NoWarn>
+		<ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
 	</PropertyGroup>
 </Project>

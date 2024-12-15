@@ -233,7 +233,7 @@ public class GCodeGenerator {
    readonly Point3[] mToolPos = new Point3[2];     // Tool position (for each head)
    readonly Vector3[] mToolVec = new Vector3[2];   // Tool orientaton (for each head)
    readonly Point3[] mSafePoint = new Point3[2];
-   //readonly bool mDebug = false;
+   readonly bool mDebug = false;
    StreamWriter sw;
    bool mMachiningDirectiveSet = false;
    double mCurveLeastLength = 0.5;
@@ -977,6 +977,7 @@ public class GCodeGenerator {
          mCutScopeTraces.Add (newCutScope);
       }
    }
+
 
    public void WriteNSequenceHeader (Utils.EFlange p, int np, int cnt, StreamWriter sw) {
       int startValue;
@@ -2057,7 +2058,7 @@ public class GCodeGenerator {
       double totalMarkLength, double totalCutLength) {
       sw.WriteLine ();
       double percentage = 0;
-      double /*markLength = 0, */cutLength;
+      double markLength = 0, cutLength;
       if (toolingItem.IsMark ()) {
          //markLength = toolingItem.Perimeter + prevMarkToolingsLength;
          //percentage = markLength / totalMarkLength * 100;

@@ -1,12 +1,15 @@
 <Project>
-  <PropertyGroup>
-    <Nullable>enable</Nullable>
-	<LangVersion>latest</LangVersion>
-
-	<TargetFramework>net8.0</TargetFramework>
-	<AvaloniaVersion>11.1.3</AvaloniaVersion>
-  </PropertyGroup>
-  <ItemGroup>
-	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
-  </ItemGroup>
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		
+		<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+		<BaseIntermediateOutputPath>$(SolutionDir)\output\obj\$(MSBuildProjectName)\$(Configuration)</BaseIntermediateOutputPath>
+		<PackageOutputPath>$(SolutionDir)\output\$(OutputPath)</PackageOutputPath>
+		<AvaloniaVersion>11.1.3</AvaloniaVersion>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
+	</ItemGroup>
 </Project>

@@ -344,7 +344,6 @@ public class Workpiece : INotifyPropertyChanged {
                   
                if (Geom.GetToolingWinding (n, q, cutSegs) == Geom.ToolingWinding.CW) 
                   cut.Reverse ();
-                  
                cutSegs = [.. cut.Segs];
                cut.CutoutKind = Tooling.GetCutKind (cut, (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys));
                cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm); 

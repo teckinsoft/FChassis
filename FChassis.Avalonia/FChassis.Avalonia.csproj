@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-	<PlatformTarget>x64</PlatformTarget>	
+    <TargetFramework>net8.0-windows7.0</TargetFramework>	
+	<PlatformTarget>x64</PlatformTarget>
+	<OutDir>C:\FluxSDK\Bin</OutDir>
 
     <UseWindowsForms>True</UseWindowsForms>
     <UseWPF>True</UseWPF>
@@ -10,9 +11,7 @@
 	  
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-
-	<OutDir>C:\FluxSDK\Bin</OutDir>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>	
   </PropertyGroup>
 
   <ItemGroup>
