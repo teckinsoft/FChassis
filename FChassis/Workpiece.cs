@@ -49,6 +49,9 @@ public class Workpiece : INotifyPropertyChanged {
       if (size.Y > size.X)
          Apply (Matrix3.Rotation (EAxis.Z, Geo.HalfPI * mRotTimes));
 
+      //if ( (mModel.Bound.YMax - mModel.Bound.YMin).SGT(mModel.Bound.YMax - mModel.Bound.YMin)) {
+      //   Apply (Matrix3.Rotation (EAxis.X, Geo.PI*0.5));
+      //}
       // If the flanges are protruding 'downward', then rotate the model by 180 
       // degrees about the X axis
       if (-mModel.Bound.ZMin < mModel.Bound.ZMax)
@@ -74,6 +77,8 @@ public class Workpiece : INotifyPropertyChanged {
          foreach (var ent in mModel.Entities)
             ent.Xform (xfm);
       }
+
+      GCodeGenerator.EvaluateToolConfigXForms(this);
    }
    public void DeleteCuts () => Cuts.Clear ();
    public bool DoAddHoles () {
@@ -99,9 +104,7 @@ public class Workpiece : INotifyPropertyChanged {
             Cuts.Add (cut);
             var name = $"Tooling-{cutIndex++}";
             var featType = $"{Utils.GetFlangeType (Cuts[^1],
-               MCSettings.It.PartConfig == PartConfigType.LHComponent
-                                                ? GCodeGenerator.LHCSys
-                                                : GCodeGenerator.RHCSys)} - {Cuts[^1].Kind}";
+               GCodeGenerator.GetXForm(this))} - {Cuts[^1].Kind}";
             Cuts[^1].Name = name;
             Cuts[^1].FeatType = featType;
          }
@@ -122,7 +125,7 @@ public class Workpiece : INotifyPropertyChanged {
             Cuts.Add (new Tooling (this, ef, shape, EKind.Hole));
             Cuts[^1].Name = $"Tooling-{cutIndex++}";
             Cuts[^1].FeatType = $"{Utils.GetFlangeType (Cuts[^1],
-               MCSettings.It.PartConfig == PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys)} - {Cuts[^1].Kind}";
+               GCodeGenerator.GetXForm(this))} - {Cuts[^1].Kind}";
          }
       }
 
@@ -138,9 +141,7 @@ public class Workpiece : INotifyPropertyChanged {
          var cutSegs = cut.Segs.ToList ();
          bool yNegFlex = cutSegs.Any (cutSeg => cutSeg.Vec0.Normalized ().Y < -0.1);
          if (cut.Kind == EKind.Hole && Utils.GetFlangeType (cut,
-            MCSettings.It.PartConfig == PartConfigType.LHComponent
-                                             ? GCodeGenerator.LHCSys
-                                             : GCodeGenerator.RHCSys) == Utils.EFlange.Flex) {
+            GCodeGenerator.GetXForm(this)) == Utils.EFlange.Flex) {
             Vector3 n = new (0.0, Math.Sqrt (2.0), Math.Sqrt (2.0));
             Point3 q = new (0.0, mBound.YMax - 10.0, mBound.ZMax + 10.0);
             if (yNegFlex) {
@@ -191,9 +192,7 @@ public class Workpiece : INotifyPropertyChanged {
          Cuts.Add (new Tooling (this, mModel.Baseplane, p2, EKind.Mark));
          Cuts[^1].Name = $"Tooling-{cutIndex++}";
          Cuts[^1].FeatType = $"{Utils.GetFlangeType (Cuts[^1],
-                                mcs.PartConfig == PartConfigType.LHComponent
-                                                               ? GCodeGenerator.LHCSys
-                                                               : GCodeGenerator.RHCSys)} - {Cuts[^1].Kind}";
+                                GCodeGenerator.GetXForm(this))} - {Cuts[^1].Kind}";
          // Calculate the bound3 for each cut
          Cuts[^1].Bound3 = Utils.CalculateBound3 ([.. Cuts[^1].Segs], Model.Bound);
       }
@@ -318,9 +317,7 @@ public class Workpiece : INotifyPropertyChanged {
             cut.IdentifyCutout ();
             cut.Name = $"Tooling-{cutIndex++}";
             cut.FeatType = $"{Utils.GetFlangeType (cut,
-                                                   MCSettings.It.PartConfig == PartConfigType.LHComponent
-                                                         ? GCodeGenerator.LHCSys
-                                                         : GCodeGenerator.RHCSys)} - {cut.Kind}";
+                                                   GCodeGenerator.GetXForm (this))} - {cut.Kind}";
             var cutSegs = cut.Segs.ToList ();
             //bool YNegPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Y + 1.0).EQ (0));
             //bool YPosPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Y - 1.0).EQ (0));
@@ -336,9 +333,7 @@ public class Workpiece : INotifyPropertyChanged {
                // in 45 deg or -45 deg. The windiwng of the polygon on the projected plane is used
                // to check if the Traces of the tooling has to be reversed.
                Vector3 n = Utils.GetEPlaneNormal (cut,
-                                                  MCSettings.It.PartConfig == PartConfigType.LHComponent
-                                                      ? GCodeGenerator.LHCSys
-                                                      : GCodeGenerator.RHCSys);
+                                                  GCodeGenerator.GetXForm (this));
                Point3 q = new (0.0, mBound.YMax + 10.0, mBound.ZMax + 10.0);
                bool yNegFlexFeat = cutSegs.Any (cutSeg => cutSeg.Vec0.Normalized ().Y < -0.1);
                if (yNegFlexFeat)
@@ -347,21 +342,17 @@ public class Workpiece : INotifyPropertyChanged {
                if (Geom.GetToolingWinding (n, q, cutSegs) == Geom.ToolingWinding.CW)
                   cut.Reverse ();
                cutSegs = [.. cut.Segs];
-               cut.CutoutKind = Tooling.GetCutKind (cut, (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys));
+               cut.CutoutKind = Tooling.GetCutKind (cut, GCodeGenerator.GetXForm (this));
                cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
             } else {
                if (!MCSettings.It.CutNotches)
                   continue;
-               cut.NotchKind = Tooling.GetCutKind (cut, (MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? GCodeGenerator.LHCSys : GCodeGenerator.RHCSys));
+               cut.NotchKind = Tooling.GetCutKind (cut, GCodeGenerator.GetXForm(this));
                cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
                var NotchStFlType = Utils.GetArcPlaneFlangeType (cutSegs.First ().Vec0,
-                                                                MCSettings.It.PartConfig == PartConfigType.LHComponent
-                                                                     ? GCodeGenerator.LHCSys
-                                                                     : GCodeGenerator.RHCSys);
+                                                                GCodeGenerator.GetXForm (this));
                var NotchEndFlType = Utils.GetArcPlaneFlangeType (cutSegs[^1].Vec1,
-                                                                 MCSettings.It.PartConfig == PartConfigType.LHComponent
-                                                                     ? GCodeGenerator.LHCSys
-                                                                     : GCodeGenerator.RHCSys);
+                                                                 GCodeGenerator.GetXForm (this));
                if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg || cut.ProfileKind == ECutKind.YNegToYPos) {
                   var endX = cutSegs[^1].Curve.End.X;
                   if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)

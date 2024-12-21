@@ -553,7 +553,7 @@ public class CutScope {
             ts1.Tooling.FeatType = ts.Tooling.FeatType + "- Split - 1";
 
             // Split segments of ts1.Tooling
-            ts1.Tooling.Segs = Utils.SplitNotchToScope (ts1, ts1.mIsLeftToRight, 1e-4);
+            ts1.Tooling.Segs = Utils.SplitNotchToScope (ts1, ts1.mIsLeftToRight, bound, 1e-4);
             ts1.Tooling.Bound3 = Utils.CalculateBound3 (ts1.Tooling.Segs, bound);
 
             ToolingScope ts2 = new (ts.Tooling, ii + 1, ts.mIsLeftToRight) {
@@ -564,7 +564,7 @@ public class CutScope {
             ts2.Tooling.FeatType = ts.Tooling.FeatType + "- Split - 2";
 
             // Split segments of ts2.Tooling
-            ts2.Tooling.Segs = Utils.SplitNotchToScope (ts2, ts2.mIsLeftToRight, 1e-4);
+            ts2.Tooling.Segs = Utils.SplitNotchToScope (ts2, ts2.mIsLeftToRight, bound, 1e-4);
             ts2.Tooling.Bound3 = Utils.CalculateBound3 (ts2.Tooling.Segs, bound);
 
             // Insert two new elements at the same index i
@@ -1287,8 +1287,8 @@ public class MultiPassCuts {
       if (!mGC.OptimizePartition) mGC.PartitionRatio = 0.5;
       if (mGC.Heads == MCSettings.EHeads.Left || mGC.Heads == MCSettings.EHeads.Right) mGC.PartitionRatio = 1.0;
       mGC.BlockNumber = 0;
-      mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Head1, mcCutScopes);
-      mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Head2, mcCutScopes);
+      mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Master, mcCutScopes);
+      mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Slave, mcCutScopes);
       mGC.BlockNumber = 0;
       CutScopeTraces = mGC.CutScopeTraces;
       mGC.PartitionRatio = prevPartRatio;

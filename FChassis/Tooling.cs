@@ -281,9 +281,9 @@ public class Tooling {
    public static ECutKind GetCutKind (Tooling cut, XForm4 trf) {
       var segs = cut.Segs;
       ECutKind cutKindAtFlex = ECutKind.None, cutKindAtFlange = ECutKind.None;
-      bool YNegPlaneFeat = segs.Any (cutSeg => ((trf * cutSeg.Vec0.Normalized ()).Y).EQ (-1));
-      bool YPosPlaneFeat = segs.Any (cutSeg => ((trf * cutSeg.Vec0.Normalized ()).Y).EQ (1));
-      bool TopPlaneFeat = segs.Any (cutSeg => ((trf * cutSeg.Vec0.Normalized ()).Z).EQ (1));
+      bool YNegPlaneFeat = segs.Any (cutSeg => (((trf * cutSeg.Vec0.Normalized ()).Y).EQ (-1) && ((trf * cutSeg.Vec1.Normalized ()).Y).EQ (-1)));
+      bool YPosPlaneFeat = segs.Any (cutSeg => (((trf * cutSeg.Vec0.Normalized ()).Y).EQ (1) && ((trf * cutSeg.Vec1.Normalized ()).Y).EQ (1)));
+      bool TopPlaneFeat = segs.Any (cutSeg => (((trf * cutSeg.Vec0.Normalized ()).Z).EQ (1) && ((trf * cutSeg.Vec1.Normalized ()).Z).EQ (1)));
       foreach (var seg in segs) {
          var nn = (trf * seg.Vec0.Normalized ());
          if (nn.Y < -1e-6 && nn.Y.SGT (-1.0)) {
@@ -298,7 +298,7 @@ public class Tooling {
          cutKindAtFlange = ECutKind.YNegToYPos;
       else if (TopPlaneFeat && (YNegPlaneFeat || cutKindAtFlex == ECutKind.YNegFlex))
          cutKindAtFlange = ECutKind.Top2YNeg;
-      else if (TopPlaneFeat && (YNegPlaneFeat || cutKindAtFlex == ECutKind.YPosFlex))
+      else if (TopPlaneFeat && (YPosPlaneFeat || cutKindAtFlex == ECutKind.YPosFlex))
          cutKindAtFlange = ECutKind.Top2YPos;
       else if (TopPlaneFeat)
          cutKindAtFlange = ECutKind.Top;

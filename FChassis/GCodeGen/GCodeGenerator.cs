@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Linq;
+using System.Collections.Generic;
 
 namespace FChassis.GCodeGen;
 
@@ -252,8 +253,8 @@ public class GCodeGenerator {
    List<List<GCodeSeg>[]> mCutScopeTraces = [];
    public List<List<GCodeSeg>[]> CutScopeTraces => mCutScopeTraces;
    public Processor Process { get => mProcess; set => mProcess = value; }
-   List<NotchAttribute> mNotchAttributes = [];
-   public List<NotchAttribute> NotchAttributes { get { return mNotchAttributes; } }
+   //List<NotchAttribute> mNotchAttributes = [];
+   //public List<NotchAttribute> NotchAttributes { get { return mNotchAttributes; } }
    public List<MachinableCutScope> MachinableCutScopes { get; private set; }
    #endregion
 
@@ -312,41 +313,83 @@ public class GCodeGenerator {
                break;
 
             case ECutKind.YPos:
-               comment = "Top Flange Notch";
-               if (!isFlexCut) blockType = -4.9;
-               else blockType = -4.5;
-               gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  comment = "Top Flange Notch LH Comp";
+                  if (!isFlexCut) blockType = -4.9;
+                  else blockType = -4.5;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               } else { // RH Component
+                  comment = "Bottom Flange Notch RH Comp";
+                  if (!isFlexCut) blockType = 4.9;
+                  else blockType = 4.5;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               }
                break;
 
             case ECutKind.YNeg:
-               comment = "Bottom Flange Notch";
-               if (isFlexCut) blockType = 4.5;
-               else blockType = 4.9;
-               gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  comment = "Bottom Flange Notch LH Comp";
+                  if (isFlexCut) blockType = 4.5;
+                  else blockType = 4.9;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               } else {// RH Component
+                  comment = "Top Flange Notch RH Comp";
+                  if (!isFlexCut) blockType = -4.9;
+                  else blockType = -4.5;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               }
                break;
 
             case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
-               comment = "Web -> Top Flange Notch";
-               if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                  blockType = -4.9;
-               else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
-                  blockType = -4.0;
-               else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                  blockType = -4.5;
-               else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+               comment = "Web -> Top Flange Notch LH Comp";
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                     blockType = -4.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = -4.5;
+                     else blockType = -4.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = -4.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+
+               } else { // RH Component
+                  comment = "Web -> Bottom Flange Notch RH Comp";
+                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                     blockType = 4.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = 4.5;
+                     else blockType = 4.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = 4.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+               }
                gcodeSt = $"BlockType={blockType:F1} ({comment})";
                break;
 
             case ECutKind.Top2YNeg:
-               comment = "Web -> Bottom Flange Notch";
-               if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
-                  blockType = 4.9;
-               else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
-                  blockType = 4.0;
-               else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                  blockType = 4.5;
-               else throw new Exception ("Unknown Flange type for toolsegment of the notch");
-               gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               comment = "Web -> Bottom Flange Notch LH Comp";
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
+                     blockType = 4.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = 4.5;
+                     else blockType = 4.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = 4.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               } else {
+                  comment = "Web -> Top Flange Notch RH Comp";
+                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                     blockType = -4.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = -4.5;
+                     else blockType = -4.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = -4.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               }
                break;
 
             case ECutKind.YNegToYPos:
@@ -356,33 +399,125 @@ public class GCodeGenerator {
          }
       } else if (isCutout) {
          switch (cutoutKind) {
-            case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
-               comment = "Web -> Top Flange Cutout";
-               if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                  blockType = -5.9;
-               else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
-                  blockType = -5.0;
-               else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                  blockType = -5.5;
-               else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
+            case ECutKind.Top:
+               comment = "Web Flange Cutout";
+               if (isFlexCut) throw new Exception ("There is no flex cut for web flange cuts");
+               gcodeSt = $"BlockType={5} ({comment})";
+               break;
+
+            case ECutKind.YPos:
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  comment = "Top Flange Cutout LH Comp";
+                  if (!isFlexCut) blockType = -5.9;
+                  else blockType = -5.5;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               } else { // RH Component
+                  comment = "Bottom Flange Cutout RH Comp";
+                  if (!isFlexCut) blockType = 5.9;
+                  else blockType = 5.5;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               }
+               break;
+
+            case ECutKind.YNeg:
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  comment = "Bottom Flange Cutout LH Comp";
+                  if (isFlexCut) blockType = 5.5;
+                  else blockType = 5.9;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               } else {// RH Component
+                  comment = "Top Flange Cutout RH Comp";
+                  if (!isFlexCut) blockType = -5.9;
+                  else blockType = -5.5;
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               }
+               break;
+
+            case ECutKind.Top2YPos: // Web -> Top Flange Cutout/Cutout
+               comment = "Web -> Top Flange Cutout LH Comp";
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                     blockType = -5.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = -5.5;
+                     else blockType = -5.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = -5.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
+
+               } else { // RH Component
+                  comment = "Web -> Bottom Flange Cutout RH Comp";
+                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                     blockType = 5.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = 5.5;
+                     else blockType = 5.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = 5.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
+               }
                gcodeSt = $"BlockType={blockType:F1} ({comment})";
                break;
+
             case ECutKind.Top2YNeg:
-               comment = "Web -> Bottom Flange Notch";
-               if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
-                  blockType = 5.9;
-               else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
-                  blockType = 5.0;
-               else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                  blockType = 5.5;
-               else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
-               gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               comment = "Web -> Bottom Flange Cutout LH Comp";
+               if (PartConfigType == PartConfigType.LHComponent) {
+                  if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
+                     blockType = 5.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = 5.5;
+                     else blockType = 5.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = 5.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               } else {
+                  comment = "Web -> Top Flange Cutout RH Comp";
+                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                     blockType = -5.9;
+                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                     if (isFlexCut) blockType = -5.5;
+                     else blockType = -5.0;
+                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                     blockType = -5.5;
+                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+               }
                break;
+
             case ECutKind.YNegToYPos:
                throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
             default:
                break;
          }
+         //switch (cutoutKind) {
+         //   case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
+         //      comment = "Web -> Top Flange Cutout";
+         //      if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+         //         blockType = -5.9;
+         //      else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
+         //         blockType = -5.0;
+         //      else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+         //         blockType = -5.5;
+         //      else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
+         //      gcodeSt = $"BlockType={blockType:F1} ({comment})";
+         //      break;
+         //   case ECutKind.Top2YNeg:
+         //      comment = "Web -> Bottom Flange Notch";
+         //      if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
+         //         blockType = 5.9;
+         //      else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
+         //         blockType = 5.0;
+         //      else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+         //         blockType = 5.5;
+         //      else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
+         //      gcodeSt = $"BlockType={blockType:F1} ({comment})";
+         //      break;
+         //   case ECutKind.YNegToYPos:
+         //      throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
+         //   default:
+         //      break;
+         //}
       }
       sw.WriteLine (gcodeSt);
    }
@@ -480,7 +615,7 @@ public class GCodeGenerator {
    public double MinNotchLengthThreshold { get; set; }
    public string DinFilenameSuffix { get; set; }
    public MachineType Machine { get; set; }
-   public bool IsDryRun { get; set; }
+   //public bool IsDryRun { get; set; }
    public string FxFilePath { get; set; }
    public string DINFileNameHead1 { get; set; }
    public string DINFileNameHead2 { get; set; }
@@ -488,6 +623,7 @@ public class GCodeGenerator {
    public Dictionary<string, WorkpieceOptions> WPOptions { get; set; }
    public double DeadbandWidth { get; set; }
    public int BlockNumber { get; set; } = 0;
+   public bool CreateDummyBlock4Master { get; set; } = false;
    #endregion
 
    #region GCode BookKeepers
@@ -501,7 +637,7 @@ public class GCodeGenerator {
    const int NotchProgNo = 4000;
    const int MarkProgNo = 8000;
    const int DigitProg = 6000, DigitConst = 1000, DigitPitch = 7;
-   bool mCreateDummyBlock4Master = false;
+
 
    double mNotchSegBlockTypeTopFlange = -4.0, mNotchSegBlockTypeBottomFlange = 4.0,
       mNotchSegBlockTypeWeb2TopFlange = -5.0, mNotchSegBlockTypeWeb2BottomFlange = 5.0;
@@ -564,34 +700,34 @@ public class GCodeGenerator {
    #endregion
 
    #region Tool Configuration data
-   ToolHeadType mHead = ToolHeadType.Head1;
+   ToolHeadType mHead = ToolHeadType.Master;
    public ToolHeadType Head { get => mHead; set => mHead = value; }
-   static XForm4 mXformLHInv;
-   static XForm4 mXformRHInv;
-   public static XForm4 LHCSys {
-      get {
-         mXformLHInv ??= new ();
-         var csys = mXformLHInv.InvertNew ();
-         //Matrix3 coorsysM3 = new Matrix3 (csys[0, 0], csys[0, 1], csys[0, 2], csys[0, 3],
-         //   csys[1, 0], csys[1, 1], csys[1, 2], csys[1, 3],
-         //   csys[2, 0], csys[2, 1], csys[2, 2], csys[2, 3],
-         //   csys[3, 0], csys[3, 1], csys[3, 2], csys[3, 3]);
-         //return coorsysM3;
-         return csys;
-      }
-   }
-   public static XForm4 RHCSys {
-      get {
-         mXformLHInv ??= new ();
-         var csys = mXformRHInv.InvertNew ();
-         //Matrix3 coorsysM3 = new Matrix3 (csys[0, 0], csys[0, 1], csys[0, 2], csys[0, 3],
-         //   csys[1, 0], csys[1, 1], csys[1, 2], csys[1, 3],
-         //   csys[2, 0], csys[2, 1], csys[2, 2], csys[2, 3],
-         //   csys[3, 0], csys[3, 1], csys[3, 2], csys[3, 3]);
-         //return coorsysM3;
-         return csys;
-      }
-   }
+   static XForm4 mXformLHInv = null;
+   static XForm4 mXformRHInv = null;
+   //public static XForm4 LHCSys {
+   //   get {
+   //      mXformLHInv ??= new ();
+   //      var csys = mXformLHInv.InvertNew ();
+   //      //Matrix3 coorsysM3 = new Matrix3 (csys[0, 0], csys[0, 1], csys[0, 2], csys[0, 3],
+   //      //   csys[1, 0], csys[1, 1], csys[1, 2], csys[1, 3],
+   //      //   csys[2, 0], csys[2, 1], csys[2, 2], csys[2, 3],
+   //      //   csys[3, 0], csys[3, 1], csys[3, 2], csys[3, 3]);
+   //      //return coorsysM3;
+   //      return csys;
+   //   }
+   //}
+   //public static XForm4 RHCSys {
+   //   get {
+   //      mXformLHInv ??= new ();
+   //      var csys = mXformRHInv.InvertNew ();
+   //      //Matrix3 coorsysM3 = new Matrix3 (csys[0, 0], csys[0, 1], csys[0, 2], csys[0, 3],
+   //      //   csys[1, 0], csys[1, 1], csys[1, 2], csys[1, 3],
+   //      //   csys[2, 0], csys[2, 1], csys[2, 2], csys[2, 3],
+   //      //   csys[3, 0], csys[3, 1], csys[3, 2], csys[3, 3]);
+   //      //return coorsysM3;
+   //      return csys;
+   //   }
+   //}
    #endregion
 
    #region Enums and Types
@@ -624,8 +760,8 @@ public class GCodeGenerator {
    }
 
    public enum ToolHeadType {
-      Head1,
-      Head2
+      Master,
+      Slave
    }
    #endregion
 
@@ -703,8 +839,8 @@ public class GCodeGenerator {
          mThickness = mPlanes[0].ThickVector.Length;
          mWebFlangeOnly = mFlexes.Count == 0;
          NCName = Process.Workpiece.NCFileName;
-         if (mXformLHInv == null || mXformRHInv == null)
-            EvaluateToolConfigXForms (Process.Workpiece);
+         //if (mXformLHInv == null || mXformRHInv == null)
+         //   EvaluateToolConfigXForms (Process.Workpiece);
          //mXformLHInv.Invert ().SetTranslationComponent (new Vector3 (0, 0, mThickness));
          //mXformRHInv.Invert ().SetTranslationComponent (new Vector3 (0, 0, mThickness));
 
@@ -739,12 +875,12 @@ public class GCodeGenerator {
          mXformLHInv = new XForm4 ();
          mXformRHInv = new XForm4 ();
          var flangeThickness = work.Model.Entities.OfType<E3Plane> ().ToList ().First ().ThickVector.Length;
-         mXformLHInv.Translate (new Vector3 (0.0, work.Bound.YMin, flangeThickness));
+         mXformLHInv.Translate (new Vector3 (0.0, work.Bound.YMin, 0));
          //if (mcName == "LMMultipass2H")
          //mXformLHInv.SetRotationComponents (new Vector3 (-1, 0, 0), new Vector3 (0, -1, 0), new Vector3 (0, 0, 1));
          mXformLHInv.Invert ();
          // For RH component
-         mXformRHInv.Translate (new Vector3 (0.0, work.Bound.YMax, flangeThickness));
+         mXformRHInv.Translate (new Vector3 (0.0, work.Bound.YMax, 0));
          //if (mcName == "LMMultipass2H")
          //mXformRHInv.SetRotationComponents (new Vector3 (-1, 0, 0), new Vector3 (0, -1, 0), new Vector3 (0, 0, 1));
          mXformRHInv.Invert ();
@@ -971,7 +1107,7 @@ public class GCodeGenerator {
    /// to start the machining process
    /// </summary>
    public void EnableMachiningDirective () {
-      if (!mMachiningDirectiveSet)
+      if (!mMachiningDirectiveSet && !CreateDummyBlock4Master)
          sw.WriteLine ("M14\t( ** Start of Cut **)");
       mMachiningDirectiveSet = true;
    }
@@ -983,7 +1119,7 @@ public class GCodeGenerator {
    /// to stop the machining process.
    /// </summary>
    public void DisableMachiningDirective () {
-      if (mMachiningDirectiveSet)
+      if (mMachiningDirectiveSet && !CreateDummyBlock4Master)
          sw.WriteLine ("M15\t( ** End Of Cut ** )");
       mMachiningDirectiveSet = false;
    }
@@ -1040,15 +1176,16 @@ public class GCodeGenerator {
    /// <exception cref="Exception">Throws an exception if an error occurs during G Code generation</exception>
    public int GenerateGCode (ToolHeadType head, List<MachinableCutScope> mcCutScopes) {
       Head = head;
-      mCreateDummyBlock4Master = false;
+      CreateDummyBlock4Master = false;
+      
       string headPos = $"{(int)Head + 1}";
       string dinFileSuffix = string.IsNullOrEmpty (DinFilenameSuffix) ? "" : $"-{DinFilenameSuffix}-";
       string ncName = Process.Workpiece.NCFileName + "-" + headPos + dinFileSuffix +
          $"({(PartConfigType == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
       string ncFolder;
 
-      if (head == 0) {
-         //ncFolder = Path.Combine (Process.Workpiece.NCFilePath, "Head1");
+      if (head == ToolHeadType.Master) {
+         //ncFolder = Path.Combine (Process.Workpiece.NCFilePath, "Master");
          ncFolder = Path.Combine (FxFilePath, "Head1");
          Directory.CreateDirectory (ncFolder);
          DINFileNameHead1 = Path.Combine (ncFolder, ncName);
@@ -1095,7 +1232,7 @@ public class GCodeGenerator {
          sw.WriteLine ("M15");
          sw.WriteLine ("H=LaserTableID");
          sw.WriteLine ("G61\t( Stop Block Preparation )\r\nG40 E0");
-         sw.WriteLine ($"( Cutting with head {Head + 1} )");
+         sw.WriteLine ($"( Cutting with {Head} head)");
          sw.WriteLine ($"G20 X=BlockID\r\n");
          // ****************************************************************************
          // Logic to change scope goes here.
@@ -1113,14 +1250,15 @@ public class GCodeGenerator {
          mCutScopeNo = 0; int cnnt = 0;
          mLastCutScope = false;
          for (int mm = 0; mm < mcCutScopes.Count; mm++) {
+            CreateDummyBlock4Master = false;
+            mPrevToolingSegment = null;
             BlockNumber++;
             var mcCutScope = mcCutScopes[mm];
             cnnt++;
 
-            if (Head == ToolHeadType.Head1 && mm == mcCutScopes.Count - 2 && mcCutScopes[mm + 1].ToolingScopesH1.Count == 0) mLastCutScope = true;
-            else if (Head == ToolHeadType.Head2 && mm == mcCutScopes.Count - 2 && mcCutScopes[mm + 1].ToolingScopesH2.Count == 0) mLastCutScope = true;
+            if (Head == ToolHeadType.Master && mm == mcCutScopes.Count - 2 && mcCutScopes[mm + 1].ToolingScopesH1.Count == 0) mLastCutScope = true;
+            else if (Head == ToolHeadType.Slave && mm == mcCutScopes.Count - 2 && mcCutScopes[mm + 1].ToolingScopesH2.Count == 0) mLastCutScope = true;
             else if (cnnt == mcCutScopes.Count) mLastCutScope = true;
-
 
             Bound3 cutScopeBound = Utils.CalculateBound3 (mcCutScope.Toolings);
             xStart = mcCutScope.StartX; xEnd = mcCutScope.EndX;
@@ -1132,8 +1270,21 @@ public class GCodeGenerator {
             mSafePoint[0] = new Point3 (cutScopeBound.XMin, cutScopeBound.YMin, 50);
             mSafePoint[1] = new Point3 (cutScopeBound.XMax, cutScopeBound.YMax, 50);
             EvaluateToolConfigXForms (Process.Workpiece);
+
             List<Tooling> cuts = null;
-            if (head == 0) cuts = GetToolings4Head (mcCutScope.ToolingsHead1, 0); else cuts = GetToolings4Head (mcCutScope.ToolingsHead2, 1);
+            var cutsHead1 = GetToolings4Head (mcCutScope.ToolingsHead1, 0);
+            var cutsHead2 = GetToolings4Head (mcCutScope.ToolingsHead2, 1);
+            if (head == ToolHeadType.Master)
+               cuts = cutsHead1;
+            else
+               cuts = cutsHead2;
+            if (cutsHead1.Count == 0 && cutsHead2.Count > 0 && Head == ToolHeadType.Master) {
+               CreateDummyBlock4Master = true;
+               cuts = cutsHead2;
+               WriteLineStatement ("( Writing dummy block for each tooling for master head 1)");
+            }
+            if (cuts.Count == 0) continue;
+
             //bool iSingleHead = cuts.Count == mcCutScope.Toolings.Count;
             //if ( head == 0 && 
             int np = 0;
@@ -1177,7 +1328,6 @@ public class GCodeGenerator {
             //frameFeed += (cutScopeBound.XMax - cutScopeBound.XMin);
 
             // Update Traces for this cutscope
-
             if (CutScopeTraces[mCutScopeNo - 1][0].Count == 0)
                CutScopeTraces[mCutScopeNo - 1][0] = mTraces[0];
             if (CutScopeTraces[mCutScopeNo - 1][1].Count == 0)
@@ -1210,11 +1360,22 @@ public class GCodeGenerator {
    }
 
    public bool IgnoreSafety => SafetyZone.EQ (0);
-   public XForm4 GetXForm () => PartConfigType == PartConfigType.LHComponent ? mXformLHInv : mXformRHInv;
-   public void WriteCurve (ToolingSegment segment, string toolingName) {
+   public XForm4 GetXForm () {
+      if (mXformLHInv == null || mXformRHInv == null)
+         GCodeGenerator.EvaluateToolConfigXForms (Process.Workpiece);
+      return PartConfigType == PartConfigType.LHComponent ? mXformLHInv : mXformRHInv;
+   }
+   public static XForm4 GetXForm (Workpiece wp, GCodeGenerator gcGen = null) {
+      if (mXformLHInv == null || mXformRHInv == null)
+         GCodeGenerator.EvaluateToolConfigXForms (wp);
+      if (gcGen == null)
+         return MCSettings.It.PartConfig == PartConfigType.LHComponent ? mXformLHInv : mXformRHInv;
+      return gcGen.PartConfigType == PartConfigType.LHComponent ? mXformLHInv : mXformRHInv;
+   }
+   public void WriteCurve (ToolingSegment segment, string toolingName, bool isFlexSection = false) {
       var stNormal = segment.Vec0.Normalized ();
       var endNormal = segment.Vec1.Normalized ();
-      WriteCurve (segment.Curve, stNormal, endNormal, toolingName);
+      WriteCurve (segment.Curve, stNormal, endNormal, toolingName, isFlexSection);
    }
 
    /// <summary>
@@ -1227,12 +1388,12 @@ public class GCodeGenerator {
    /// <param name="prevPlaneType">Utils.EPlane type of the previous segment</param>
    /// <param name="toolingName">Tooling name (for simulation data)</param>
    public void WriteCurve (Curve3 curve, Vector3 stNormal, Vector3 endNormal,
-      string toolingName) {
+      string toolingName, bool isFlexSection = false) {
       /* current normal plane type (at the end) */
       var currPlaneType = Utils.GetArcPlaneType (endNormal, XForm4.IdentityXfm);
       if (curve is Line3) {
          var endPoint = curve.End;/* end point*/
-         WriteLine (endPoint, stNormal, endNormal, toolingName);
+         WriteLine (endPoint, stNormal, endNormal, toolingName, isFlexSection);
       } else if (curve is Arc3) {
          var (cen, _) = Geom.EvaluateCenterAndRadius (curve as Arc3);
          //currFlangeType = Utils.GetArcPlaneFlangeType (endNormal);
@@ -1276,6 +1437,7 @@ public class GCodeGenerator {
       arcStartPoint = Utils.MovePoint (arcStartPoint, startNormal, Standoff);
       arcEndPoint = Utils.MovePoint (arcEndPoint, startNormal, Standoff);
       arcCenter = Utils.MovePoint (arcCenter, startNormal, Standoff);
+      
       // Transform the arc end point to machine coordinate system
       var mcCoordArcCenter = XfmToMachine (arcCenter);
       var mcCoordArcStPoint = XfmToMachine (arcStartPoint);
@@ -1287,31 +1449,45 @@ public class GCodeGenerator {
       var radius = arcSt2CenVec.Length;
       EGCode gCmd;
       if (arcType == Utils.EArcSense.CW) gCmd = EGCode.G2; else gCmd = EGCode.G3;
-      mTraces[(int)Head].Add (new GCodeSeg (arc, arcStartPoint, arcEndPoint, arcCenter, radius, startNormal,
-         gCmd, EMove.Machining, toolingName));
-      mToolPos[(int)Head] = arcEndPoint;
-      mToolVec[(int)Head] = startNormal;
+      if (!CreateDummyBlock4Master) {
+         mTraces[(int)Head].Add (new GCodeSeg (arc, arcStartPoint, arcEndPoint, arcCenter, radius, startNormal,
+            gCmd, EMove.Machining, toolingName));
+         mToolPos[(int)Head] = arcEndPoint;
+         mToolVec[(int)Head] = startNormal;
+      }
       switch (arcFlangeType) {
          case Utils.EFlange.Web:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y, arcFlangeType);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew ());
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, arcFlangeType);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew (),
+                  machine: Machine,
+                  mcCoordArcCenter, radius, mcCoordArcStPoint);
             break;
          case Utils.EFlange.Bottom:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y, arcFlangeType);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew ());
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew (),
+                  machine: Machine,
+                  mcCoordArcCenter, radius, mcCoordArcStPoint);
             break;
          case Utils.EFlange.Top:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y, arcFlangeType);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew ());
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew (),
+                  machine: Machine,
+                  mcCoordArcCenter, radius, mcCoordArcStPoint);
             break;
          default:
             throw new ArgumentException ("Arc is ill-defined perhaps on the flex");
@@ -1348,33 +1524,47 @@ public class GCodeGenerator {
       var radius = arcSt2CenVec.Length;
       EGCode gCmd;
       if (arcType == Utils.EArcSense.CW) gCmd = EGCode.G2; else gCmd = EGCode.G3;
-      mTraces[(int)Head].Add (new GCodeSeg (arc, arcStartPoint, arcEndPoint, arcCenter, radius, startNormal,
+      if (!CreateDummyBlock4Master) {
+         mTraces[(int)Head].Add (new GCodeSeg (arc, arcStartPoint, arcEndPoint, arcCenter, radius, startNormal,
          gCmd, EMove.Machining, toolingName));
-      mToolPos[(int)Head] = arcEndPoint;
-      mToolVec[(int)Head] = startNormal;
+         mToolPos[(int)Head] = arcEndPoint;
+         mToolVec[(int)Head] = startNormal;
+      }
 
       Utils.EFlange arcFlangeType = Utils.GetArcPlaneFlangeType (startNormal, GetXForm ());
       switch (arcFlangeType) {
          case Utils.EFlange.Web:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y, arcFlangeType);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew ());
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, arcFlangeType);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Y, arcSt2CenVec.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew (),
+                  machine: Machine,
+                  mcCoordArcCenter, radius, mcCoordArcStPoint);
             break;
          case Utils.EFlange.Bottom:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y, arcFlangeType);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew ());
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew (),
+                  machine: Machine,
+                  mcCoordArcCenter, radius, mcCoordArcStPoint);
             break;
          case Utils.EFlange.Top:
             if (Utils.IsArc (arc))
                Utils.ArcMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, mcCoordArcEndPoint2D.X,
-                  mcCoordArcEndPoint2D.Y, arcFlangeType);
+                  mcCoordArcEndPoint2D.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew ());
             else
-               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType);
+               Utils.CircularMachining (sw, arcType, arcSt2CenVec.X, OrdinateAxis.Z, arcSt2CenVec.Y, arcFlangeType, PartConfigType,
+                  PartConfigType == PartConfigType.LHComponent ? mXformLHInv.InvertNew () : mXformRHInv.InvertNew (),
+                  machine: Machine,
+                  mcCoordArcCenter, radius, mcCoordArcStPoint);
             break;
          default:
             throw new ArgumentException ("Arc is ill-defined perhaps on the flex");
@@ -1390,10 +1580,12 @@ public class GCodeGenerator {
    public void MoveToMachiningStartPosition (Point3 toolingStartPosition, Vector3 toolingStartNormal, string toolingName) {
       // Linear Move to start machining tooling
       Point3 toolingStartPointWithMachineClearance = toolingStartPosition + toolingStartNormal * Standoff;
-      mTraces[(int)Head].Add (new (mToolPos[(int)Head], toolingStartPointWithMachineClearance,
+      if (!CreateDummyBlock4Master) {
+         mTraces[(int)Head].Add (new (mToolPos[(int)Head], toolingStartPointWithMachineClearance,
          mToolVec[(int)Head], toolingStartNormal, EGCode.G1, EMove.Retract2Machining, toolingName));
-      mToolPos[(int)Head] = toolingStartPointWithMachineClearance;
-      mToolVec[(int)Head] = toolingStartNormal;
+         mToolPos[(int)Head] = toolingStartPointWithMachineClearance;
+         mToolVec[(int)Head] = toolingStartNormal;
+      }
    }
 
    /// <summary>
@@ -1424,33 +1616,36 @@ public class GCodeGenerator {
          mcCoordEndPointWithMCClearance = XfmToMachine (endPointWithMCClearance);
          if (currFlangeType == Utils.EFlange.Bottom || currFlangeType == Utils.EFlange.Top)
             Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
-               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment);
+               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
          else if (currFlangeType == Utils.EFlange.Web)
             Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
-               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment);
+               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
          else
             Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
-               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment);
-
-         mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], endPointWithMCClearance,
+               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], endPointWithMCClearance,
             startNormal, endNormal, EGCode.G1, EMove.Machining, toolingName));
-         mToolPos[(int)Head] = endPointWithMCClearance;
-         mToolVec[(int)Head] = endNormal;
+            mToolPos[(int)Head] = endPointWithMCClearance;
+            mToolVec[(int)Head] = endNormal;
+         }
       } else {
          mcCoordEndPointWithMCClearance = XfmToMachine (endPointWithMCClearance);
          if (currFlangeType == Utils.EFlange.Top || currFlangeType == Utils.EFlange.Bottom)
             Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
-               lineSegmentComment);
+               lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
          else if (currFlangeType == Utils.EFlange.Web)
             Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
-               lineSegmentComment);
+               lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
          else
             Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y,
-               mcCoordEndPointWithMCClearance.Z, lineSegmentComment);
-         mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], endPointWithMCClearance,
+               mcCoordEndPointWithMCClearance.Z, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], endPointWithMCClearance,
             startNormal, endNormal, EGCode.G1, EMove.Machining, toolingName));
-         mToolPos[(int)Head] = endPointWithMCClearance;
-         mToolVec[(int)Head] = endNormal;
+            mToolPos[(int)Head] = endPointWithMCClearance;
+            mToolVec[(int)Head] = endNormal;
+         }
       }
    }
 
@@ -1462,7 +1657,7 @@ public class GCodeGenerator {
    /// <param name="endNormal">End normal of the current linear segment, needed for simulation data</param>
    /// <param name="toolingName">Name of the tooling</param>
    public void WriteLine (Point3 endPoint, Vector3 startNormal, Vector3 endNormal,
-      string toolingName) {
+      string toolingName, bool isFlexSection = false) {
       var endPointWithMCClearance = endPoint + endNormal * Standoff;
       Point3 mcCoordEndPointWithMCClearance;
       string lineSegmentComment = "";
@@ -1475,45 +1670,71 @@ public class GCodeGenerator {
       angleBetweenZAxisAndCurrToolingEndPoint = endNormal.AngleTo (XForm4.mZAxis).R2D ();
       mcCoordEndPointWithMCClearance = XfmToMachine (endPointWithMCClearance);
 
-      Utils.EFlange currFlangeType = Utils.GetArcPlaneFlangeType (startNormal, GetXForm ());
-      if (planeChange) {
-         if (currFlangeType == Utils.EFlange.Bottom || currFlangeType == Utils.EFlange.Top)
-            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
-               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment);
-         else if (currFlangeType == Utils.EFlange.Web)
-            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
-               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment);
-         else
-            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
-               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment);
+      // CHANGED FOR ANGLE
+      Vector3 stN, endN;
+      if (PartConfigType == PartConfigType.LHComponent) {
+         stN = mXformLHInv * startNormal;
+         endN = mXformLHInv * endNormal;
       } else {
-         if (currFlangeType == Utils.EFlange.Top || currFlangeType == Utils.EFlange.Bottom)
-            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
-               lineSegmentComment);
-         else if (currFlangeType == Utils.EFlange.Web)
-            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
-               lineSegmentComment);
-         else
-            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
-               lineSegmentComment);
+         stN = mXformRHInv * startNormal;
+         endN = mXformRHInv * endNormal;
       }
-      mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], endPointWithMCClearance,
+      var cross = Geom.Cross (stN, endN).Normalized ();
+      if (cross.Opposing (XForm4.mXAxis)) angleBetweenZAxisAndCurrToolingEndPoint *= -1;
+
+      Utils.EFlange currFlangeType = Utils.GetArcPlaneFlangeType (startNormal, GetXForm ());
+      if (isFlexSection)
+         Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
+               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+      else {
+         if (planeChange) {
+            if (currFlangeType == Utils.EFlange.Bottom || currFlangeType == Utils.EFlange.Top)
+               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
+                  angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+            else if (currFlangeType == Utils.EFlange.Web)
+               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
+                  angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+            else
+               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
+                  angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         } else {
+            if (currFlangeType == Utils.EFlange.Top || currFlangeType == Utils.EFlange.Bottom)
+               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
+                  lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+            else if (currFlangeType == Utils.EFlange.Web)
+               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
+                  lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+            else
+               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
+                  lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         }
+      }
+      if (!CreateDummyBlock4Master) {
+         mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], endPointWithMCClearance,
             startNormal, endNormal, EGCode.G1, EMove.Machining, toolingName));
-      mToolPos[(int)Head] = endPointWithMCClearance;
-      mToolVec[(int)Head] = endNormal;
+         mToolPos[(int)Head] = endPointWithMCClearance;
+         mToolVec[(int)Head] = endNormal;
+      }
    }
 
    /// <summary>
    /// This method writes G Code for the plane of the arc to be machined
    /// </summary>
    /// <param name="arcFlangeType">Arc Flange Type is a type of Utils.EFlange</param>
-   void WritePlaneForCircularMotionCommand (Utils.EFlange arcFlangeType, bool angleCorrection = false) {
-      switch (arcFlangeType) {
-         case Utils.EFlange.Web: sw.Write ("G17"); break;
-         case Utils.EFlange.Top: sw.Write ("G18"); break;
-         case Utils.EFlange.Bottom: sw.Write ("G18"); break;
-         default: break;
-      }
+   void WritePlaneForCircularMotionCommand (bool isFromWebFlange, bool angleCorrection = false) {
+      //switch (arcFlangeType) {
+      //   case Utils.EFlange.Web: 
+      //      sw.Write ("G17"); 
+      //      break;
+      //   case Utils.EFlange.Top: 
+      //   case Utils.EFlange.Bottom:
+      //   case Utils.EFlange.Flex:
+      //      sw.Write ("G18"); break;
+      //   default:
+      //      throw new Exception ("Flange Type (at normal) can't be None");
+      //}
+      if (isFromWebFlange) sw.Write ("G17");
+      else sw.Write ("G18");
       if (angleCorrection) sw.Write (" D=BlockAngle");
       sw.Write ("\t( Plane Selection : G17-XY Plane, G18-XZ Plane )");
       sw.WriteLine ();
@@ -1646,7 +1867,7 @@ public class GCodeGenerator {
    /// from the tooling segments of the tooling item, when the segments are modified for approach 
    /// distance by adding a quarter circular arc</param>
    /// <param name="bound">The bounding box of the tooling item</param>
-   ToolingSegment WriteTooling (List<ToolingSegment> toolingSegmentsList, Tooling toolingItem,
+   public ToolingSegment WriteTooling (List<ToolingSegment> toolingSegmentsList, Tooling toolingItem,
       Bound3 bound, double totalPrevCutToolingsLength, double totalToolingCutLength, /*double frameFeed*/
       double xStart, double xPartition, double xEnd) {
       ToolingSegment ts;
@@ -1659,6 +1880,8 @@ public class GCodeGenerator {
       // Write any feature other than notch
       MoveToMachiningStartPosition (curve.Start, CurveStartNormal, toolingItem.Name);
       {
+         var isMcFromOnWeb = Utils.IsMachiningFromWebFlange (toolingSegmentsList, 0);
+         WriteToolCorrectionData (toolingItem, isMcFromOnWeb);
          // Write all other features such as Holes, Cutouts and edge notches
          EnableMachiningDirective ();
          for (int i = 0; i < toolingSegmentsList.Count; i++) {
@@ -1713,9 +1936,11 @@ public class GCodeGenerator {
    /// bearing on the G Code that is being written. 
    /// </summary>
    void MoveToSafety () {
-      mTraces[(int)Head].Add (new (mSafePoint[(int)Head], mToolPos[(int)Head], XForm4.mZAxis, XForm4.mZAxis,
+      if (!CreateDummyBlock4Master) {
+         mTraces[(int)Head].Add (new (mSafePoint[(int)Head], mToolPos[(int)Head], XForm4.mZAxis, XForm4.mZAxis,
          EGCode.G0, EMove.Retract2SafeZ, "No tooling"));
-      mToolVec[(int)Head] = XForm4.mZAxis;
+         mToolVec[(int)Head] = XForm4.mZAxis;
+      }
    }
 
    /// <summary>
@@ -1729,10 +1954,12 @@ public class GCodeGenerator {
    public void MoveToRetract (Point3 endPt, Vector3 endNormal, string toolingName) {
       var toolingEPRetracted =
              Utils.MovePoint (endPt, endNormal, mRetractClearance);
-      mTraces[(int)Head].Add (new (mToolPos[(int)Head], toolingEPRetracted, endNormal, endNormal,
+      if (!CreateDummyBlock4Master) {
+         mTraces[(int)Head].Add (new (mToolPos[(int)Head], toolingEPRetracted, endNormal, endNormal,
          EGCode.G0, EMove.Retract, toolingName));
-      mToolPos[(int)Head] = toolingEPRetracted;
-      mToolVec[(int)Head] = endNormal.Normalized ();
+         mToolPos[(int)Head] = toolingEPRetracted;
+         mToolVec[(int)Head] = endNormal.Normalized ();
+      }
    }
 
    /// <summary>
@@ -1756,11 +1983,13 @@ public class GCodeGenerator {
             mSafeClearance);
          var mcCoordsPrevToolingEPRetractedSafeZ = XfmToMachine (prevToolingEPRetractedSafeZ);
          Utils.LinearMachining (sw, mcCoordsPrevToolingEPRetractedSafeZ.X, mcCoordsPrevToolingEPRetractedSafeZ.Y,
-            mcCoordsPrevToolingEPRetractedSafeZ.Z, 0, Rapid);
-         mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], prevToolingEPRetractedSafeZ, mToolVec[(int)Head],
+            mcCoordsPrevToolingEPRetractedSafeZ.Z, 0, Rapid, createDummyBlock4Master: CreateDummyBlock4Master);
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], prevToolingEPRetractedSafeZ, mToolVec[(int)Head],
             XForm4.mZAxis, EGCode.G0, EMove.Retract2SafeZ, prevToolingName));
-         mToolPos[(int)Head] = prevToolingEPRetractedSafeZ;
-         mToolVec[(int)Head] = XForm4.mZAxis;
+            mToolPos[(int)Head] = prevToolingEPRetractedSafeZ;
+            mToolVec[(int)Head] = XForm4.mZAxis;
+         }
       }
       (var currSegStCurve, var currSegStCurveStNormal, _) = currToolingSegs[0];
 
@@ -1772,12 +2001,14 @@ public class GCodeGenerator {
       var mcCoordsCurrToolingSPRetractedSafeZ = XfmToMachine (currToolingSPRetractedSafeZ);
       if (!isMark) {
          Utils.RapidPosition (sw, mcCoordsCurrToolingSPRetractedSafeZ.X, mcCoordsCurrToolingSPRetractedSafeZ.Y,
-            mcCoordsCurrToolingSPRetractedSafeZ.Z, 0);
-         mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingSPRetractedSafeZ, mToolVec[(int)Head],
+            mcCoordsCurrToolingSPRetractedSafeZ.Z, 0, createDummyBlock4Master: CreateDummyBlock4Master);
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingSPRetractedSafeZ, mToolVec[(int)Head],
             XForm4.mZAxis, EGCode.G0,
             EMove.SafeZ2SafeZ, currentToolingName));
-         mToolPos[(int)Head] = currToolingSPRetractedSafeZ;
-         mToolVec[(int)Head] = XForm4.mZAxis;
+            mToolPos[(int)Head] = currToolingSPRetractedSafeZ;
+            mToolVec[(int)Head] = XForm4.mZAxis;
+         }
       }
    }
 
@@ -1801,21 +2032,17 @@ public class GCodeGenerator {
       if (!isMark) {
          if (planeChangeNeeded) {
             Utils.LinearMachining (sw, mcCoordsCurrToolingStPtRetracted.X, mcCoordsCurrToolingStPtRetracted.Y,
-               mcCoordsCurrToolingStPtRetracted.Z, angleBetweenZAxisNcurrToolingStPt, Rapid, "Move to Piercing Position");
-         } else {
-            //var planeType = Utils.GetPlaneType (toolingStartNormalVec, GetXForm ());
-            //if (planeType == EPlane.YNeg || planeType == EPlane.YPos)
-            //   Utils.RapidPosition (sw, mcCoordsCurrToolingStPtRetracted.X, OrdinateAxis.Z, mcCoordsCurrToolingStPtRetracted.Z,
-            //      "Move to Piercing Position", UsePingPong ? "M1014" : "");
-            //else if (planeType == EPlane.Top)
-            //   Utils.RapidPosition (sw, mcCoordsCurrToolingStPtRetracted.X, OrdinateAxis.Y, mcCoordsCurrToolingStPtRetracted.Y,
-            //      "Move to Piercing Position", UsePingPong ? "M1014" : "");
+               mcCoordsCurrToolingStPtRetracted.Z, angleBetweenZAxisNcurrToolingStPt, Rapid, "Move to Piercing Position",
+               createDummyBlock4Master: CreateDummyBlock4Master);
+         } else
             RapidMoveToPiercingPosition (currToolingStPtRetracted, toolingStartNormalVec, usePingPongOption, comment);
-         }
-         mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingStPtRetracted,
+
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingStPtRetracted,
             mToolVec[(int)Head], toolingStartNormalVec, EGCode.G0, EMove.SafeZ2Retract, toolingName));
-         mToolPos[(int)Head] = currToolingStPtRetracted;
-         mToolVec[(int)Head] = toolingStartNormalVec.Normalized ();
+            mToolPos[(int)Head] = currToolingStPtRetracted;
+            mToolVec[(int)Head] = toolingStartNormalVec.Normalized ();
+         }
       }
    }
 
@@ -1876,6 +2103,7 @@ public class GCodeGenerator {
       Tooling prevToolingItem = null, bool isValidNotch = false, ToolingSegment? refSeg = null) {
       string comment = $"** Tooling Name : {toolingItem.Name} - {toolingItem.FeatType} **";
       OutN (sw, comment);
+      sw.WriteLine ("CutScopeNo={0}", mCutScopeNo);
       if (isValidNotch || toolingItem.IsCutout ()) mProgramNumber++;
       WriteBlockType (toolingItem, refSeg, isValidNotch, isFlexCut);
       double SplitEndX = xEnd;
@@ -1947,7 +2175,7 @@ public class GCodeGenerator {
       // Output X tool compensation
       if (Utils.GetPlaneType (toolingItem, GetXForm ()) == Utils.EPlane.Top) sw.WriteLine ($"G93 Z0 T1");
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
-      WritePlaneForCircularMotionCommand (Utils.GetFlangeType (toolingItem, GetXForm ()), angleCorrection: false);
+      //WritePlaneForCircularMotionCommand (Utils.GetFlangeType (toolingItem, GetXForm ()), angleCorrection: false);
       sw.WriteLine ("G61\t( Stop Block Preparation )");
       if (toolingItem.IsNotch () || toolingItem.IsCutout () && !toolingItem.IsFlexCutout ())
          sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH");
@@ -2017,15 +2245,17 @@ public class GCodeGenerator {
       // Output X tool compensation
       if (Utils.GetArcPlaneType (segmentNormal, GetXForm ()) == Utils.EPlane.Top) sw.WriteLine ($"G93 Z0 T1");
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
-      if (circularMotionCmd)
-         WritePlaneForCircularMotionCommand (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ()), angleCorrection: false);
-      else
-         throw new Exception ("G17/G18 not written");
+      //if (circularMotionCmd)
+      //WritePlaneForCircularMotionCommand (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ()), angleCorrection: false);
+      //else
+      //   throw new Exception ("G17/G18 not written");
       sw.WriteLine ("G61\t( Stop Block Preparation )");
       if (isShortPerimeterNotch)
-         sw.WriteLine ("PM=ENotch_PM CM=ENotch_CM EM=ENotch_EM ZRH=ENotch_YRH\t( Block Process Specific Parametes )");
+         sw.WriteLine ("PM=ENotch_PM CM=ENotch_CM EM=ENotch_EM ZRH=ENotch_YRH\t( Block Process Specific Parameters )");
+      else if (isFlexCut)
+         sw.WriteLine ("PM=Flex_PM CM=Flex_CM EM=Flex_EM ZRH=Flex_YRH\t( Block Process Specific Parameters )");
       else
-         sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parametes )");
+         sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parameters )");
       sw.WriteLine ("Update_Param\t( Update Cutting Parameters )");
       sw.WriteLine ($"Lead_In={NotchApproachLength:F3}\t( Approach Length )");
       sw.WriteLine ();
@@ -2065,7 +2295,7 @@ public class GCodeGenerator {
       sw.WriteLine ();
       sw.WriteLine ("( ** Notch: Tool Block Initialization ** )");
       sw.WriteLine ($"({comment})");
-      WriteProgramHeader (toolingItem, points, xStart, xPartition, xEnd, isLast, isFlexCut, prevToolingItem, isValidNotch: true, refSeg: refSeg);
+      WriteProgramHeader (toolingItem, points, xStart, xPartition, xEnd, isFlexCut, isLast, prevToolingItem, isValidNotch: true, refSeg: refSeg);
 
       if (offset > 0) {
          string sComment = offset switch {
@@ -2079,12 +2309,12 @@ public class GCodeGenerator {
       // Output X tool compensation
       if (Utils.GetArcPlaneType (segmentNormal, GetXForm ()) == Utils.EPlane.Top) sw.WriteLine ($"G93 Z0 T1");
       else sw.WriteLine ($"G93 Z=-Head_Height T1");
-      WritePlaneForCircularMotionCommand (Utils.GetFlangeType (toolingItem, GetXForm ()), angleCorrection: false);
+      //WritePlaneForCircularMotionCommand (Utils.GetFlangeType (toolingItem, GetXForm ()), angleCorrection: false);
       sw.WriteLine ("G61\t( Stop Block Preparation )");
-      if (shortPerimeterNotch)
-         sw.WriteLine ("PM=ENotch_PM CM=ENotch_CM EM=ENotch_EM ZRH=ENotch_YRH\t( Block Process Specific Parametes )");
+      if (isFlexCut)
+         sw.WriteLine ("PM=Flex_PM CM=Flex_CM EM=Flex_EM ZRH=Flex_YRH\t( Block Process Specific Parameters )");
       else
-         sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parametes )");
+         sw.WriteLine ("PM=Notch_PM CM=Notch_CM EM=Notch_EM ZRH=Notch_YRH\t( Block Process Specific Parameters )");
       sw.WriteLine ("Update_Param\t( Update Cutting Parameters )");
       sw.WriteLine ($"Lead_In={NotchApproachLength:F3}\t( Approach Length )");
       sw.WriteLine ();
@@ -2136,16 +2366,16 @@ public class GCodeGenerator {
 
 
    public void PrepareforToolApproach (Tooling toolingItem, List<ToolingSegment> modifiedToolingSegs,
-      ToolingSegment? lastToolingSegment, Tooling prevToolingItem,
+      ToolingSegment? prevToolingSegment, Tooling prevToolingItem,
       List<ToolingSegment> prevToolingSegs, bool firstTooling, bool isValidNotch) {
 
       if (firstTooling) MoveToSafety ();
-      else if (lastToolingSegment != null) MoveToRetract (lastToolingSegment.Value.Curve.End, lastToolingSegment.Value.Vec0, prevToolingItem?.Name);
+      else if (prevToolingSegment != null) MoveToRetract (prevToolingSegment.Value.Curve.End, prevToolingSegment.Value.Vec0, prevToolingItem?.Name);
       if (isValidNotch) {
          var notchEntry = Notch.GetNotchEntry (Process.Workpiece.Bound, toolingItem, mPercentLengths,
             NotchApproachLength, NotchWireJointDistance, !NotchWireJointDistance.EQ (0), mCurveLeastLength, toolingItem.FeatType.ToLower ().Contains ("split") ? 1e-4 : 1e-6);
-         if (lastToolingSegment != null)
-            MoveToNextTooling (lastToolingSegment.Value.Vec0, lastToolingSegment,
+         if (prevToolingSegment != null)
+            MoveToNextTooling (prevToolingSegment.Value.Vec0, prevToolingSegment,
             notchEntry.Item1, notchEntry.Item2.Normalized (), prevToolingItem != null ? prevToolingItem.Name : "",
             toolingItem.Name, firstTooling, toolingItem.IsMark ());
          else
@@ -2154,8 +2384,8 @@ public class GCodeGenerator {
             notchEntry.Item1, notchEntry.Item2.Normalized (), prevToolingItem != null ? prevToolingItem.Name : "",
             toolingItem.Name, firstTooling, toolingItem.IsMark ());
       } else {
-         if (lastToolingSegment != null)
-            MoveToNextTooling (lastToolingSegment.Value.Vec0, lastToolingSegment,
+         if (prevToolingSegment != null)
+            MoveToNextTooling (prevToolingSegment.Value.Vec0, prevToolingSegment,
             modifiedToolingSegs[0].Curve.Start, modifiedToolingSegs[0].Vec0,
             prevToolingItem != null ? prevToolingItem.Name : "",
             toolingItem.Name, firstTooling, toolingItem.IsMark ());
@@ -2168,20 +2398,16 @@ public class GCodeGenerator {
       }
    }
 
-   public void WriteToolCorrectionData (Tooling toolingItem) {
+   ToolingSegment? mPrevToolingSegment = null; // NEW_MEMBER
+   public void WriteToolCorrectionData (Tooling toolingItem, bool fromWebFlange) {
       if (!toolingItem.IsMark ()) {
          sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
-         bool validNotch = false;
-         if (toolingItem.IsNotch () && !(Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths,
-            NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0))))
-            validNotch = true;
-         if (validNotch)
-            WritePlaneForCircularMotionCommand (Utils.GetFlangeType (toolingItem, GetXForm ()), angleCorrection: validNotch);
+         WritePlaneForCircularMotionCommand (fromWebFlange, angleCorrection: true);
       }
       sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
    }
 
-   bool mShortPerimeterNotch = false;
+   bool mShortPerimeterNotch = false; // NEW_MEMBER
    /// <summary>
    /// This is the main method which prepares the machine with calling various pre-machining
    /// settings/macros, and then calls WriteTooling, which actually calls machining G Codes.
@@ -2200,17 +2426,10 @@ public class GCodeGenerator {
       // Compute the total tooling lengths of Hole, Cutouts and Notches
       double totalToolingCutLength = toolingItems.Where (a => (a.IsCutout () || a.IsHole ())).Sum (a => a.Perimeter);
 
-
       // For notches, compute the length
       foreach (var ti in toolingItems) {
          if (ti.IsNotch ()) {
             mPercentLengths = [0.25, 0.5, 0.75];
-            double tPerim = ti.Segs.Sum (ts => ts.Curve.Length);
-            if (tPerim < MinNotchLengthThreshold || (ti.Segs[^1].Curve.End.DistTo (ti.Segs.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
-               //mShortPerimeterNotch = true;
-               //mPercentLengths = [0.5]; // CHANGED_AGAIN
-               ;
-            }
             if (Notch.IsEdgeNotch (Process.Workpiece.Bound, ti, mPercentLengths, NotchApproachLength, mCurveLeastLength,
                !NotchWireJointDistance.EQ (0)))
                //totalToolingCutLength += ti.Perimeter;
@@ -2222,25 +2441,43 @@ public class GCodeGenerator {
          }
       }
       double totalMarkLength = Process.Workpiece.Cuts.Where (a => a.IsMark ()).Sum (a => a.Perimeter);
-      ToolingSegment? lastToolingSegment = null;
+      //ToolingSegment? lastToolingSegment = null;
       double prevCutToolingsLength = 0, prevMarkToolingsLength = 0;
 
       for (int i = 0; i < toolingItems.Count; i++) {
          ResetNotchCutoutBlockTypes ();
+
          Tooling toolingItem = toolingItems[i];
-
-         if (Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths, NotchApproachLength,
-            mCurveLeastLength, !NotchWireJointDistance.EQ (0)))
-            continue;
-
-         var pr = PartitionRatio;
-         var nwjDist = NotchWireJointDistance;
-         var nApproachDist = NotchApproachLength;
          // The following switches are for tests.
          if (!Cutouts) if (toolingItem.IsCutout ()) continue;
          if (!CutNotches) if (toolingItem.IsNotch ()) continue;
          if (!CutMarks) if (toolingItem.IsMark ()) continue;
          if (!CutHoles) if (toolingItem.IsHole ()) continue;
+
+         Feature feature = null;
+         if (toolingItem.IsHole () || toolingItem.IsMark ())
+            feature = new Hole (toolingItem, this, xStart, xEnd, xPartition,
+                           prevToolingSegs, mPrevToolingSegment, bound,
+                           prevCutToolingsLength, totalToolingCutLength,
+                           first, prevToolingItem, i == toolingItems.Count - 1,
+                           leastCurveLen: 0.5);
+         else if (toolingItem.IsNotch ()) {
+            Utils.EPlane previousPlaneType = Utils.EPlane.None;
+
+            // Write the Notch first
+            bool isWireJointsNeeded = !NotchWireJointDistance.EQ (0);
+            if (!isWireJointsNeeded)
+               mPercentLengths = [0.5];
+
+            feature = new Notch (toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, mPrevToolingSegment, prevToolingSegs, first,
+               previousPlaneType, xStart, xPartition, xEnd, NotchWireJointDistance,
+               NotchApproachLength, MinNotchLengthThreshold, mPercentLengths, prevCutToolingsLength, totalToolingCutLength,
+               isWireJointsNeeded: isWireJointsNeeded, curveLeastLength: mCurveLeastLength);
+         } else if (toolingItem.IsCutout ()) {
+            feature = new CutOut (this, toolingItem, prevToolingItem, prevToolingSegs,
+               mPrevToolingSegment, xStart, xPartition, xEnd, prevCutToolingsLength, prevMarkToolingsLength,
+               totalMarkLength, totalToolingCutLength, first);
+         }
 
          if (first) prevToolingItem = null;
          mProgramNumber = GetProgNo (toolingItem);
@@ -2266,61 +2503,9 @@ public class GCodeGenerator {
          bool isValidNotch = toolingItem.IsNotch () && !Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem,
             mPercentLengths, NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0));
 
-         List<ToolingSegment> modifiedToolingSegs = [];
-
-         // Assuming that the starting point of machining on a Cutout does not happen
-         // on the flex
-         if (toolingItem.IsHole () || toolingItem.IsMark ()) {
-            InitializeToolingBlock (toolingItem, prevToolingItem, /*frameFeed,*/
-               xStart, xPartition, xEnd, [.. toolingItem.Segs], /*isValidNotch:*/false, /*isFlexCut*/false,
-               i == toolingItems.Count - 1);
-            modifiedToolingSegs = GetSegmentsAccountedForApproachLength (toolingItem);
-            if (modifiedToolingSegs == null || modifiedToolingSegs?.Count == 0) continue;
-
-            PrepareforToolApproach (toolingItem, modifiedToolingSegs, lastToolingSegment, prevToolingItem, prevToolingSegs, first, isValidNotch);
-            int CCNo = Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web ? WebCCNo : FlangeCCNo;
-            if (toolingItem.IsCircle ()) {
-               var evalValue = Geom.EvaluateCenterAndRadius (toolingItem.Segs.ToList ()[0].Curve as Arc3);
-               if (mControlDiameter.Any (a => a.EQ (2 * evalValue.Item2))) CCNo = 4;
-            } else if (toolingItem.IsNotch ()) CCNo = 1;
-            int outCCNO = CCNo;
-            if (toolingItem.IsFlexCutout ()) outCCNO = 1;
-
-            // Output the Cutting offset. Customer need to cut hole slightly larger than given in geometry
-            // We are using G42 than G41 while cutting holes
-            // If we are reversing y and not reversing x. We are in 4th quadrant. Flip 42 or 41
-            // Tool diameter compensation
-            WriteToolCorrectionData (toolingItem);
-            if (!toolingItem.IsMark ())
-               // ** Machining **
-               lastToolingSegment = WriteTooling (modifiedToolingSegs, toolingItem, bound, prevCutToolingsLength, totalToolingCutLength, /*frameFeed*/
-                  xStart, xPartition, xEnd);
-         } else if (isValidNotch) {
-            Utils.EPlane previousPlaneType = Utils.EPlane.None;
-
-            // Write the Notch first
-            bool isWireJointsNeeded = !NotchWireJointDistance.EQ (0);
-            if (!isWireJointsNeeded)
-               mPercentLengths = [0.5];
-            Notch notch;
-            notch = new (toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, lastToolingSegment, prevToolingSegs, first,
-               previousPlaneType, xStart, xPartition, xEnd, NotchWireJointDistance,
-               NotchApproachLength, MinNotchLengthThreshold, mPercentLengths, prevCutToolingsLength, totalToolingCutLength,
-               isWireJointsNeeded: isWireJointsNeeded, curveLeastLength: mCurveLeastLength);
-
-            // Write the notch
-            notch.WriteTooling ();
-            mNotchAttributes.AddRange (NotchAttributes);
-            SetProgNo (toolingItem, mProgramNumber);
-            lastToolingSegment = notch.Exit;
-         } else if (toolingItem.IsCutout ()) {
-            CutOut co = new (this, toolingItem, prevToolingItem, prevToolingSegs,
-               lastToolingSegment, xStart, xPartition, xEnd, prevCutToolingsLength, prevMarkToolingsLength,
-               totalMarkLength, totalToolingCutLength, first);
-            co.WriteTooling ();
-            SetProgNo (toolingItem, mProgramNumber);
-            lastToolingSegment = co.LastToolingSegment;
-         }
+         List<ToolingSegment> modifiedToolingSegs = feature.ToolingSegments;
+         feature.WriteTooling ();
+         mPrevToolingSegment = feature.GetLastToolingSegment ();
 
          // ** Tooling block finalization - Start**
          if (!isValidNotch && !toolingItem.IsCutout ())
@@ -2417,14 +2602,18 @@ public class GCodeGenerator {
          Utils.EPlane currPlaneType = Utils.GetArcPlaneType (endNormal, GetXForm ());
          if (currPlaneType == EPlane.YPos || currPlaneType == EPlane.YNeg)
             Utils.RapidPosition (sw, mcCoordsToPointOffset.X, OrdinateAxis.Z, mcCoordsToPointOffset.Z, angle,
-               machine: Machine, slaveRun: IsDryRun, usePingPongOption && UsePingPong ? "M1014" : "", "Rapid Position with Clearance");
+               machine: Machine, createDummyBlock4Master: CreateDummyBlock4Master,
+               usePingPongOption && UsePingPong ? "M1014" : "", "Rapid Position with Clearance");
          else if (currPlaneType == EPlane.Top)
             Utils.RapidPosition (sw, mcCoordsToPointOffset.X, OrdinateAxis.Y, mcCoordsToPointOffset.Y, angle,
-               machine: Machine, slaveRun: IsDryRun, usePingPongOption && UsePingPong ? "M1014" : "", "Rapid Position with Clearance");
-         mTraces[(int)Head].Add (new (mToolPos[(int)Head], toPointOffset, endNormal, endNormal,
+               machine: Machine, createDummyBlock4Master: CreateDummyBlock4Master, usePingPongOption && UsePingPong ? "M1014" : "", "Rapid Position with Clearance");
+         
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new (mToolPos[(int)Head], toPointOffset, endNormal, endNormal,
            EGCode.G0, EMove.RapidPosition, toolingName));
-         mToolPos[(int)Head] = toPointOffset;
-         mToolVec[(int)Head] = endNormal.Normalized ();
+            mToolPos[(int)Head] = toPointOffset;
+            mToolVec[(int)Head] = endNormal.Normalized ();
+         }
       }
    }
 
@@ -2451,7 +2640,7 @@ public class GCodeGenerator {
    public void WriteWireJointTraceForNotch (ToolingSegment wjtSeg, Vector3 scrapSideNormal,
       Point3 lastPosition, double notchApproachDistance, ref Utils.EPlane prevPlaneType, Utils.EFlange currFlangeType, Tooling toolingItem,
       ref double blockCutLength, double totalCutLength, /*double frameFeed,*/
-      double xStart, double xPartition, double xEnd, string comment = "Notch: Wire Joint Jump Trace") {
+      double xStart, double xPartition, double xEnd, bool flexMachining, string comment = "Notch: Wire Joint Jump Trace") {
       Utils.EPlane currPlaneType = Utils.GetArcPlaneType (wjtSeg.Vec1, GetXForm ());
       var nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance;
 
@@ -2468,20 +2657,26 @@ public class GCodeGenerator {
          if (nextMachiningStart.X.SLT (Process.Workpiece.Bound.XMin))
             nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
       }
-      prevPlaneType = currPlaneType;
+      bool fromWebFlange = true;
+      if (Math.Abs (wjtSeg.Vec0.Y) > Math.Abs (wjtSeg.Vec0.Z)) fromWebFlange = false;
+
       var fromPt = GetLastToolHeadPosition ().Item1;
       List<Point3> pts = [];
       pts.Add (nextMachiningStart);
       pts.Add (wjtSeg.Curve.End);
       pts.Add (lastPosition);
+
+      bool isFromWebFlange = true;
+      if (Math.Abs (wjtSeg.Vec0.Y) > Math.Abs (wjtSeg.Vec0.Z))
+         isFromWebFlange = false;
+
       InitializeNotchToolingBlock (toolingItem, prevToolingItem: null, pts, wjtSeg.Vec1.Normalized (), xStart, xPartition,
-         xEnd, /*isFlexCut:*/ false, isLast: false, wjtSeg, comment);
+         xEnd, /*isFlexCut:*/ flexMachining, isLast: false, wjtSeg, comment);
       {
          WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
          RapidPositionWithClearance (nextMachiningStart, wjtSeg.Vec0, mRetractClearance, toolingItem.Name, isMark: false, usePingPongOption: true);
-         WriteToolCorrectionData (toolingItem);
-         RapidPositionWithClearance (nextMachiningStart, wjtSeg.Vec0, mRetractClearance, toolingItem.Name, isMark: false, usePingPongOption: false);
          MoveToMachiningStartPosition (nextMachiningStart, wjtSeg.Vec0, toolingItem.Name);
+         WriteToolCorrectionData (toolingItem, isFromWebFlange);
          EnableMachiningDirective ();
          {
             WriteLine (wjtSeg.Curve.End, wjtSeg.Vec1, wjtSeg.Vec1, currPlaneType, prevPlaneType,
@@ -2490,6 +2685,7 @@ public class GCodeGenerator {
          //DisableMachiningDirective ();
          blockCutLength += mToolPos[(int)Head].DistTo (fromPt);
       }
+      prevPlaneType = currPlaneType;
       //FinalizeNotchToolingBlock (toolingItem, blockCutLength, totalCutLength);
    }
 
@@ -2539,14 +2735,14 @@ public class GCodeGenerator {
 
    /// <summary>
    /// This method makes the tool move from previous tooling retract position, which is 
-   /// previous tooling end position away from the position by end normal of the previous tooling
-   /// TO the position, whose coordinates are X of the next tooling, Y of the next tooling and Z as safety
+   /// previous tooling end position away from the position by end normal of the previous tooling</summary>
+   /// TO the position, whose coordinates are X of the next tooling, Y of the next tooling and Z as safety<param name="prevToolingLastSegment"></param>
    /// value (28 mm).
-   /// </summary>
-   /// <param name="prevToolingSegs">Segments of the previous tooling</param>
    /// <param name="prevToolingName">Name of the previous tooling</param>
-   /// <param name="currToolingSegs">Segments of the current tooling.</param>
-   /// <param name="currentToolingName">Name of the current tooling</param>
+   /// <param name="currToolingStPoint"></param>
+   /// <param name="currToolingStNormal"></param>
+   /// <param name="currentToolingName"></param>
+   /// <param name="isMark"></param>
    public void MoveFromRetractToSafety (ToolingSegment? prevToolingLastSegment, string prevToolingName,
       Point3 currToolingStPoint, Vector3 currToolingStNormal, string currentToolingName, bool isMark) {
       if (prevToolingLastSegment != null) {
@@ -2558,11 +2754,14 @@ public class GCodeGenerator {
          var mcCoordsPrevToolingEPRetractedSafeZ = XfmToMachine (prevToolingEPRetractedSafeZ);
          if (!isMark)
             Utils.LinearMachining (sw, mcCoordsPrevToolingEPRetractedSafeZ.X, mcCoordsPrevToolingEPRetractedSafeZ.Y,
-               mcCoordsPrevToolingEPRetractedSafeZ.Z, 0, Rapid, comment: "", machine: Machine, slaveRun: IsDryRun);
-         mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], prevToolingEPRetractedSafeZ, mToolVec[(int)Head],
+               mcCoordsPrevToolingEPRetractedSafeZ.Z, 0, Rapid, comment: "", machine: Machine, createDummyBlock4Master: CreateDummyBlock4Master);
+         
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], prevToolingEPRetractedSafeZ, mToolVec[(int)Head],
             XForm4.mZAxis, EGCode.G0, EMove.Retract2SafeZ, prevToolingName));
-         mToolPos[(int)Head] = prevToolingEPRetractedSafeZ;
-         mToolVec[(int)Head] = XForm4.mZAxis;
+            mToolPos[(int)Head] = prevToolingEPRetractedSafeZ;
+            mToolVec[(int)Head] = XForm4.mZAxis;
+         }
       }
 
       // Move to the current tooling item start posotion safeZ
@@ -2573,11 +2772,14 @@ public class GCodeGenerator {
       var mcCoordsCurrToolingSPRetractedSafeZ = XfmToMachine (currToolingSPRetractedSafeZ);
       if (!isMark) {
          Utils.RapidPosition (sw, mcCoordsCurrToolingSPRetractedSafeZ.X, mcCoordsCurrToolingSPRetractedSafeZ.Y,
-            mcCoordsCurrToolingSPRetractedSafeZ.Z, 0, machine: Machine, slaveRun: IsDryRun);
-         mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingSPRetractedSafeZ, mToolVec[(int)Head].Length.EQ (0) ? XForm4.mZAxis : mToolVec[(int)Head], XForm4.mZAxis, EGCode.G0,
+            mcCoordsCurrToolingSPRetractedSafeZ.Z, 0, machine: Machine, createDummyBlock4Master: CreateDummyBlock4Master);
+
+         if (!CreateDummyBlock4Master) {
+            mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingSPRetractedSafeZ, mToolVec[(int)Head].Length.EQ (0) ? XForm4.mZAxis : mToolVec[(int)Head], XForm4.mZAxis, EGCode.G0,
             EMove.SafeZ2SafeZ, currentToolingName));
-         mToolPos[(int)Head] = currToolingSPRetractedSafeZ;
-         mToolVec[(int)Head] = XForm4.mZAxis;
+            mToolPos[(int)Head] = currToolingSPRetractedSafeZ;
+            mToolVec[(int)Head] = XForm4.mZAxis;
+         }
       }
    }
 
@@ -2625,10 +2827,10 @@ public class GCodeGenerator {
       comment = "Move to Piercing Position " + comment;
       if (planeType == EPlane.YNeg || planeType == EPlane.YPos)
          Utils.RapidPosition (sw, mcCoordsStPoint.X, OrdinateAxis.Z, mcCoordsStPoint.Z,
-            comment, (UsePingPong && usePingPongOption) ? "M1014" : "");
+            comment, (UsePingPong && usePingPongOption) ? "M1014" : "", createDummyBlock4Master: CreateDummyBlock4Master);
       else if (planeType == EPlane.Top)
          Utils.RapidPosition (sw, mcCoordsStPoint.X, OrdinateAxis.Y, mcCoordsStPoint.Y,
-            comment, (UsePingPong && usePingPongOption) ? "M1014" : "");
+            comment, (UsePingPong && usePingPongOption) ? "M1014" : "", createDummyBlock4Master: CreateDummyBlock4Master);
       sw.WriteLine ();
    }
 }

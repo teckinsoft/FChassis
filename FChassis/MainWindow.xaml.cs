@@ -31,10 +31,32 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       this.DataContext = this;
       Library.Init ("W:/FChassis/Data", "C:/FluxSDK/Bin", this);
+      Flux.API.Settings.IGESviaHOOPS = false;
 
       Area.Child = (UIElement)Lux.CreatePanel ();
 
-      Files.ItemsSource = System.IO.Directory.GetFiles (mSrcDir, "*.fx").Select (SPath.GetFileName);
+      string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
+      var fxFiles = new List<string> ();
+      if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper () == "FX") {
+         // Get FX files if the environment variable is set to "FX"
+         fxFiles = System.IO.Directory.GetFiles (mSrcDir, "*.fx")
+                                       .Select (System.IO.Path.GetFileName)
+                                       .ToList ();
+      }
+
+      // Get IGES and IGS files
+      var allowedExtensions = new[] { ".iges", ".igs", ".step", ".stp", ".dxf" , ".step"};
+      var igesFiles = System.IO.Directory.GetFiles (mSrcDir)
+                                          .Where (file => allowedExtensions.Contains (System.IO.Path.GetExtension (file).ToLower ()))
+                                          .Select (System.IO.Path.GetFileName)
+                                          .ToList ();
+
+      // Combine the two collections
+      var allFiles = igesFiles.Concat (fxFiles).ToList ();
+
+      // Assign the combined collection to ItemsSource
+      Files.ItemsSource = allFiles;
+
       Sys.SelectionChanged += OnSelectionChanged;
 #if DEBUG
       SanityCheckMenuItem.Visibility = Visibility.Visible;
@@ -215,7 +237,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       mProcess.TriggerRedraw += TriggerRedraw;
       mProcess.SetSimulationStatus += status => SimulationStatus = status;
       mProcess.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
-
+      
       SettingServices.It.LoadSettings (MCSettings.It);
       if (String.IsNullOrEmpty (MCSettings.It.NCFilePath))
          MCSettings.It.NCFilePath = Process?.Workpiece?.NCFilePath ?? "";
@@ -390,7 +412,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                                         mOverlay), mPart.Model.Bound);
 
       Work = new Workpiece (mPart.Model, mPart);
-      GCodeGenerator.EvaluateToolConfigXForms (Work);
+      
 
       // Clear the zombies if any
       mProcess?.ClearZombies ();
@@ -404,6 +426,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          if (MCSettings.It.RotateX180)
             Work.DeleteCuts ();
          mOverlay.Redraw ();
+         GCodeGenerator.EvaluateToolConfigXForms (Work);
       }
    }
 

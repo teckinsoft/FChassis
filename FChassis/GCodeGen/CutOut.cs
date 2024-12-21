@@ -2,7 +2,7 @@
 namespace FChassis.GCodeGen;
 
 
-public class CutOut {
+public class CutOut : Feature {
    // Constructor: Note that the parentheses after 'CutOut' have been removed
    public CutOut (GCodeGenerator gcgen, Tooling toolingItem,
       Tooling prevToolingItem, List<ToolingSegment> prevSegs, ToolingSegment? lastToolingSegment,
@@ -25,8 +25,8 @@ public class CutOut {
 
    // Property for GCodeGenerator
    public GCodeGenerator GCGen { get; set; }
-   public List<ToolingSegment> ToolingSegments { get; set; }
-   public ToolingSegment? LastToolingSegment { get => mLastToolingSegment; set => mLastToolingSegment = value; }
+   public override List<ToolingSegment> ToolingSegments { get; set; }
+   public override ToolingSegment? GetLastToolingSegment () => mLastToolingSegment;
 
    Tooling mPrevToolingItem;
    List<ToolingSegment> mPrevTlgSegs;
@@ -62,7 +62,7 @@ public class CutOut {
 
    // Method WriteNotch (currently empty, but defined for future use)
    void ClassifySegments () {
-      mSegValLists = new List<(List<ToolingSegment> Segs, bool FlexSegs)> ();
+      mSegValLists = [];
       ToolingSegments = GCGen.GetSegmentsAccountedForApproachLength (ToolingItem);
       if (ToolingSegments == null || ToolingSegments.Count == 0)
          throw new Exception ("Segments accounted for entry is null");
@@ -98,7 +98,7 @@ public class CutOut {
       }
    }
 
-   public void WriteTooling () {
+   public override void WriteTooling () {
       bool firstTime = true;
       for (int ii = 0; ii < mSegValLists.Count; ii++) {
          var (Segs, FlexSegs) = mSegValLists[ii];
@@ -106,8 +106,8 @@ public class CutOut {
          GCGen.InitializeToolingBlock (ToolingItem, mPrevToolingItem, /*frameFeed,*/
               mXStart, mXPartition, mXEnd, ToolingSegments, /*isValidNotch:*/false, ii == mSegValLists.Count - 1, FlexSegs);
          if (firstTime) {
-            GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mLastToolingSegment, mPrevToolingItem, mPrevTlgSegs, mIsFirstTooling, /*isValidNotch:*/false);
-            GCGen.WriteToolCorrectionData (ToolingItem);
+            GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mLastToolingSegment, mPrevToolingItem, 
+               mPrevTlgSegs, mIsFirstTooling, /*isValidNotch:*/false);
             firstTime = false;
          }
          WriteGCode (Segs);
@@ -127,6 +127,10 @@ public class CutOut {
       // Write any feature other than notch
       GCGen.MoveToMachiningStartPosition (curve.Start, CurveStartNormal, ToolingItem.Name);
       {
+         bool isFromWebFlange = true;
+         if (Math.Abs (toolingSegs[0].Vec0.Y) > Math.Abs (toolingSegs[0].Vec0.Z))
+            isFromWebFlange = false;
+         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebFlange);
          // Write all other features such as Holes, Cutouts and edge notches
          GCGen.EnableMachiningDirective ();
          for (int i = 0; i < toolingSegs.Count; i++) {
