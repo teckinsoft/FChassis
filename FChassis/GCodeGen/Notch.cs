@@ -255,8 +255,7 @@ public class Notch : Feature{
       var stToEndPtDist = mSegments[^1].Curve.End.DistTo (mSegments[0].Curve.Start);
       if (Notch.IsEdgeNotch (mGCodeGen.Process.Workpiece.Bound, toolingItem, percentlength, notchApproachLength, curveLeastLength, mIsWireJointsNeeded))
          EdgeNotch = true;
-      else if (mToolingPerimeter < MinNotchLengthThreshold ||
-            (stToEndPtDist.LTEQ (MinNotchLengthThreshold * 0.5))) {
+      else if (mToolingPerimeter < MinNotchLengthThreshold ) {
          mShortPerimeterNotch = true;
          mPercentLength = [0.5];
          mIsWireJointsNeeded = false;
@@ -1123,7 +1122,7 @@ public class Notch : Feature{
    /// <param name="notchPointsInfo">The structure that holds the index and the single 
    /// notch point</param>
    /// <param name="index">The index at which the split has happened</param>
-   void MergeSegments (ref List<ToolingSegment> splitToolSegs, ref List<ToolingSegment> segs, int segIndexToSplit) {
+   public static void MergeSegments (ref List<ToolingSegment> splitToolSegs, ref List<ToolingSegment> segs, int segIndexToSplit) {
       if (splitToolSegs.Count > 1) {
          segs.RemoveAt (segIndexToSplit);
          segs.InsertRange (segIndexToSplit, splitToolSegs);
@@ -1405,6 +1404,7 @@ public class Notch : Feature{
       // Split the curves and modify the indices and segments in segments and
       // in mNotchPointsInfo
       SplitToolingSegmentsAtPoints (ref mSegments, ref mNotchPointsInfo, mPercentLength, mCurveLeastLength, mIsWireJointsNeeded, mSplit ? 1e-4 : 1e-6);
+      mFlexIndices = GetFlexSegmentIndices (mSegments);
       int ix = 0;
       for (int ii = 0; ii < mNotchPointsInfo.Count; ii++) {
          for (int jj = 0; jj < mNotchPointsInfo[ii].mPoints.Count; jj++)
@@ -1426,6 +1426,7 @@ public class Notch : Feature{
       // a small strip (wire notch distance) to hold on to the otherwise cut parts, which require a minimal
       // physical force to cut away the scrap side material
       ComputeWireJointPositionsOnFlanges (mSegments, mNotchPoints, ref mNotchPointsInfo, mNotchWireJointDistance, mApproachIndex);
+      mFlexIndices = GetFlexSegmentIndices (mSegments);
       Utils.CheckSanityNotchPointsInfo (mSegments, mNotchPointsInfo, mSplit ? 1e-4 : 1e-6);
 
       // Compute the wire joint positions on the flexes. The start and end positions of the 
@@ -1655,6 +1656,8 @@ public class Notch : Feature{
    //   }
    //   return (n1, nMid1, flangeBoundaryEnd, n2, nMid2, notchPointAtApproachpc);
    //}
+
+
    /// <summary>
    /// This method computes the notch positions fo the entry machining to the 
    /// notch profile. The tool first reaches the position namely, n1, which is 
@@ -2019,6 +2022,9 @@ public class Notch : Feature{
                }
             case NotchSectionType.WireJointTraceJumpForward:
             case NotchSectionType.WireJointTraceJumpReverse:
+               // DEBUG
+               var head = mGCodeGen.Head;
+
                NotchAttribute notchAttr;
                if (notchSequence.mSectionType == NotchSectionType.WireJointTraceJumpForward)
                   notchAttr = ComputeNotchAttribute (mFullPartBound, mToolingItem, mSegments, notchSequence.mStartIndex,
@@ -2674,6 +2680,27 @@ public class Notch : Feature{
          notchAttrs.Add (newNotchAttr);
       }
       return notchAttrs;
+   }
+
+   public static void CorrectFirstAndLastSegments(ref List<ToolingSegment> segments, ECutKind notchCutKind) {
+      if ( ((notchCutKind == ECutKind.Top2YNeg || notchCutKind == ECutKind.YNeg) &&
+         Geom.IsEqual (segments[0].Vec0.Normalized (), XForm4.mNegYAxis) &&
+         !Geom.IsEqual (segments[0].Vec1.Normalized (), XForm4.mNegYAxis) ) ||
+         ((notchCutKind == ECutKind.Top2YPos || notchCutKind == ECutKind.YPos) &&
+         Geom.IsEqual (segments[0].Vec0.Normalized (), XForm4.mYAxis) &&
+         !Geom.IsEqual (segments[0].Vec1.Normalized (), XForm4.mYAxis))) {
+         // Split curve 3 mm before. Start to split point, both the normals same. 
+         // split curve, the first point with old end point normal to 0th seg, 
+         // second point with seg's old end normal.
+         var (newPtOnSeg, segIndexToSplit) = Geom.GetToolingPointAndIndexAtLength (segments, 0,
+            3, true);
+         var splitToolSegs = Utils.SplitToolingSegmentsAtPoint (segments, segIndexToSplit, newPtOnSeg,
+            segments[0].Vec0.Normalized ()/*, tolerance: mSplit ? 1e-4 : 1e-6*/);
+
+         // Make the NotchPointsInfo to contain unique entries by having unique index of the
+         // tooling segments list per point (notch or wire joint)
+         MergeSegments (ref splitToolSegs, ref segments, segIndexToSplit);
+      }
    }
 }
 #endregion

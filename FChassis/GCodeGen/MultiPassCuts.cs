@@ -531,7 +531,7 @@ public class CutScope {
    /// <param name="splitNonNotches">Boolean switch if non-notches have to be split</param>
    /// <returns>Returns the tuple of List of tool scopes and a bool flag if the initial list has been modified by split</returns>
    public static Tuple<List<ToolingScope>, bool> SplitToolingScopesAtIxn (List<ToolingScope> tss, double ixnX,
-      Bound3 bound, double thresholdLength = -1, bool splitNotches = true, bool splitNonNotches = false) {
+      Bound3 bound, GCodeGenerator gcGen, double thresholdLength = -1, bool splitNotches = true, bool splitNonNotches = false) {
       var res = tss;
       bool listModified = false;
       for (int ii = 0; ii < res.Count; ii++) {
@@ -555,6 +555,8 @@ public class CutScope {
             // Split segments of ts1.Tooling
             ts1.Tooling.Segs = Utils.SplitNotchToScope (ts1, ts1.mIsLeftToRight, bound, 1e-4);
             ts1.Tooling.Bound3 = Utils.CalculateBound3 (ts1.Tooling.Segs, bound);
+            ts1.Tooling.NotchKind = Tooling.GetCutKind (ts1.Tooling, gcGen.GetXForm());
+            ts1.Tooling.ProfileKind = Tooling.GetCutKind (ts1.Tooling, XForm4.IdentityXfm);
 
             ToolingScope ts2 = new (ts.Tooling, ii + 1, ts.mIsLeftToRight) {
                StartX = ixnX,
@@ -566,6 +568,8 @@ public class CutScope {
             // Split segments of ts2.Tooling
             ts2.Tooling.Segs = Utils.SplitNotchToScope (ts2, ts2.mIsLeftToRight, bound, 1e-4);
             ts2.Tooling.Bound3 = Utils.CalculateBound3 (ts2.Tooling.Segs, bound);
+            ts2.Tooling.NotchKind = Tooling.GetCutKind (ts2.Tooling, gcGen.GetXForm ());
+            ts2.Tooling.ProfileKind = Tooling.GetCutKind (ts2.Tooling, XForm4.IdentityXfm);
 
             // Insert two new elements at the same index i
             res.Insert (ii, ts1);
@@ -883,8 +887,10 @@ public class MultiPassCuts {
          var notchesIxnDeadBand = cs.DeadBandCutScope.NotchesIntersect ();
          // Split intersectingScopes if they are notches
          (mpc.ToolingScopes, splitToolScopes1) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
+                              mpc.mGC,
                               thresholdLength: 100, splitNotches: true, splitNonNotches: false);
          (mpc.ToolingScopes, splitToolScopes2) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
+                              mpc.mGC,
                               thresholdLength: 100, splitNotches: true, splitNonNotches: false);
 
          if (splitToolScopes1 || splitToolScopes1) {
@@ -963,10 +969,10 @@ public class MultiPassCuts {
                bool splitToolScopes = false;
                if (passType == PassType.CutScope)
                   (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMin, mpc.Bound,
-                           thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+                           mpc.mGC,thresholdLength: 100, splitNotches: true, splitNonNotches: false);
                else
                   (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.StartX, mpc.Bound,
-                           thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+                           mpc.mGC, thresholdLength: 100, splitNotches: true, splitNonNotches: false);
 
                // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
                if (splitToolScopes) {
@@ -980,10 +986,10 @@ public class MultiPassCuts {
                splitToolScopes = false;
                if (passType == PassType.CutScope)
                   (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, currDBScope.XMax, mpc.Bound,
-                           thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+                           mpc.mGC, thresholdLength: 100, splitNotches: true, splitNonNotches: false);
                else
                   (mpc.ToolingScopes, splitToolScopes) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound,
-                              thresholdLength: 100, splitNotches: true, splitNonNotches: false);
+                              mpc.mGC, thresholdLength: 100, splitNotches: true, splitNonNotches: false);
 
                // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
                if (splitToolScopes) {
@@ -1074,7 +1080,7 @@ public class MultiPassCuts {
                ((ixnNotches[0].EndX.SGT (endXPos) && mpc.mIsLeftToRight))))) {
                if ((Math.Abs (ixnNotches[0].StartX - ixnNotches[0].EndX).SGT (maxScopeLength))) {
                   (mpc.ToolingScopes, split2) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, endXPos, mpc.Bound,
-                     thresholdLength: maxScopeLength, splitNotches: true, splitNonNotches: true);
+                     mpc.mGC, thresholdLength: maxScopeLength, splitNotches: true, splitNonNotches: true);
 
                   // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
                   if (split2) {
@@ -1115,7 +1121,7 @@ public class MultiPassCuts {
                   // After splitting the notch into two, Sort and gether tool scopes that are outside the dead band
 
                   (mpc.ToolingScopes, split1) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, endXPos, mpc.Bound,
-                     thresholdLength: -1, splitNotches: true, splitNonNotches: false);
+                     mpc.mGC, thresholdLength: -1, splitNotches: true, splitNonNotches: false);
                   if (split1) {
                      CutScope.SortAndReIndex (ref mpc, mpc.mIsLeftToRight);
                      cs.CategorizeToolings ();

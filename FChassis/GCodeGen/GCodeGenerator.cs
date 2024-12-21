@@ -253,8 +253,8 @@ public class GCodeGenerator {
    List<List<GCodeSeg>[]> mCutScopeTraces = [];
    public List<List<GCodeSeg>[]> CutScopeTraces => mCutScopeTraces;
    public Processor Process { get => mProcess; set => mProcess = value; }
-   //List<NotchAttribute> mNotchAttributes = [];
-   //public List<NotchAttribute> NotchAttributes { get { return mNotchAttributes; } }
+   List<NotchAttribute> mNotchAttributes = [];
+   public List<NotchAttribute> NotchAttributes { get { return mNotchAttributes; } }
    public List<MachinableCutScope> MachinableCutScopes { get; private set; }
    #endregion
 
@@ -2398,7 +2398,22 @@ public class GCodeGenerator {
       }
    }
 
-   ToolingSegment? mPrevToolingSegment = null; // NEW_MEMBER
+   //public void WriteToolCorrectionData (Tooling toolingItem, bool isFromWebFlange) {
+   //   if (!toolingItem.IsMark ()) {
+   //      sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
+   //      bool validNotch = false;
+   //      if (toolingItem.IsNotch () && !(Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths,
+   //         NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0))))
+   //         validNotch = true;
+   //      if (validNotch) {
+   //         WritePlaneForCircularMotionCommand (isFromWebFlange, angleCorrection: true);
+   //      }
+   //   }
+   //   sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
+   //}
+
+
+   ToolingSegment? mPrevToolingSegment = null;
    public void WriteToolCorrectionData (Tooling toolingItem, bool fromWebFlange) {
       if (!toolingItem.IsMark ()) {
          sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
@@ -2407,7 +2422,7 @@ public class GCodeGenerator {
       sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
    }
 
-   bool mShortPerimeterNotch = false; // NEW_MEMBER
+   bool mShortPerimeterNotch = false;
    /// <summary>
    /// This is the main method which prepares the machine with calling various pre-machining
    /// settings/macros, and then calls WriteTooling, which actually calls machining G Codes.
@@ -2426,10 +2441,17 @@ public class GCodeGenerator {
       // Compute the total tooling lengths of Hole, Cutouts and Notches
       double totalToolingCutLength = toolingItems.Where (a => (a.IsCutout () || a.IsHole ())).Sum (a => a.Perimeter);
 
+
       // For notches, compute the length
       foreach (var ti in toolingItems) {
          if (ti.IsNotch ()) {
             mPercentLengths = [0.25, 0.5, 0.75];
+            //double tPerim = ti.Segs.Sum (ts => ts.Curve.Length);
+            //if (tPerim < MinNotchLengthThreshold || (ti.Segs[^1].Curve.End.DistTo (ti.Segs.First ().Curve.Start).LTEQ (MinNotchLengthThreshold))) {
+            //   //mShortPerimeterNotch = true;
+            //   //mPercentLengths = [0.5]; // CHANGED_AGAIN
+            //   ;
+            //}
             if (Notch.IsEdgeNotch (Process.Workpiece.Bound, ti, mPercentLengths, NotchApproachLength, mCurveLeastLength,
                !NotchWireJointDistance.EQ (0)))
                //totalToolingCutLength += ti.Perimeter;
@@ -2469,15 +2491,25 @@ public class GCodeGenerator {
             if (!isWireJointsNeeded)
                mPercentLengths = [0.5];
 
-            feature = new Notch (toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, mPrevToolingSegment, prevToolingSegs, first,
+            feature = new Notch(toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, mPrevToolingSegment, prevToolingSegs, first,
                previousPlaneType, xStart, xPartition, xEnd, NotchWireJointDistance,
                NotchApproachLength, MinNotchLengthThreshold, mPercentLengths, prevCutToolingsLength, totalToolingCutLength,
                isWireJointsNeeded: isWireJointsNeeded, curveLeastLength: mCurveLeastLength);
-         } else if (toolingItem.IsCutout ()) {
-            feature = new CutOut (this, toolingItem, prevToolingItem, prevToolingSegs,
+         }else if (toolingItem.IsCutout ()) {
+            feature = new CutOut(this, toolingItem, prevToolingItem, prevToolingSegs,
                mPrevToolingSegment, xStart, xPartition, xEnd, prevCutToolingsLength, prevMarkToolingsLength,
                totalMarkLength, totalToolingCutLength, first);
          }
+
+         //if (Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths, NotchApproachLength,
+         //   mCurveLeastLength, !NotchWireJointDistance.EQ (0)))
+         //   continue;
+
+
+         //var pr = PartitionRatio;
+         //var nwjDist = NotchWireJointDistance;
+         //var nApproachDist = NotchApproachLength;
+         
 
          if (first) prevToolingItem = null;
          mProgramNumber = GetProgNo (toolingItem);
@@ -2503,9 +2535,66 @@ public class GCodeGenerator {
          bool isValidNotch = toolingItem.IsNotch () && !Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem,
             mPercentLengths, NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0));
 
-         List<ToolingSegment> modifiedToolingSegs = feature.ToolingSegments;
+         List<ToolingSegment> modifiedToolingSegs = [];
+
          feature.WriteTooling ();
          mPrevToolingSegment = feature.GetLastToolingSegment ();
+         // Assuming that the starting point of machining on a Cutout does not happen
+         // on the flex
+         if (toolingItem.IsHole () || toolingItem.IsMark ()) {
+            
+            //InitializeToolingBlock (toolingItem, prevToolingItem, /*frameFeed,*/
+            //   xStart, xPartition, xEnd, [.. toolingItem.Segs], /*isValidNotch:*/false, /*isFlexCut*/false,
+            //   i == toolingItems.Count - 1);
+            //modifiedToolingSegs = GetSegmentsAccountedForApproachLength (toolingItem);
+            //if (modifiedToolingSegs == null || modifiedToolingSegs?.Count == 0) continue;
+
+            //PrepareforToolApproach (toolingItem, modifiedToolingSegs, mPrevToolingSegment, prevToolingItem, prevToolingSegs, first, isValidNotch);
+            
+            
+            ////int CCNo = Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web ? WebCCNo : FlangeCCNo;
+            ////if (toolingItem.IsCircle ()) {
+            ////   var evalValue = Geom.EvaluateCenterAndRadius (toolingItem.Segs.ToList ()[0].Curve as Arc3);
+            ////   if (mControlDiameter.Any (a => a.EQ (2 * evalValue.Item2))) CCNo = 4;
+            ////} else if (toolingItem.IsNotch ()) CCNo = 1;
+            ////int outCCNO = CCNo;
+            ////if (toolingItem.IsFlexCutout ()) outCCNO = 1;
+
+            //// Output the Cutting offset. Customer need to cut hole slightly larger than given in geometry
+            //// We are using G42 than G41 while cutting holes
+            //// If we are reversing y and not reversing x. We are in 4th quadrant. Flip 42 or 41
+            //// Tool diameter compensation
+            //if (!toolingItem.IsMark ())
+            //   // ** Machining **
+            //   mPrevToolingSegment = WriteTooling (modifiedToolingSegs, toolingItem, bound, prevCutToolingsLength, totalToolingCutLength, /*frameFeed*/
+            //      xStart, xPartition, xEnd);
+         } else if (isValidNotch) {
+            //Utils.EPlane previousPlaneType = Utils.EPlane.None;
+
+            //// Write the Notch first
+            //bool isWireJointsNeeded = !NotchWireJointDistance.EQ (0);
+            //if (!isWireJointsNeeded)
+            //   mPercentLengths = [0.5];
+            //Notch notch;
+            //notch = new (toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, mPrevToolingSegment, prevToolingSegs, first,
+            //   previousPlaneType, xStart, xPartition, xEnd, NotchWireJointDistance,
+            //   NotchApproachLength, MinNotchLengthThreshold, mPercentLengths, prevCutToolingsLength, totalToolingCutLength,
+            //   isWireJointsNeeded: isWireJointsNeeded, curveLeastLength: mCurveLeastLength);
+
+            //// Write the notch
+            //notch.WriteTooling ();
+            //mNotchAttributes.AddRange (NotchAttributes);
+            //SetProgNo (toolingItem, mProgramNumber);
+            //mPrevToolingSegment = notch.Exit;
+            // Write the notch
+
+            
+            mNotchAttributes.AddRange (NotchAttributes);
+            SetProgNo (toolingItem, mProgramNumber);
+            
+         } else if (toolingItem.IsCutout ()) {
+            SetProgNo (toolingItem, mProgramNumber);
+         }
 
          // ** Tooling block finalization - Start**
          if (!isValidNotch && !toolingItem.IsCutout ())
@@ -2647,13 +2736,13 @@ public class GCodeGenerator {
       // Changes to accommodate the length of the wire joint machining start point away from
       // tooling profile. If the length is more than the part boundary itself, the notch approach
       // length is to be halved
-      if (scrapSideNormal.Dot (XForm4.mZAxis * -1.0).SGT (0)) {
+      if (scrapSideNormal.Dot (XForm4.mNegZAxis).SGT (0)) {
          if (nextMachiningStart.Z.SLT (Process.Workpiece.Bound.ZMin))
             nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
       } else if (scrapSideNormal.Dot (XForm4.mXAxis).SGT (0)) {
          if (nextMachiningStart.X.SGT (Process.Workpiece.Bound.XMax))
             nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
-      } else if (scrapSideNormal.Dot (XForm4.mXAxis * -1).SGT (0)) {
+      } else if (scrapSideNormal.Dot (XForm4.mNegXAxis).SGT (0)) {
          if (nextMachiningStart.X.SLT (Process.Workpiece.Bound.XMin))
             nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
       }
