@@ -11,15 +11,6 @@ namespace FChassis.GCodeGen;
 
 using static FChassis.MCSettings;
 using static FChassis.Utils;
-using NotchAttribute = Tuple<
-        Curve3, // Split curve, whose end point is the notch point
-        Vector3, // Start Normal
-        Vector3, // End Normal
-        Vector3, // Outward Normal along flange
-        Vector3, // Vector Outward to nearest boundary
-        XForm4.EAxis, // Proximal boundary direction
-        bool>; // Some boolean value 
-using CutScopeToolingList = List<(List<Tooling> ToolingList, double XMin, double XMax)>;
 
 /// <summary>
 /// The following class parses any G Code and caches the G0 and G1 segments. Work is 
@@ -2364,16 +2355,16 @@ public class GCodeGenerator {
       sw.WriteLine ("G40 E1"); // Cancel tool diameter compensation
    }
 
-
+#nullable enable
    public void PrepareforToolApproach (Tooling toolingItem, List<ToolingSegment> modifiedToolingSegs,
       ToolingSegment? prevToolingSegment, Tooling prevToolingItem,
-      List<ToolingSegment> prevToolingSegs, bool firstTooling, bool isValidNotch) {
+      List<ToolingSegment> prevToolingSegs, bool firstTooling, bool isValidNotch,
+      Tuple<Point3,Vector3>? notchEntry = null) {
 
       if (firstTooling) MoveToSafety ();
       else if (prevToolingSegment != null) MoveToRetract (prevToolingSegment.Value.Curve.End, prevToolingSegment.Value.Vec0, prevToolingItem?.Name);
       if (isValidNotch) {
-         var notchEntry = Notch.GetNotchEntry (Process.Workpiece.Bound, toolingItem, mPercentLengths,
-            NotchApproachLength, NotchWireJointDistance, !NotchWireJointDistance.EQ (0), mCurveLeastLength, toolingItem.FeatType.ToLower ().Contains ("split") ? 1e-4 : 1e-6);
+         ArgumentNullException.ThrowIfNull (notchEntry);
          if (prevToolingSegment != null)
             MoveToNextTooling (prevToolingSegment.Value.Vec0, prevToolingSegment,
             notchEntry.Item1, notchEntry.Item2.Normalized (), prevToolingItem != null ? prevToolingItem.Name : "",
@@ -2397,21 +2388,7 @@ public class GCodeGenerator {
                toolingItem.Name, firstTooling, toolingItem.IsMark ());
       }
    }
-
-   //public void WriteToolCorrectionData (Tooling toolingItem, bool isFromWebFlange) {
-   //   if (!toolingItem.IsMark ()) {
-   //      sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
-   //      bool validNotch = false;
-   //      if (toolingItem.IsNotch () && !(Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths,
-   //         NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0))))
-   //         validNotch = true;
-   //      if (validNotch) {
-   //         WritePlaneForCircularMotionCommand (isFromWebFlange, angleCorrection: true);
-   //      }
-   //   }
-   //   sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
-   //}
-
+#nullable restore
 
    ToolingSegment? mPrevToolingSegment = null;
    public void WriteToolCorrectionData (Tooling toolingItem, bool fromWebFlange) {
@@ -2746,9 +2723,7 @@ public class GCodeGenerator {
          if (nextMachiningStart.X.SLT (Process.Workpiece.Bound.XMin))
             nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
       }
-      bool fromWebFlange = true;
-      if (Math.Abs (wjtSeg.Vec0.Y) > Math.Abs (wjtSeg.Vec0.Z)) fromWebFlange = false;
-
+      
       var fromPt = GetLastToolHeadPosition ().Item1;
       List<Point3> pts = [];
       pts.Add (nextMachiningStart);

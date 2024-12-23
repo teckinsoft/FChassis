@@ -1248,7 +1248,7 @@ public class XForm4 {
    public static readonly Vector3 mZAxis = new (0, 0, 1);
    public static readonly Vector3 mYAxis = new (0, 1, 0);
    public static readonly Vector3 mXAxis = new (1, 0, 0);
-   public static readonly Vector3 mNegZAxis = new (0, 0, -11);
+   public static readonly Vector3 mNegZAxis = new (0, 0, -1);
    public static readonly Vector3 mNegYAxis = new (0, -1, 0);
    public static readonly Vector3 mNegXAxis = new (-1, 0, 0);
    public static readonly XForm4 IdentityXfm = new ();

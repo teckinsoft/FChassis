@@ -7,9 +7,12 @@ using System.Threading.Tasks;
 using System.Windows.Navigation;
 
 namespace FChassis.GCodeGen;
+
+/// <summary>
+/// The Hole class represents cut holes exclusive to flanges.
+/// </summary>
 public class Hole : Feature {
-   public Tooling ToolingItem { get; set; }
-   public GCodeGenerator GCGen;
+   #region Data Members
    double mLeastCurveLength = 0.5;
    Tooling mPrevToolingItem = null;
    bool mIsLastToolingItem = false;
@@ -18,9 +21,24 @@ public class Hole : Feature {
    bool mIsFirstTooling = false;
    ToolingSegment? mPrevToolingSegment;
    Bound3 mBound;
+   
+   // Local copy of tooling segments which are modified 
+   // for G code writing. This is not same as Tooling.Segs
+   // and do not use Tooling.Segs for holes.
    List<ToolingSegment> mToolingSegments = [];
    ToolingSegment? mLastToolingSegment;
    double mTotalToolingCutLength, mPrevCutToolingsLength;
+   #endregion
+
+   #region External References
+   public GCodeGenerator GCGen;
+   #endregion
+
+   #region Properties
+   public Tooling ToolingItem { get; set; }
+   #endregion
+
+   #region Constructor(s)
    public Hole (Tooling toolingItem, GCodeGenerator gcgen, double xStart, double xEnd, double xPartition,
       List<ToolingSegment> prevToolingSegs, ToolingSegment? prevToolingSegment, Bound3 bound,
       double prevCutToolingsLength, double totalToolingCutLength,
@@ -39,9 +57,26 @@ public class Hole : Feature {
       mTotalToolingCutLength = totalToolingCutLength;
       mToolingSegments = Utils.GetSegmentsAccountedForApproachLength (ToolingItem, GCGen, mLeastCurveLength);
    }
-   public override List<ToolingSegment> ToolingSegments { get => mToolingSegments; set => mToolingSegments = value; }
-   public override ToolingSegment? GetLastToolingSegment () => mLastToolingSegment;
+   #endregion
 
+   #region Base class overriders
+   /// <summary>
+   /// Returns the modified Tooling Segments
+   /// </summary>
+   public override List<ToolingSegment> ToolingSegments { get => mToolingSegments; set => mToolingSegments = value; }
+   
+   /// <summary>
+   /// Returns the last tooling segment of the segments that this hole feature 
+   /// is made of
+   /// </summary>
+   /// <returns></returns>
+   public override ToolingSegment? GetLastToolingSegment () => mLastToolingSegment;
+   #endregion
+
+   #region G Code Writers
+   /// <summary>
+   /// This method actually writes the G Code
+   /// </summary>
    public override void WriteTooling () {
       GCGen.InitializeToolingBlock (ToolingItem, mPrevToolingItem, /*frameFeed,*/
                mXStart, mXPartition, mXEnd, ToolingSegments, /*isValidNotch:*/false, /*isFlexCut*/false,
@@ -49,7 +84,8 @@ public class Hole : Feature {
 
       if (ToolingSegments == null || ToolingSegments?.Count == 0) return;
 
-      GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mPrevToolingSegment, mPrevToolingItem, mPrevToolingSegs, mIsFirstTooling, isValidNotch:false);
+      GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mPrevToolingSegment, mPrevToolingItem,
+         mPrevToolingSegs, mIsFirstTooling, isValidNotch: false);
       //int CCNo = Utils.GetFlangeType (ToolingItem, GCGen.GetXForm ()) == Utils.EFlange.Web ? WebCCNo : FlangeCCNo;
       //if (toolingItem.IsCircle ()) {
       //   var evalValue = Geom.EvaluateCenterAndRadius (ToolingItem.Segs.ToList ()[0].Curve as Arc3);
@@ -68,5 +104,6 @@ public class Hole : Feature {
       mLastToolingSegment = GCGen.WriteTooling (ToolingSegments, ToolingItem, mBound, mPrevCutToolingsLength, mTotalToolingCutLength, /*frameFeed*/
             mXStart, mXPartition, mXEnd);
    }
+   #endregion
 }
 

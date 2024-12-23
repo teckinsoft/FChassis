@@ -11,16 +11,17 @@ using System.Xml.Linq;
 using static System.Math;
 namespace FChassis;
 
-using NotchAttribute = Tuple<
-        Curve3, // Split curve, whose end point is the notch point
-        Vector3, // Start Normal
-        Vector3, // End Normal
-        Vector3, // Outward Normal along flange
-        Vector3, // Vector Outward to nearest boundary
-        XForm4.EAxis, // Proximal boundary direction
-        bool // Some boolean value
-    >;
-
+public struct NotchAttribute(Curve3 crv, Vector3 stNormal, Vector3 endNormal, Vector3 oFlgNormal,
+   Vector3 nrBdyVec, XForm4.EAxis proxBdyVec, Vector3 srapSideDir, bool flag = true) {
+   public Curve3 Curve { get; set; } = crv;//Item1
+   public Vector3 StNormal { get; set; } = stNormal;//Item2
+   public Vector3 EndNormal { get; set; } = endNormal;//Item3
+   public Vector3 OFlangeNormal { get; set; } = oFlgNormal;//Item4
+   public Vector3 NearestBdyVec { get; set; } = nrBdyVec;//Item5
+   public XForm4.EAxis ProxBdyDir { get; set; } = proxBdyVec;//Item6
+   public Vector3 ScrapSideDir { get; set; } = srapSideDir;//Item7
+   public bool Flag { get; set; } = flag;//Item8
+}
 public class MachinableCutScope {
    public MachinableCutScope (CutScope cs, GCodeGenerator gCGen) {
       ArgumentNullException.ThrowIfNull (cs);
@@ -825,6 +826,35 @@ public static class Utils {
       return new (newToolingEntryPoint, scrapSideDirection);
    }
 
+   public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt) {
+      var toolingPlaneNormal = ts.Vec0;
+      if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal))
+         throw new Exception ("In GetMaterialRemovalSideDirection: The given point is not on the Tool Segment's Curve");
+
+      // Tooling direction as the direction of the st to end point in the case of line OR
+      // tangent int he direction of start to end of the arc in the case of an arc
+      Vector3 toolingDir;
+      Point3 newToolingEntryPoint;
+      if (Utils.IsCircle (ts.Curve))
+         newToolingEntryPoint = ts.Curve.Start;
+      else
+         newToolingEntryPoint = Geom.GetMidPoint (ts.Curve, toolingPlaneNormal);
+
+      if (ts.Curve is Arc3 arc)
+         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal);
+      else
+         toolingDir = (ts.Curve.End - ts.Curve.Start).Normalized ();
+
+      // Ref points along the direction of the binormal, which is along or opposing the direction
+      // in which the material removal side exists.
+      var biNormal = Geom.Cross (toolingDir, toolingPlaneNormal).Normalized ();
+      Vector3 scrapSideDirection = biNormal.Normalized ();
+      if (Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
+         scrapSideDirection = -biNormal;
+
+      return scrapSideDirection;
+   }
+
    /// <summary>
    /// This method returns the vector from a point on a contour towards nearest 
    /// proximal boundary that is happening on -X or -Z axis. The magnitude of this 
@@ -838,20 +868,28 @@ public static class Utils {
    /// <returns>The vector from the given point to the point on the nearest boundary along -X or X or -Z</returns>
    /// <exception cref="Exception">If the notch type is of type unknown, an exception is thrown</exception>
    static Vector3 GetVectorToProximalBoundary (Point3 pt, Bound3 bound, ToolingSegment seg,
-                                               ECutKind profileKind, out XForm4.EAxis proxBdy) {
+                                               ECutKind profileKind, out XForm4.EAxis proxBdy,
+                                               bool doubleFlangeNotchWithSameSideStartAndEnd,
+                                               bool isFlexMachining = false, double bdyYExtreme=0) {
       Vector3 res;
       Point3 bdyPtXMin, bdyPtXMax, bdyPtZMin;
       Vector3 normalAtNotchPt;
       double t;
       switch (profileKind) {
          case ECutKind.Top:
-            if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
-                  < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
-               res = bdyPtXMin - pt;
-               proxBdy = XForm4.EAxis.NegX;
+            if (doubleFlangeNotchWithSameSideStartAndEnd) {
+               res = new Vector3(0, bdyYExtreme - pt.Y, 0);
+               if (bdyYExtreme - pt.Y < 0) proxBdy = XForm4.EAxis.NegY;
+               else proxBdy = XForm4.EAxis.Y;
             } else {
-               res = bdyPtXMax - pt;
-               proxBdy = XForm4.EAxis.X;
+               if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
+                     < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
+                  res = bdyPtXMin - pt;
+                  proxBdy = XForm4.EAxis.NegX;
+               } else {
+                  res = bdyPtXMax - pt;
+                  proxBdy = XForm4.EAxis.X;
+               }
             }
             break;
          case ECutKind.Top2YPos:
@@ -865,6 +903,7 @@ public static class Utils {
                } else
                   normalAtNotchPt = seg.Vec0;
 
+               if (isFlexMachining) goto case ECutKind.YPosFlex;
                if (Geom.IsSameDir (normalAtNotchPt, XForm4.mZAxis)) goto case ECutKind.Top;
                if (Utils.IsNormalAtFlex (normalAtNotchPt)) goto case ECutKind.YPosFlex;
             }
@@ -882,10 +921,12 @@ public static class Utils {
                res = bdyPtXMax - pt;
                proxBdy = XForm4.EAxis.X;
             }
-            bdyPtZMin = new Point3 (pt.X, pt.Y, bound.ZMin);
-            if (res.Length > (bdyPtZMin - pt).Length) {
-               res = bdyPtZMin - pt;
-               proxBdy = XForm4.EAxis.NegZ;
+            if (!isFlexMachining) {
+               bdyPtZMin = new Point3 (pt.X, pt.Y, bound.ZMin);
+               if (res.Length > (bdyPtZMin - pt).Length) {
+                  res = bdyPtZMin - pt;
+                  proxBdy = XForm4.EAxis.NegZ;
+               }
             }
             break;
          default:
@@ -1115,39 +1156,83 @@ public static class Utils {
    /// to the NegX, or X or Neg Z</exception>
    public static NotchAttribute ComputeNotchAttribute (Bound3 bound, Tooling toolingItem,
                                                        List<ToolingSegment> segments,
-                                                       int segIndex, Point3 notchPoint) {
+                                                       int segIndex, Point3 notchPoint,
+                                                       bool isFlexMachining = false) {
+      // If the notch is on two flanges and if the start and end of the notch
+      // are on the same Y flange..
+      List<ToolingSegment> webSegs = [];
+      double yReach = 0;
+      bool twoFlangeNotchStartAndEndOnSameSideFlange = false;
+      if (toolingItem.NotchKind == ECutKind.Top2YNeg || toolingItem.NotchKind == ECutKind.Top2YPos) {
+         if (Math.Sign (segments[0].Curve.Start.Y) == Math.Sign (segments[^1].Curve.End.Y)) {
+            twoFlangeNotchStartAndEndOnSameSideFlange = true;
+            webSegs = Utils.GetToolingsWithNormal (segments, XForm4.mZAxis);
+            yReach = webSegs[0].Curve.End.Y;
+         }
+      }
+
       if (segIndex == -1)
          return new NotchAttribute (null, new Vector3 (), new Vector3 (),
                                     new Vector3 (), new Vector3 (),
-                                    XForm4.EAxis.Z, false);
+                                    XForm4.EAxis.Z, new Vector3 (), false);
 
       XForm4.EAxis proxBdyStart;
       Vector3 outwardNormalAlongFlange;
-      Vector3 vectorOutwardAtStart, vectorOutwardAtEnd, vectorOutwardAtSpecPoint;
+      Vector3 vectorOutwardAtStart, vectorOutwardAtEnd,
+         vectorOutwardAtSpecPoint, scrapsideMaterialDir;
       if (segments[segIndex].Curve is Arc3 arc) {
          (var center, _) = Geom.EvaluateCenterAndRadius (arc);
-         var vectorOutwardAtSpecPt = GetVectorToProximalBoundary (notchPoint, bound,
-                                                                  segments[segIndex], toolingItem.ProfileKind,
-                                                                  out proxBdyStart);
+         vectorOutwardAtSpecPoint = GetVectorToProximalBoundary (notchPoint, bound,
+                                                                 segments[segIndex], toolingItem.ProfileKind,
+                                                                 out proxBdyStart, twoFlangeNotchStartAndEndOnSameSideFlange,
+                                                                 isFlexMachining,
+                                                                 yReach);
+         if (twoFlangeNotchStartAndEndOnSameSideFlange)
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint) * -1;
+         else
+            scrapsideMaterialDir = vectorOutwardAtSpecPoint;
+
          var flangeNormalVecAtSpecPt = (notchPoint - center).Normalized ();
          if (GetUnitVector (proxBdyStart).Opposing (flangeNormalVecAtSpecPt)) flangeNormalVecAtSpecPt *= -1.0;
          return new NotchAttribute (segments[segIndex].Curve, segments[segIndex].Vec0.Normalized (),
                                     segments[segIndex].Vec1.Normalized (),
                                     flangeNormalVecAtSpecPt.Normalized (),
-                                    vectorOutwardAtSpecPt, proxBdyStart, true);
+                                    vectorOutwardAtSpecPoint, proxBdyStart,
+                                    scrapsideMaterialDir,
+                                    true);
       } else {
          var line = segments[segIndex].Curve as Line3;
          var p1p2 = line.End - line.Start;
+
          vectorOutwardAtStart = GetVectorToProximalBoundary (line.Start, bound, segments[segIndex],
-                                                             toolingItem.ProfileKind, out proxBdyStart);
+                                                             toolingItem.ProfileKind, out proxBdyStart,
+                                                             twoFlangeNotchStartAndEndOnSameSideFlange, isFlexMachining,
+                                                             yReach);
          vectorOutwardAtEnd = GetVectorToProximalBoundary (line.End, bound, segments[segIndex],
-                                                           toolingItem.ProfileKind, out _);
+                                                           toolingItem.ProfileKind, out _,
+                                                           twoFlangeNotchStartAndEndOnSameSideFlange, isFlexMachining,
+                                                           yReach);
          vectorOutwardAtSpecPoint = GetVectorToProximalBoundary (notchPoint, bound, segments[segIndex],
-                                                           toolingItem.ProfileKind, out _);
+                                                           toolingItem.ProfileKind, out _,
+                                                           twoFlangeNotchStartAndEndOnSameSideFlange, isFlexMachining,
+                                                           yReach);
+
+         if (twoFlangeNotchStartAndEndOnSameSideFlange) {
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint) * -1;
+            if (scrapsideMaterialDir.X < 0)
+               proxBdyStart = XForm4.EAxis.NegX;
+            else
+               proxBdyStart = XForm4.EAxis.X;
+         } else
+            scrapsideMaterialDir = vectorOutwardAtSpecPoint;
+
+
          Vector3 bdyVec = proxBdyStart switch {
-            XForm4.EAxis.NegX => -XForm4.mXAxis,
+            XForm4.EAxis.NegX => XForm4.mNegXAxis,
             XForm4.EAxis.X => XForm4.mXAxis,
-            XForm4.EAxis.NegZ => -XForm4.mZAxis,
+            XForm4.EAxis.NegZ => XForm4.mNegZAxis,
+            XForm4.EAxis.NegY => XForm4.mNegYAxis,
+            XForm4.EAxis.Y => XForm4.mYAxis,
             _ => throw new NotSupportedException ("Outward vector can not be other than NegX, X, and NegZ")
          };
 
@@ -1177,7 +1262,9 @@ public static class Utils {
                                  segments[segIndex].Vec0.Normalized (),
                                  segments[segIndex].Vec1.Normalized (),
                                  outwardNormalAlongFlange.Normalized (),
-                                 vectorOutwardAtSpecPoint, proxBdyStart, true);
+                                 vectorOutwardAtSpecPoint, proxBdyStart,
+                                 scrapsideMaterialDir,
+                                 true);
    }
 
    /// <summary>
@@ -1399,6 +1486,28 @@ public static class Utils {
          throw new Exception ("Negative Z axis normal encountered");
 
       return true;
+   }
+
+   public static bool IsToolingOnFlex (ToolingSegment ts) {
+      if ((ts.Vec0.Normalized().Dot (XForm4.mZAxis).EQ (1) && ts.Vec1.Normalized ().Dot (XForm4.mZAxis).EQ (1))
+           || (ts.Vec0.Normalized ().Dot (XForm4.mYAxis).EQ (1) && ts.Vec1.Normalized ().Dot (XForm4.mYAxis).EQ (1))
+           || (ts.Vec0.Normalized ().Dot (XForm4.mNegYAxis).EQ (1) && ts.Vec1.Normalized ().Dot (XForm4.mNegYAxis).EQ (1)))
+         return false;
+      else if (ts.Vec0.Normalized ().Dot (-XForm4.mZAxis).EQ (1)
+               || ts.Vec1.Normalized ().Dot (-XForm4.mZAxis).EQ (1))
+         throw new Exception ("Negative Z axis normal encountered");
+
+      return true;
+   }
+
+   public static List<ToolingSegment> GetToolingsWithNormal( List<ToolingSegment> segs, Vector3 normalDir) {
+      List<ToolingSegment> res = [];
+      normalDir = normalDir.Normalized ();
+      foreach( var s in segs) {
+         if ( Geom.IsEqual(s.Vec0, normalDir) || Geom.IsEqual(s.Vec1, normalDir))
+            res.Add(s);
+      }
+      return res;
    }
 
    /// <summary>
@@ -1758,20 +1867,20 @@ public static class Utils {
          //if (splitSegs.Count > 0 && lineEndPoint != null) {
          if (maxSideToPartition) {
             // Take all toolingSegments from Last toolingSegmen to index-1, add the 0th index of splitSegs, add it to the lastTSG.
-            line = new Line3 (lineEndPoint, notchXPt);
-            var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
-            resSegs.Add (lastTSG);
+            //line = new Line3 (lineEndPoint, notchXPt);
+            //var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
+            //resSegs.Add (lastTSG);
             resSegs.Add (splitSegs[1]);
             for (int ii = index + 1; ii < segs.Count; ii++)
                resSegs.Add (segs[ii]);
          } else {
-            line = new Line3 (notchXPt, lineEndPoint);
-            var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
+            //line = new Line3 (notchXPt, lineEndPoint);
+            //var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
             for (int ii = 0; ii < index; ii++)
                resSegs.Add (segs[ii]);
 
             resSegs.Add (splitSegs[0]);
-            resSegs.Add (lastTSG);
+            //resSegs.Add (lastTSG);
          }
       }
       return resSegs;
@@ -1828,12 +1937,12 @@ public static class Utils {
          about = "Y";
 
       double diffZ = segments[^1].Curve.End.Z - segments.First ().Curve.Start.Z;
-      if (sgn == 0 || diffZ > diffY) {
+      if (sgn == 0 || Math.Abs(diffZ) > Math.Abs(diffY)) {
          sgn = Math.Sign (diffZ);
          about = "Z";
       }
       double diffX = segments[^1].Curve.End.X - segments.First ().Curve.Start.X;
-      if (sgn == 0 || (diffX > diffZ && diffX > diffY)) {
+      if (sgn == 0 || (Math.Abs(diffX) > Math.Abs(diffZ) && Math.Abs(diffX) > Math.Abs(diffY))) {
          sgn = Math.Sign (diffX);
          about = "X";
       }
@@ -1980,9 +2089,9 @@ public static class Utils {
       if (machine == MachineType.LCMMultipass2H && createDummyBlock4Master) return "";
       string gcodeStatement = "";
       if (oaxis == OrdinateAxis.Y)
-         gcodeStatement = $"G0 X{x:F3} Y{val:F3} A{a:F3} {extraToken} ({comment})";
+         gcodeStatement = $"G0 X{x:F3} Y{val:F3} A{a:F3} {extraToken} {(string.IsNullOrEmpty (comment) ? "" : $" ({comment})")}";
       else if (oaxis == OrdinateAxis.Z)
-         gcodeStatement = $"G0 X{x:F3} Z{val:F3} A{a:F3} {extraToken} ({comment})";
+         gcodeStatement = $"G0 X{x:F3} Z{val:F3} A{a:F3} {extraToken} {(string.IsNullOrEmpty (comment) ? "" : $" ({comment})")}";
       sw.WriteLine (gcodeStatement);
       return gcodeStatement;
    }
@@ -2007,9 +2116,9 @@ public static class Utils {
       if (machine == MachineType.LCMMultipass2H && createDummyBlock4Master) return "";
       string gcodeStatement = "";
       if (oaxis == OrdinateAxis.Y)
-         gcodeStatement = $"G0 X{x:F3} Y{val:F3} {extraToken} ({comment})";
+         gcodeStatement = $"G0 X{x:F3} Y{val:F3} {extraToken} {(string.IsNullOrEmpty (comment) ? "" : $" ({comment})")}";
       else if (oaxis == OrdinateAxis.Z)
-         gcodeStatement = $"G0 X{x:F3} Z{val:F3} {extraToken} ({comment})";
+         gcodeStatement = $"G0 X{x:F3} Z{val:F3} {extraToken} {(string.IsNullOrEmpty (comment) ? "" : $" ({comment})")}";
       sw.WriteLine (gcodeStatement);
       return gcodeStatement;
    }
@@ -2033,7 +2142,7 @@ public static class Utils {
       MachineType machine = MachineType.LCMMultipass2H, bool createDummyBlock4Master = false) {
       if (machine == MachineType.LCMMultipass2H && createDummyBlock4Master)
          return "";
-      string gcodeStatement = $"G1 X{x:F3} Y{y:F3} Z{z:F3} A{a:F3} F{f:F0} ({comment})";
+      string gcodeStatement = $"G1 X{x:F3} Y{y:F3} Z{z:F3} A{a:F3} F{f:F0} {(string.IsNullOrEmpty (comment) ? "" : $" ({comment})")}";
       sw.WriteLine (gcodeStatement);
       return gcodeStatement;
    }
@@ -2054,7 +2163,7 @@ public static class Utils {
       MachineType machine = MachineType.LCMMultipass2H, bool createDummyBlock4Master = false) {
       if (machine == MachineType.LCMMultipass2H && createDummyBlock4Master)
          return "";
-      string gcodeStatement = $"G1 X{x:F3} Y{y:F3} Z{z:F3} A{a:F3} ({comment})";
+      string gcodeStatement = $"G1 X{x:F3} Y{y:F3} Z{z:F3} A{a:F3} {(string.IsNullOrEmpty (comment) ? "" : $" ({comment})")}";
       sw.WriteLine (gcodeStatement);
       return gcodeStatement;
    }
