@@ -1,5 +1,6 @@
-﻿using Flux.API;
-using System.Windows.Threading;
+﻿using System.Windows.Threading;
+using Flux.API;
+using FChassis.Core;
 
 namespace FChassis.Tools;
 

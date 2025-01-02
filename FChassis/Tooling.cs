@@ -1,6 +1,8 @@
-﻿using FChassis.GCodeGen;
+﻿using System.ComponentModel;
+
+using FChassis.GCodeGen;
 using Flux.API;
-using System.ComponentModel;
+using FChassis.Core;
 namespace FChassis;
 
 public readonly struct PointVec {

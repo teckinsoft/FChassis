@@ -1,6 +1,8 @@
 ﻿using Flux.API;
 using System.Windows.Threading;
+using FChassis.Core;
 namespace FChassis;
+
 public class Cylinder {
    readonly double mDiameter = 10, mHeight = 40;
    readonly int mSegments = 100;

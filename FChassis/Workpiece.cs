@@ -1,11 +1,15 @@
-using Flux.API;
 using System.IO;
 using static System.Math;
 using System.ComponentModel;
 using System;
 using System.Diagnostics;
+
+using Flux.API;
 using FChassis.GCodeGen;
+using FChassis.Core;
 using static FChassis.MCSettings;
+using static FChassis.Core.DoubleExtensions;
+using static FChassis.Core.IntExtensions;
 namespace FChassis;
 
 public class Workpiece : INotifyPropertyChanged {

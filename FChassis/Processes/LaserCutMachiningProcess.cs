@@ -1,11 +1,14 @@
-﻿using FChassis.GCodeGen;
-using FChassis.Tools;
-using Flux.API;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
+
+using FChassis.GCodeGen;
+using FChassis.Tools;
+using Flux.API;
+using FChassis.Core;
+
 namespace FChassis.Processes;
 
 /// <summary>Processor is used to generate G-Code, and the Traces for simulation</summary>
@@ -27,7 +30,7 @@ public class Processor : INotifyPropertyChanged {
    List<List<GCodeSeg>> mTraces = [[], []];
    public List<List<GCodeSeg>> Traces { get => mTraces; }
    public List<List<GCodeSeg>[]> CutScopeTraces { get => mGCodeGenerator.CutScopeTraces; }
-   MultiPassCuts mMultipassCuts;
+   //MultiPassCuts mMultipassCuts;
 
    public void ClearTraces () {
       mTraces[0]?.Clear ();
@@ -123,7 +126,7 @@ public class Processor : INotifyPropertyChanged {
       RewindEnumerator (0);
       RewindEnumerator (1);
       TriggerRedraw?.Invoke ();
-      mMultipassCuts?.ClearZombies ();
+      //mMultipassCuts?.ClearZombies ();
       mGCodeGenerator.ClearZombies ();
    }
    public void LoadGCode (string filename) {

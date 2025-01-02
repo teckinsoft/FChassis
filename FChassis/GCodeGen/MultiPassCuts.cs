@@ -1,7 +1,7 @@
 ﻿using Flux.API;
 namespace FChassis.GCodeGen;
-
-using static FChassis.Geom;
+using FChassis.Core;
+using static FChassis.Core.Geom;
 using ToolingCutScope = (double Position, ToolingScope ToolScope, bool IsStart);
 using CutScopeToolingList = List<(List<Tooling> ToolingList, double XMin, double XMax)>;
 

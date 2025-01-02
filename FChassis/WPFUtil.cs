@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Windows.Controls;
+using static FChassis.Core.DoubleExtensions;
+using static FChassis.Core.IntExtensions;
 namespace FChassis;
 
 static class WPFUtil {

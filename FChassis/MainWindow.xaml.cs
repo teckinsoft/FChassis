@@ -37,7 +37,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
       var fxFiles = new List<string> ();
-      if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper () == "FX") {
+      if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals("FX")) {
          // Get FX files if the environment variable is set to "FX"
          fxFiles = System.IO.Directory.GetFiles (mSrcDir, "*.fx")
                                        .Select (System.IO.Path.GetFileName)

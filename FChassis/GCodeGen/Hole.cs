@@ -28,6 +28,7 @@ public class Hole : Feature {
    List<ToolingSegment> mToolingSegments = [];
    ToolingSegment? mLastToolingSegment;
    double mTotalToolingCutLength, mPrevCutToolingsLength;
+   double mPrevMarkToolingsLength, mTotalMarkLength;
    #endregion
 
    #region External References
@@ -41,7 +42,7 @@ public class Hole : Feature {
    #region Constructor(s)
    public Hole (Tooling toolingItem, GCodeGenerator gcgen, double xStart, double xEnd, double xPartition,
       List<ToolingSegment> prevToolingSegs, ToolingSegment? prevToolingSegment, Bound3 bound,
-      double prevCutToolingsLength, double totalToolingCutLength,
+      double prevCutToolingsLength, double prevMarkToolingsLength, double totalMarkLength, double totalToolingCutLength,
       bool firstTooling = false, Tooling prevToolingItem = null, bool isLastTooling = false, double leastCurveLen = 0.5) {
       ToolingItem = toolingItem;
       GCGen = gcgen;
@@ -55,6 +56,8 @@ public class Hole : Feature {
       mLastToolingSegment = new ();
       mPrevCutToolingsLength = prevCutToolingsLength;
       mTotalToolingCutLength = totalToolingCutLength;
+      mPrevMarkToolingsLength = prevMarkToolingsLength;
+      mTotalMarkLength = totalMarkLength;
       mToolingSegments = Utils.GetSegmentsAccountedForApproachLength (ToolingItem, GCGen, mLeastCurveLength);
    }
    #endregion
@@ -70,7 +73,7 @@ public class Hole : Feature {
    /// is made of
    /// </summary>
    /// <returns></returns>
-   public override ToolingSegment? GetLastToolingSegment () => mLastToolingSegment;
+   public override ToolingSegment? GetMostRecentPreviousToolingSegment () => mLastToolingSegment;
    #endregion
 
    #region G Code Writers
@@ -103,7 +106,10 @@ public class Hole : Feature {
       // ** Machining **
       mLastToolingSegment = GCGen.WriteTooling (ToolingSegments, ToolingItem, mBound, mPrevCutToolingsLength, mTotalToolingCutLength, /*frameFeed*/
             mXStart, mXPartition, mXEnd);
+
+      //// ** Tooling block finalization - Start**
+      GCGen.FinalizeToolingBlock (ToolingItem, mPrevCutToolingsLength, mPrevMarkToolingsLength,
+            mTotalMarkLength, mTotalToolingCutLength);
    }
    #endregion
 }
-
