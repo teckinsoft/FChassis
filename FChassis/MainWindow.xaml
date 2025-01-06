@@ -17,7 +17,7 @@
             <MenuItem Header="Files">
                 <MenuItem Header="Open" Click="OnMenuFileOpen"/>
                 <MenuItem Header="Import" Click="OnMenuImportFile"/>
-                <MenuItem Header="Unbend Export 2D" Click="OnUnbendExport2D"/>
+                <MenuItem Header="Join" Click="OnJoin"/>
                 <MenuItem Header="Save" Click= "OnMenuFileSave"/>
                 <MenuItem Header="Close" Click="OnFileClose"/>
             </MenuItem>

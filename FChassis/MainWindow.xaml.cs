@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using FChassis.GCodeGen;
 using FChassis.Processes;
 using Flux.API;
@@ -26,6 +27,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Constructor
+   UIElement luxPanel = null;
+   UserControl joinPanel = null;
    public MainWindow () {
       InitializeComponent ();
 
@@ -33,7 +36,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       Library.Init ("W:/FChassis/Data", "C:/FluxSDK/Bin", this);
       Flux.API.Settings.IGESviaHOOPS = false;
 
-      Area.Child = (UIElement)Lux.CreatePanel ();
+      this.luxPanel = (UIElement)Lux.CreatePanel ();
+      Area.Child = this.luxPanel;
 
       string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
       var fxFiles = new List<string> ();
@@ -119,79 +123,89 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnUnbendExportDXF (object sender, RoutedEventArgs e) {
-      SaveFileDialog saveFileDialog = new () {
-         Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
-         DefaultExt = "dxf",
-      };
-
-      // Show save file dialog box
-      bool? result = saveFileDialog.ShowDialog ();
-
-      // Process save file dialog box results
-      if (result == true) {
-         string filePath = saveFileDialog.FileName;
-         try {
-            mPart.UnfoldTo2D ();
-            var dwg = mPart.Dwg;
-            dwg.SaveDXF (filePath);
-         } catch (Exception ex) {
-            MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
-         }
-      }
-   }
-
-   void OnUnbendExport2D (object sender, RoutedEventArgs e) {
-      if (mPart == null)
+   void OnJoin (object sender, RoutedEventArgs e) {
+      if (this.Area.Child == this.joinPanel)
          return;
 
-      // Get the original file name (assuming mPart.FileName gives you the file name with extension)
-      string originalFileName = System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName);
-      string originalFileDir = System.IO.Path.GetDirectoryName (mPart.Info.FileName);
-      string originalExtension = System.IO.Path.GetExtension (mPart.Info.FileName); // Get the original extension (like .dxf, .geo, etc.)
+      if (this.joinPanel == null)
+         this.joinPanel = new JoinControl ();
 
-      // Prepare SaveFileDialog
-      SaveFileDialog saveFileDialog = new () {
-         Filter = "DXF files (*.dxf)|*.dxf|GEO files (*.geo)|*.geo|All files (*.*)|*.*",
-         DefaultExt = "dxf", // Set default file type as DXF
-         FileName = originalFileName + ".dxf" // Set default file name as the original file name + .dxf initially
-      };
-
-      // Subscribe to the FileOk event to update the file name based on the selected file type
-      saveFileDialog.FileOk += (s, args) => {
-         // Determine which file type is selected based on the filter index
-         if (saveFileDialog.FilterIndex == 1) // DXF selected
-            saveFileDialog.FileName = originalFileName + ".dxf";
-         else if (saveFileDialog.FilterIndex == 2) // GEO selected
-            saveFileDialog.FileName = originalFileName + ".geo";
-      };
-
-      // Show save file dialog box
-      bool? result = saveFileDialog.ShowDialog ();
-
-      // Process save file dialog box results
-      if (result == true) {
-         string filePath = System.IO.Path.Combine (originalFileDir, saveFileDialog.FileName);
-         string extension = System.IO.Path.GetExtension (filePath)?.ToLower ();
-
-         try {
-            // Perform unfolding operation
-            mPart.UnfoldTo2D ();
-            var dwg = mPart.Dwg;
-
-            // Determine the file type by checking the extension
-            if (extension == ".dxf") {
-               dwg.SaveDXF (filePath);
-            } else if (extension == ".geo") {
-               dwg.SaveGEO (filePath); // Assuming you have a method to save GEO files
-            } else {
-               MessageBox.Show ("Unsupported file type. Please choose either DXF or GEO.");
-            }
-         } catch (Exception ex) {
-            MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
-         }
-      }
+      this.Area.Child = this.joinPanel;
    }
+
+   //void OnUnbendExportDXF (object sender, RoutedEventArgs e) {
+   //   SaveFileDialog saveFileDialog = new () {
+   //      Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
+   //      DefaultExt = "dxf",
+   //   };
+
+   //   // Show save file dialog box
+   //   bool? result = saveFileDialog.ShowDialog ();
+
+   //   // Process save file dialog box results
+   //   if (result == true) {
+   //      string filePath = saveFileDialog.FileName;
+   //      try {
+   //         mPart.UnfoldTo2D ();
+   //         var dwg = mPart.Dwg;
+   //         dwg.SaveDXF (filePath);
+   //      } catch (Exception ex) {
+   //         MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
+   //      }
+   //   }
+   //}
+
+   //void OnUnbendExport2D (object sender, RoutedEventArgs e) {
+   //   if (mPart == null)
+   //      return;
+
+   //   // Get the original file name (assuming mPart.FileName gives you the file name with extension)
+   //   string originalFileName = System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName);
+   //   string originalFileDir = System.IO.Path.GetDirectoryName (mPart.Info.FileName);
+   //   string originalExtension = System.IO.Path.GetExtension (mPart.Info.FileName); // Get the original extension (like .dxf, .geo, etc.)
+
+   //   // Prepare SaveFileDialog
+   //   SaveFileDialog saveFileDialog = new () {
+   //      Filter = "DXF files (*.dxf)|*.dxf|GEO files (*.geo)|*.geo|All files (*.*)|*.*",
+   //      DefaultExt = "dxf", // Set default file type as DXF
+   //      FileName = originalFileName + ".dxf" // Set default file name as the original file name + .dxf initially
+   //   };
+
+   //   // Subscribe to the FileOk event to update the file name based on the selected file type
+   //   saveFileDialog.FileOk += (s, args) => {
+   //      // Determine which file type is selected based on the filter index
+   //      if (saveFileDialog.FilterIndex == 1) // DXF selected
+   //         saveFileDialog.FileName = originalFileName + ".dxf";
+   //      else if (saveFileDialog.FilterIndex == 2) // GEO selected
+   //         saveFileDialog.FileName = originalFileName + ".geo";
+   //   };
+
+   //   // Show save file dialog box
+   //   bool? result = saveFileDialog.ShowDialog ();
+
+   //   // Process save file dialog box results
+   //   if (result == true) {
+   //      string filePath = System.IO.Path.Combine (originalFileDir, saveFileDialog.FileName);
+   //      string extension = System.IO.Path.GetExtension (filePath)?.ToLower ();
+
+   //      try {
+   //         // Perform unfolding operation
+   //         mPart.UnfoldTo2D ();
+   //         var dwg = mPart.Dwg;
+
+   //         // Determine the file type by checking the extension
+   //         if (extension == ".dxf") {
+   //            dwg.SaveDXF (filePath);
+   //         } else if (extension == ".geo") {
+   //            dwg.SaveGEO (filePath); // Assuming you have a method to save GEO files
+   //         } else {
+   //            MessageBox.Show ("Unsupported file type. Please choose either DXF or GEO.");
+   //         }
+   //      } catch (Exception ex) {
+   //         MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
+   //      }
+   //   }
+   //}
 
    void OnMenuFileSave (object sender, RoutedEventArgs e) {
       SaveFileDialog saveFileDialog = new () {
