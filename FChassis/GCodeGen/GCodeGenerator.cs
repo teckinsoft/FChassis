@@ -12,6 +12,7 @@ namespace FChassis.GCodeGen;
 using static FChassis.MCSettings;
 using static FChassis.Utils;
 using FChassis.Core;
+using System.Windows.Documents;
 
 /// <summary>
 /// The following class parses any G Code and caches the G0 and G1 segments. Work is 
@@ -238,6 +239,7 @@ public class GCodeGenerator {
    bool mLastCutScope = false;
    ToolingSegment? mPrevToolingSegment = null;
    bool mShortPerimeterNotch = false;
+   public bool IsRapidMoveToPiercingPositionWithPingPong { get; set; }
    #endregion
 
    #region Properties
@@ -260,253 +262,285 @@ public class GCodeGenerator {
       ResetBookKeepers ();
    }
 
-   void WriteBlockType (Tooling toolingItem, ToolingSegment? ts, bool isValidNotch, bool isFlexCut, bool edgeNotch = false) {
+   void WriteBlockType (Tooling toolingItem, ToolingSegment? ts, bool isValidNotch, bool isFlexCut,
+      //bool isToBeTreatedAsCutOut,
+      bool edgeNotch = false) {
       if (edgeNotch) return;
       string comment = "";
       double blockType;
       var notchCutKind = toolingItem.NotchKind;
       var cutoutKind = toolingItem.CutoutKind;
-      var isCutout = toolingItem.IsCutout ();
+      var isCutout = toolingItem.IsCutout (); /*|| isToBeTreatedAsCutOut;*/
+      if (isCutout && cutoutKind == ECutKind.None)
+         throw new Exception ("Feature to be treated as CutOut but CutOutKind is NONE");
       string gcodeSt = "";
       EFlange stNormalFlange; EFlange endNormalFlange;
       if (ts == null) throw new Exception ("Reference Tooling Segment NULL");
       stNormalFlange = Utils.GetArcPlaneFlangeType (ts.Value.Vec0, GetXForm ());
       endNormalFlange = Utils.GetArcPlaneFlangeType (ts.Value.Vec1, GetXForm ());
 
-      if (!isCutout && !isValidNotch) {
-         if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web) { // If any feature confined to only one flange
-            if (IsOppositeReference (toolingItem.Name)) {
-               blockType = -3;
-               comment += " Web Flange Hole - Opposite reference ";
-            } else {
-               blockType = 3;
-               comment += " Web Flange Hole";
+      if (CreateDummyBlock4Master)
+         gcodeSt = $"BlockType={10} ({comment})";
+      else {
+         if (!isCutout && !isValidNotch) {
+            if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Web) { // If any feature confined to only one flange
+               if (IsOppositeReference (toolingItem.Name)) {
+                  blockType = -3;
+                  comment += " Web Flange Hole - Opposite reference ";
+               } else {
+                  blockType = 3;
+                  comment += " Web Flange Hole";
+               }
+            } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Bottom) {
+               blockType = 1;
+               comment += " Bottom Flange Cut";
+            } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Top) {
+               blockType = 2;
+               comment += " Top Flange Cut";
+            } else if (toolingItem.IsFlexHole () || !isValidNotch) {
+               blockType = 0;
+            } else throw new Exception ("GCodeGenerator.WriteBlockType() Unrecognized feature type in gcode generation");
+            gcodeSt = $"BlockType={blockType:F0} ({comment})";
+
+         } else if (isValidNotch) {
+            switch (notchCutKind) {
+               case ECutKind.Top:
+                  comment = "Web Flange Notch";
+                  if (isFlexCut) throw new Exception ("There is no flex cut for web flange cuts");
+                  gcodeSt = $"BlockType={5} ({comment})";
+                  break;
+
+               case ECutKind.YPos:
+               case ECutKind.YPosFlex:
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     comment = "Top Flange Notch LH Comp";
+                     if (!isFlexCut) blockType = -4.9;
+                     else blockType = -4.5;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  } else { // RH Component
+                     comment = "Bottom Flange Notch RH Comp";
+                     if (!isFlexCut) blockType = 4.9;
+                     else blockType = 4.5;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  }
+                  break;
+
+               case ECutKind.YNeg:
+               case ECutKind.YNegFlex:
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     comment = "Bottom Flange Notch LH Comp";
+                     if (isFlexCut) blockType = 4.5;
+                     else blockType = 4.9;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  } else {// RH Component
+                     comment = "Top Flange Notch RH Comp";
+                     if (!isFlexCut) blockType = -4.9;
+                     else blockType = -4.5;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  }
+                  break;
+
+               case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
+                  comment = "Web -> Top Flange Notch LH Comp";
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                        blockType = -4.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = -4.5;
+                        else blockType = -4.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = -4.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+
+                  } else { // RH Component
+                     comment = "Web -> Bottom Flange Notch RH Comp";
+                     if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                        blockType = 4.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = 4.5;
+                        else blockType = 4.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = 4.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                  }
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  break;
+
+               case ECutKind.Top2YNeg:
+                  comment = "Web -> Bottom Flange Notch LH Comp";
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
+                        blockType = 4.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = 4.5;
+                        else blockType = 4.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = 4.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  } else {
+                     comment = "Web -> Top Flange Notch RH Comp";
+                     if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                        blockType = -4.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = -4.5;
+                        else blockType = -4.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = -4.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  }
+                  break;
+
+               case ECutKind.YNegToYPos:
+                  //throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
+                  /* TRIPLE_FLANGE_NOTCH */
+                  stNormalFlange = Utils.GetArcPlaneFlangeType (toolingItem.Segs[0].Vec0, GetXForm ());
+                  endNormalFlange = Utils.GetArcPlaneFlangeType (toolingItem.Segs[^1].Vec0, GetXForm ());
+                  comment = "Bottom -> Web -> Top Flange Notch LH Comp";
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = 7.5;
+                     else if ((stNormalFlange == EFlange.Bottom || stNormalFlange == EFlange.Flex) && (endNormalFlange == EFlange.Top || endNormalFlange == EFlange.Flex))
+                        blockType = 7.9;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  } else {
+                     if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = -7.5;
+                     else if ((stNormalFlange == EFlange.Bottom || stNormalFlange == EFlange.Flex) && (endNormalFlange == EFlange.Top || endNormalFlange == EFlange.Flex))
+                        blockType = -7.9;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  }
+                  break;
+               default:
+                  break;
             }
-         } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Bottom) {
-            blockType = 1;
-            comment += " Bottom Flange Cut";
-         } else if (Utils.GetFlangeType (toolingItem, GetXForm ()) == Utils.EFlange.Top) {
-            blockType = 2;
-            comment += " Top Flange Cut";
-         } else if (toolingItem.IsFlexHole () || !isValidNotch) {
-            blockType = 0;
-         } else throw new Exception ("GCodeGenerator.WriteBlockType() Unrecognized feature type in gcode generation");
-         gcodeSt = $"BlockType={blockType:F0} ({comment})";
+         } else if (isCutout) {
+            switch (cutoutKind) {
+               case ECutKind.Top:
+                  comment = "Web Flange Cutout";
+                  if (isFlexCut) throw new Exception ("There is no flex cut for web flange cuts");
+                  gcodeSt = $"BlockType={5} ({comment})";
+                  break;
 
-      } else if (isValidNotch) {
-         switch (notchCutKind) {
-            case ECutKind.Top:
-               comment = "Web Flange Notch";
-               if (isFlexCut) throw new Exception ("There is no flex cut for web flange cuts");
-               gcodeSt = $"BlockType={5} ({comment})";
-               break;
+               case ECutKind.YPos:
+               case ECutKind.YPosFlex:
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     comment = "Top Flange Cutout LH Comp";
+                     if (!isFlexCut) blockType = -5.9;
+                     else blockType = -5.5;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  } else { // RH Component
+                     comment = "Bottom Flange Cutout RH Comp";
+                     if (!isFlexCut) blockType = 5.9;
+                     else blockType = 5.5;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  }
+                  break;
 
-            case ECutKind.YPos:
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  comment = "Top Flange Notch LH Comp";
-                  if (!isFlexCut) blockType = -4.9;
-                  else blockType = -4.5;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               } else { // RH Component
-                  comment = "Bottom Flange Notch RH Comp";
-                  if (!isFlexCut) blockType = 4.9;
-                  else blockType = 4.5;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               }
-               break;
-
-            case ECutKind.YNeg:
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  comment = "Bottom Flange Notch LH Comp";
-                  if (isFlexCut) blockType = 4.5;
-                  else blockType = 4.9;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               } else {// RH Component
-                  comment = "Top Flange Notch RH Comp";
-                  if (!isFlexCut) blockType = -4.9;
-                  else blockType = -4.5;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               }
-               break;
-
-            case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
-               comment = "Web -> Top Flange Notch LH Comp";
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                     blockType = -4.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
-                     if (isFlexCut) blockType = -4.5;
-                     else blockType = -4.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = -4.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
-
-               } else { // RH Component
-                  comment = "Web -> Bottom Flange Notch RH Comp";
-                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                     blockType = 4.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
-                     if (isFlexCut) blockType = 4.5;
-                     else blockType = 4.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = 4.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
-               }
-               gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               break;
-
-            case ECutKind.Top2YNeg:
-               comment = "Web -> Bottom Flange Notch LH Comp";
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
-                     blockType = 4.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
-                     if (isFlexCut) blockType = 4.5;
-                     else blockType = 4.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = 4.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               } else {
-                  comment = "Web -> Top Flange Notch RH Comp";
-                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                     blockType = -4.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
-                     if (isFlexCut) blockType = -4.5;
-                     else blockType = -4.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = -4.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the notch");
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               }
-               break;
-
-            case ECutKind.YNegToYPos:
-               throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
-            default:
-               break;
-         }
-      } else if (isCutout) {
-         switch (cutoutKind) {
-            case ECutKind.Top:
-               comment = "Web Flange Cutout";
-               if (isFlexCut) throw new Exception ("There is no flex cut for web flange cuts");
-               gcodeSt = $"BlockType={5} ({comment})";
-               break;
-
-            case ECutKind.YPos:
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  comment = "Top Flange Cutout LH Comp";
-                  if (!isFlexCut) blockType = -5.9;
-                  else blockType = -5.5;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               } else { // RH Component
-                  comment = "Bottom Flange Cutout RH Comp";
-                  if (!isFlexCut) blockType = 5.9;
-                  else blockType = 5.5;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               }
-               break;
-
-            case ECutKind.YNeg:
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  comment = "Bottom Flange Cutout LH Comp";
-                  if (isFlexCut) blockType = 5.5;
-                  else blockType = 5.9;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               } else {// RH Component
-                  comment = "Top Flange Cutout RH Comp";
-                  if (!isFlexCut) blockType = -5.9;
-                  else blockType = -5.5;
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               }
-               break;
-
-            case ECutKind.Top2YPos: // Web -> Top Flange Cutout/Cutout
-               comment = "Web -> Top Flange Cutout LH Comp";
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                     blockType = -5.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
-                     if (isFlexCut) blockType = -5.5;
-                     else blockType = -5.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = -5.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
-
-               } else { // RH Component
-                  comment = "Web -> Bottom Flange Cutout RH Comp";
-                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                     blockType = 5.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+               case ECutKind.YNeg:
+               case ECutKind.YNegFlex:
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     comment = "Bottom Flange Cutout LH Comp";
                      if (isFlexCut) blockType = 5.5;
-                     else blockType = 5.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = 5.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
-               }
-               gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               break;
+                     else blockType = 5.9;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  } else {// RH Component
+                     comment = "Top Flange Cutout RH Comp";
+                     if (!isFlexCut) blockType = -5.9;
+                     else blockType = -5.5;
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  }
+                  break;
 
-            case ECutKind.Top2YNeg:
-               comment = "Web -> Bottom Flange Cutout LH Comp";
-               if (PartConfigType == PartConfigType.LHComponent) {
-                  if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
-                     blockType = 5.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
-                     if (isFlexCut) blockType = 5.5;
-                     else blockType = 5.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = 5.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               } else {
-                  comment = "Web -> Top Flange Cutout RH Comp";
-                  if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-                     blockType = -5.9;
-                  else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
-                     if (isFlexCut) blockType = -5.5;
-                     else blockType = -5.0;
-                  } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-                     blockType = -5.5;
-                  else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
-                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
-               }
-               break;
+               case ECutKind.Top2YPos: // Web -> Top Flange Cutout/Cutout
+                  comment = "Web -> Top Flange Cutout LH Comp";
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                        blockType = -5.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = -5.5;
+                        else blockType = -5.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = -5.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
 
-            case ECutKind.YNegToYPos:
-               throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
-            default:
-               break;
+                  } else { // RH Component
+                     comment = "Web -> Bottom Flange Cutout RH Comp";
+                     if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                        blockType = 5.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = 5.5;
+                        else blockType = 5.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = 5.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
+                  }
+                  gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  break;
+
+               case ECutKind.Top2YNeg:
+                  comment = "Web -> Bottom Flange Cutout LH Comp";
+                  if (PartConfigType == PartConfigType.LHComponent) {
+                     if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
+                        blockType = 5.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = 5.5;
+                        else blockType = 5.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = 5.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  } else {
+                     comment = "Web -> Top Flange Cutout RH Comp";
+                     if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                        blockType = -5.9;
+                     else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
+                        if (isFlexCut) blockType = -5.5;
+                        else blockType = -5.0;
+                     } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+                        blockType = -5.5;
+                     else throw new Exception ("Unknown Flange type for toolsegment of the Cutout");
+                     gcodeSt = $"BlockType={blockType:F1} ({comment})";
+                  }
+                  break;
+
+               case ECutKind.YNegToYPos:
+                  throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
+               default:
+                  break;
+            }
+            //switch (cutoutKind) {
+            //   case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
+            //      comment = "Web -> Top Flange Cutout";
+            //      if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+            //         blockType = -5.9;
+            //      else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
+            //         blockType = -5.0;
+            //      else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+            //         blockType = -5.5;
+            //      else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
+            //      gcodeSt = $"BlockType={blockType:F1} ({comment})";
+            //      break;
+            //   case ECutKind.Top2YNeg:
+            //      comment = "Web -> Bottom Flange Notch";
+            //      if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
+            //         blockType = 5.9;
+            //      else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
+            //         blockType = 5.0;
+            //      else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
+            //         blockType = 5.5;
+            //      else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
+            //      gcodeSt = $"BlockType={blockType:F1} ({comment})";
+            //      break;
+            //   case ECutKind.YNegToYPos:
+            //      throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
+            //   default:
+            //      break;
+            //}
          }
-         //switch (cutoutKind) {
-         //   case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
-         //      comment = "Web -> Top Flange Cutout";
-         //      if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
-         //         blockType = -5.9;
-         //      else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
-         //         blockType = -5.0;
-         //      else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-         //         blockType = -5.5;
-         //      else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
-         //      gcodeSt = $"BlockType={blockType:F1} ({comment})";
-         //      break;
-         //   case ECutKind.Top2YNeg:
-         //      comment = "Web -> Bottom Flange Notch";
-         //      if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
-         //         blockType = 5.9;
-         //      else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web)
-         //         blockType = 5.0;
-         //      else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
-         //         blockType = 5.5;
-         //      else throw new Exception ("Unknown Flange type for toolsegment of the cutout");
-         //      gcodeSt = $"BlockType={blockType:F1} ({comment})";
-         //      break;
-         //   case ECutKind.YNegToYPos:
-         //      throw new Exception ("Bottom to Top flange notches/cutouts not yet supported");
-         //   default:
-         //      break;
-         //}
       }
       sw.WriteLine (gcodeSt);
    }
@@ -547,7 +581,10 @@ public class GCodeGenerator {
       Machine = mcs.Machine;
       MinThresholdForPartition = mcs.MinThresholdForPartition;
       MinNotchLengthThreshold = mcs.MinNotchLengthThreshold;
+      MinCutOutLengthThreshold = mcs.MinCutOutLengthThreshold;
       DinFilenameSuffix = mcs.DINFilenameSuffix;
+      WJTPreFlexMcToken = mcs.WJTPreFlexMcToken;
+      WJTPostFlexMcToken = mcs.WJTPostFlexMcToken;
       FxFilePath = mcs.NCFilePath;
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
@@ -602,7 +639,11 @@ public class GCodeGenerator {
    public bool LeftToRightMachining { get; set; }
    public double MinThresholdForPartition { get; set; }
    public double MinNotchLengthThreshold { get; set; }
+   public double MinCutOutLengthThreshold { get; set; }
    public string DinFilenameSuffix { get; set; }
+   public string WJTPreFlexMcToken { get; set; }
+   public string WJTPostFlexMcToken { get; set; }
+
    public MachineType Machine { get; set; }
    public string FxFilePath { get; set; }
    public string DINFileNameHead1 { get; set; }
@@ -664,7 +705,11 @@ public class GCodeGenerator {
       int nNo;
       if (EnableMultipassCut) nNo = mCutScopeNo * mBaseBlockNo + BlockNumber;
       else nNo = BlockNumber;
-      sw.WriteLine ($"N{nNo}{(string.IsNullOrEmpty (comment) ? "" : $"\t( {comment} )")}");
+      string line = $"N{nNo}" +
+              (string.IsNullOrEmpty (comment)
+                  ? ""
+                  : $"\t( {comment} )");
+      sw.WriteLine (line);
       sw.WriteLine ($"BlockID={nNo}");
       BlockNumber++;
    }
@@ -761,6 +806,8 @@ public class GCodeGenerator {
       mTraces = [[], []];
       LeftToRightMachining = isLeftToRight;
       DinFilenameSuffix = "";
+      WJTPreFlexMcToken = "";
+      WJTPostFlexMcToken = "";
 
       //Point3 ps = new (39.33026, -23.696316, 6);
       //Point3 pe = new (41.124299, -26.224453, 6);
@@ -809,7 +856,10 @@ public class GCodeGenerator {
       Machine = MCSettings.It.Machine;
       MinThresholdForPartition = MCSettings.It.MinThresholdForPartition;
       MinNotchLengthThreshold = MCSettings.It.MinNotchLengthThreshold;
+      MinCutOutLengthThreshold = MCSettings.It.MinCutOutLengthThreshold;
       DinFilenameSuffix = MCSettings.It.DINFilenameSuffix;
+      WJTPreFlexMcToken = MCSettings.It.WJTPreFlexMcToken;
+      WJTPostFlexMcToken = MCSettings.It.WJTPostFlexMcToken;
       FxFilePath = MCSettings.It.NCFilePath;
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
@@ -1014,7 +1064,7 @@ public class GCodeGenerator {
       else
          res = [..cuts.Where (cut => cut.Head == headNo && ( cut.Kind==EKind.Hole ||
          (cut.Kind==EKind.Notch && ( cut.ProfileKind == ECutKind.YPosFlex || cut.ProfileKind == ECutKind.YNegFlex ||
-         cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg))) )];
+         cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg || /* TRIPLE_FLANGE_NOTCH */cut.ProfileKind == ECutKind.YNegToYPos))) )];
       res = [..res.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
       .ThenBy (cut => MCSettings.It.ToolingPriority.IndexOf (cut.Kind))
       .ThenBy (cut => cut.Start.Pt.X)];
@@ -1351,10 +1401,15 @@ public class GCodeGenerator {
                cuts = cutsHead1;
             else
                cuts = cutsHead2;
+            // Debug
+            //if (mm == mcCutScopes.Count - 1 && head == ToolHeadType.Master && cutsHead1.Count > 0) {
+            //   cutsHead2 = [.. cutsHead1];
+            //   cutsHead1.Clear ();
+            //}
             if (cutsHead1.Count == 0 && cutsHead2.Count > 0 && Head == ToolHeadType.Master) {
                CreateDummyBlock4Master = true;
-               cuts = cutsHead2;
-               WriteLineStatement ("( Writing dummy block for each tooling for master head 1)");
+               cuts = [cutsHead2[0]];
+               WriteLineStatement ("( Writing dummy block for master head 1)");
             }
             if (cuts.Count == 0) continue;
 
@@ -1706,6 +1761,7 @@ public class GCodeGenerator {
       }
    }
 
+   string GetGCodeComment( string comment) => " ( " + comment + " ) ";
    /// <summary>
    /// This method specifically writes machining G Code (G1) for linear machinable
    /// moves.
@@ -1719,10 +1775,11 @@ public class GCodeGenerator {
    /// <param name="currFlangeType">Current flange type, needed to include Y/Z coordinates in the G Code</param>
    /// <param name="toolingName">Name of the tooling for simulation purposes</param>
    public void WriteLine (Point3 endPoint, Vector3 startNormal, Vector3 endNormal,
-      Utils.EPlane currPlaneType, Utils.EPlane previousPlaneType, Utils.EFlange currFlangeType, string toolingName) {
+      Utils.EPlane currPlaneType, Utils.EPlane previousPlaneType, Utils.EFlange currFlangeType, string toolingName,
+      string lineSegmentComment = "") {
+      lineSegmentComment = GetGCodeComment (lineSegmentComment);
       var endPointWithMCClearance = endPoint + endNormal * Standoff;
       Point3 mcCoordEndPointWithMCClearance;
-      string lineSegmentComment = "";
       double angleBetweenZAxisAndCurrToolingEndPoint;
 
       // This following check does not set angle every time for the same plane type.
@@ -1990,19 +2047,19 @@ public class GCodeGenerator {
 
       // Write any feature other than notch
       MoveToMachiningStartPosition (curve.Start, CurveStartNormal, toolingItem.Name);
+      EnableMachiningDirective ();
       {
          var isMcFromOnWeb = Utils.IsMachiningFromWebFlange (toolingSegmentsList, 0);
-         WriteToolCorrectionData (toolingItem, isMcFromOnWeb);
 
          // Write all other features such as Holes, Cutouts and edge notches
-         EnableMachiningDirective ();
-         for (int i = 0; i < toolingSegmentsList.Count; i++) {
-            var (Curve, startNormal, endNormal) = toolingSegmentsList[i];
+         for (int ii = 0; ii < toolingSegmentsList.Count; ii++) {
+            var (Curve, startNormal, endNormal) = toolingSegmentsList[ii];
             startNormal = startNormal.Normalized ();
             endNormal = endNormal.Normalized ();
             var startPoint = Curve.Start;
             var endPoint = Curve.End;
-            if (i > 0) currPlaneType = Utils.GetFeatureNormalPlaneType (endNormal, GetXForm ());
+
+            if (ii > 0) currPlaneType = Utils.GetFeatureNormalPlaneType (endNormal, GetXForm ());
 
             if (Curve is Arc3) { // This is a 2d arc. 
                var arcPlaneType = Utils.GetArcPlaneType (startNormal, GetXForm ());
@@ -2133,7 +2190,7 @@ public class GCodeGenerator {
    /// <param name="toolingStartPt">Tooling start point of the next tooling</param>
    /// <param name="toolingStartNormalVec">Normal vector (outward) at the next tooling start point</param>
    /// <param name="toolingName">Name of the tooling : Can be used in simulation for debug purpose</param>
-   void MoveFromSafetyToRetract (Point3 toolingStartPt, Vector3 toolingStartNormalVec, string toolingName,
+   public void MoveFromSafetyToRetract (Point3 toolingStartPt, Vector3 toolingStartNormalVec, string toolingName,
       bool planeChangeNeeded, bool isMark, bool usePingPongOption = true, string comment = "") {
       var currToolingStPtRetracted =
             Utils.MovePoint (toolingStartPt, toolingStartNormalVec, mRetractClearance);
@@ -2146,8 +2203,9 @@ public class GCodeGenerator {
             Utils.LinearMachining (sw, mcCoordsCurrToolingStPtRetracted.X, mcCoordsCurrToolingStPtRetracted.Y,
                mcCoordsCurrToolingStPtRetracted.Z, angleBetweenZAxisNcurrToolingStPt, Rapid, "Move to Piercing Position",
                createDummyBlock4Master: CreateDummyBlock4Master);
-         } else
+         } else {
             RapidMoveToPiercingPosition (currToolingStPtRetracted, toolingStartNormalVec, usePingPongOption, comment);
+         }
 
          if (!CreateDummyBlock4Master) {
             mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingStPtRetracted,
@@ -2215,7 +2273,7 @@ public class GCodeGenerator {
    /// <param name="refSegIndex">Index of the reference tooling item, whose normals are used
    /// in ascertaining the plane normal if an arc is involved</param>
    public void WriteProgramHeader (Tooling toolingItem, List<ToolingSegment> segs, /*double frameFeed, */
-      double xStart, double xPartition, double xEnd, bool isLastToolingSeg,
+      double xStart, double xPartition, double xEnd, bool isLastToolingSeg, /*bool isToBeTreatedAsCutOut,*/
       Tooling prevToolingItem = null, bool isValidNotch = false, bool isFlexCut = false,
       int startIndex = -1, int endIndex = -1, int refSegIndex = 0) {
       string comment = $"** Tooling Name : {toolingItem.Name} - {toolingItem.FeatType} **";
@@ -2226,7 +2284,7 @@ public class GCodeGenerator {
       if (isValidNotch || toolingItem.IsCutout ()) mProgramNumber++;
 
       // Write block type
-      WriteBlockType (toolingItem, segs[refSegIndex], isValidNotch, isFlexCut);
+      WriteBlockType (toolingItem, segs[refSegIndex], isValidNotch, isFlexCut/*, isToBeTreatedAsCutOut*/);
       double SplitEndX = xEnd;
       if (mLastCutScope && isLastToolingSeg) SplitEndX = Process.Workpiece.Bound.XMax;
 
@@ -2234,6 +2292,7 @@ public class GCodeGenerator {
       sw.WriteLine ("SplitStartX={0} SplitPartitionX={1} SplitEndX={2} ( Cut Scope Length:{3} )",
          xStart.ToString ("F3"), xPartition.ToString ("F3"), SplitEndX.ToString ("F3"), (xEnd - xStart).ToString ("F3"));
       WriteBounds (toolingItem, segs, startIndex, endIndex);
+      if (CreateDummyBlock4Master) return;
       if (!isValidNotch) CalibrateForCircle (toolingItem, prevToolingItem);
       sw.WriteLine ("X_Correction=0 YZ_Correction=0");
    }
@@ -2255,18 +2314,20 @@ public class GCodeGenerator {
    /// in ascertaining the plane normal if an arc is involved</param>
    public void WriteProgramHeader (Tooling toolingItem, List<Point3> pts,
       double xStart, double xPartition, double xEnd, bool isFlexCut, bool isLastToolingSeg,
-      Tooling prevToolingItem = null, bool isValidNotch = false, ToolingSegment? refSeg = null) {
+      /*bool isToBeTreatedAsCutOut,*/ bool isValidNotch,
+      Tooling prevToolingItem = null, ToolingSegment? refSeg = null) {
       string comment = $"** Tooling Name : {toolingItem.Name} - {toolingItem.FeatType} **";
       OutN (sw, comment);
       sw.WriteLine ("CutScopeNo={0}", mCutScopeNo);
-      if (isValidNotch || toolingItem.IsCutout ()) mProgramNumber++;
-      WriteBlockType (toolingItem, refSeg, isValidNotch, isFlexCut);
+      if (isValidNotch || toolingItem.IsCutout () /*|| (toolingItem.IsHole () && isToBeTreatedAsCutOut)*/) mProgramNumber++;
+      WriteBlockType (toolingItem, refSeg, isValidNotch, isFlexCut/*, isToBeTreatedAsCutOut:false*/);
       double SplitEndX = xEnd;
       if (mLastCutScope && isLastToolingSeg) SplitEndX = Process.Workpiece.Bound.XMax;
 
       sw.WriteLine ("SplitStartX={0} SplitPartitionX={1} SplitEndX={2} ( Cut Scope Length:{3} )",
          xStart.ToString ("F3"), xPartition.ToString ("F3"), SplitEndX.ToString ("F3"), (xEnd - xStart).ToString ("F3"));
       WriteBounds (toolingItem, pts);
+      if (CreateDummyBlock4Master) return;
       if (!isValidNotch) CalibrateForCircle (toolingItem, prevToolingItem);
       sw.WriteLine ("X_Correction=0 YZ_Correction=0");
    }
@@ -2294,8 +2355,8 @@ public class GCodeGenerator {
    /// <param name="startIndex">The start index in the list of tooling items</param>
    /// <param name="endIndex">The end endex in the list of tooling items.</param>
    public void InitializeToolingBlock (Tooling toolingItem, Tooling prevToolingItem, /*double frameFeed,*/
-      double xStart, double xPartition, double xEnd, List<ToolingSegment> segs, bool validNotch, bool isFlexCut, bool isLast,
-      int startIndex = -1, int endIndex = -1) {
+      double xStart, double xPartition, double xEnd, List<ToolingSegment> segs, bool isValidNotch, bool isFlexCut, bool isLast,
+      /*bool isToBeTreatedAsCutOut,*/ int startIndex = -1, int endIndex = -1) {
 
       // ** Tool block initialization **
       // Now compute the offset based on X
@@ -2316,9 +2377,13 @@ public class GCodeGenerator {
       }
       sw.WriteLine ();
       sw.WriteLine ("( ** Tool Block Initialization ** )");
-      WriteProgramHeader (toolingItem, segs, /*frameFeed,*/xStart, xPartition, xEnd, isLast, prevToolingItem,
-         isValidNotch: validNotch, /*isFlexCut:*/isFlexCut, startIndex, endIndex);
-
+      WriteProgramHeader (toolingItem, segs, /*frameFeed,*/xStart, xPartition, xEnd, isLast, /*isToBeTreatedAsCutOut: isToBeTreatedAsCutOut,*/
+         prevToolingItem, isValidNotch: isValidNotch, /*isFlexCut:*/isFlexCut, startIndex, endIndex);
+      if (CreateDummyBlock4Master) {
+         sw.WriteLine ("( ** End - Tool Block Initialization ** )");
+         sw.WriteLine ();
+         return;
+      }
       string sComment = offset switch {
          1 => string.Format ("( ** Machining on the Bottom Flange ** )"),
          2 => string.Format ("( ** Machining on the Top Flange ** )"),
@@ -2364,8 +2429,10 @@ public class GCodeGenerator {
    /// <param name="comment">User's comment</param>
    public void InitializeNotchToolingBlock (Tooling toolingItem, Tooling prevToolingItem,
       List<ToolingSegment> segs, Vector3 segmentNormal, /*double frameFeed,*/
-      double xStart, double xPartition, double xEnd, bool isFlexCut, bool isLast, int startIndex = -1, int endIndex = -1,
-      /*bool circularMotionCmd = true,*/ int refSegIndex = 0, string comment = "", bool isShortPerimeterNotch = false) {
+      double xStart, double xPartition, double xEnd, bool isFlexCut, bool isLast,
+      bool isValidNotch, int startIndex = -1, int endIndex = -1,
+      /*bool circularMotionCmd = true,*/ int refSegIndex = 0, string comment = "", bool isShortPerimeterNotch = false
+      ) {
       int offset;
       switch (Utils.GetArcPlaneFlangeType (segmentNormal, GetXForm ())) {
          case Utils.EFlange.Top:
@@ -2385,9 +2452,13 @@ public class GCodeGenerator {
       sw.WriteLine ();
       sw.WriteLine ("( ** Notch: Tool Block Initialization ** )");
       sw.WriteLine ($"({comment})");
-      WriteProgramHeader (toolingItem, segs, xStart, xPartition, xEnd, isLast, prevToolingItem,
-         isValidNotch: true, /*isFlexCut:*/ isFlexCut, startIndex, endIndex, refSegIndex: refSegIndex);
-
+      WriteProgramHeader (toolingItem, segs, xStart, xPartition, xEnd, isLast, /*isToBeTreatedAsCutOut: isToBeTreatedAsCutOut,*/
+         prevToolingItem, isValidNotch: isValidNotch, /*isFlexCut:*/ isFlexCut, startIndex, endIndex, refSegIndex: refSegIndex);
+      if (CreateDummyBlock4Master) {
+         sw.WriteLine ("( ** End - Tool Block Initialization ** )");
+         sw.WriteLine ();
+         return;
+      }
       if (offset > 0) {
          string sComment = offset switch {
             1 => string.Format ("( Machining on the Bottom Flange )"),
@@ -2428,6 +2499,7 @@ public class GCodeGenerator {
    public void InitializeNotchToolingBlock (Tooling toolingItem, Tooling prevToolingItem,
       List<Point3> points, Vector3 segmentNormal, /*double frameFeed,*/double xStart,
       double xPartition, double xEnd, bool isFlexCut, bool isLast, ToolingSegment? refSeg,
+      /*bool isToBeTreatedAsCutOut,*/ bool isValidNotch,
       string comment = "", bool shortPerimeterNotch = false) {
 
       int offset;
@@ -2450,8 +2522,12 @@ public class GCodeGenerator {
       sw.WriteLine ("( ** Notch: Tool Block Initialization ** )");
       sw.WriteLine ($"({comment})");
       WriteProgramHeader (toolingItem, points, xStart, xPartition, xEnd, isFlexCut, isLast,
-         prevToolingItem, isValidNotch: true, refSeg: refSeg);
-
+         isValidNotch: isValidNotch, prevToolingItem, refSeg: refSeg);
+      if (CreateDummyBlock4Master) {
+         sw.WriteLine ("( ** End - Tool Block Initialization ** )");
+         sw.WriteLine ();
+         return;
+      }
       if (offset > 0) {
          string sComment = offset switch {
             1 => string.Format ("( Machining on the Bottom Flange )"),
@@ -2576,6 +2652,8 @@ public class GCodeGenerator {
    /// <param name="fromWebFlange">Flag to intimate if the tooling happens from
    /// web flange</param>
    public void WriteToolCorrectionData (Tooling toolingItem, bool fromWebFlange) {
+      if (CreateDummyBlock4Master) return;
+
       if (!toolingItem.IsMark ()) {
          sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
          WritePlaneForCircularMotionCommand (fromWebFlange, angleCorrection: true);
@@ -2636,7 +2714,8 @@ public class GCodeGenerator {
 
          // ** Create the feature for which G Code needs to be created
          Feature feature = null;
-         if (toolingItem.IsHole () || toolingItem.IsMark ()) {
+         bool toTreatAsCutOut = CutOut.ToTreatAsCutOut (toolingItem.Segs, Process.Workpiece.Bound, MinCutOutLengthThreshold);
+         if ((toolingItem.IsHole () && !toTreatAsCutOut) || toolingItem.IsMark ()) {
             feature = new Hole (
                 toolingItem, this, xStart, xEnd, xPartition, prevToolingSegs, mPrevToolingSegment, bound,
                 prevCutToolingsLength, prevMarkToolingsLength, totalMarkLength, totalToolingCutLength,
@@ -2655,12 +2734,12 @@ public class GCodeGenerator {
                 NotchWireJointDistance, NotchApproachLength, MinNotchLengthThreshold, mPercentLengths,
                 prevCutToolingsLength, totalToolingCutLength, isWireJointsNeeded: isWireJointsNeeded,
                 curveLeastLength: mCurveLeastLength);
-         } else if (toolingItem.IsCutout ()) {
+         } else if (toolingItem.IsCutout () || toTreatAsCutOut) {
             Utils.EPlane previousPlaneType = Utils.EPlane.None;
             feature = new CutOut (
                 this, toolingItem, prevToolingItem, prevToolingSegs, mPrevToolingSegment, previousPlaneType,
                 xStart, xPartition, xEnd, NotchApproachLength, prevCutToolingsLength, prevMarkToolingsLength,
-                totalMarkLength, totalToolingCutLength, first);
+                totalMarkLength, totalToolingCutLength, first, toTreatAsCutOut);
          }
 
          if (first) prevToolingItem = null;
@@ -2776,7 +2855,7 @@ public class GCodeGenerator {
                 "Rapid Position with Clearance");
          }
 
-         if (!CreateDummyBlock4Master) {
+         if (!CreateDummyBlock4Master && usePingPongOption) {
             mTraces[(int)Head].Add (new (
                 mToolPos[(int)Head],
                 toPointOffset,
@@ -2808,18 +2887,30 @@ public class GCodeGenerator {
    /// <param name="currFlangeType">Web, Top or Bottom(for angle computation about X Axis)</param>
    /// <param name="toolingItem">The current tooling item</param>
    /// <param name="blockCutLength">The machining distance of the current wire joint trace</param>
-   /// <param name="totalCutLength">The total machining length (of the notch)</param>
+   /// <param name="totalToolingsCutLength">The total machining length (of the notch)</param>
    /// <param name="comment">Comment to be written in G Code</param>
-   public void WriteWireJointTraceForNotch (ToolingSegment wjtSeg, Vector3 scrapSideNormal,
-      Point3 lastPosition, double notchApproachDistance, ref Utils.EPlane prevPlaneType, Utils.EFlange currFlangeType, Tooling toolingItem,
-      ref double blockCutLength, double totalCutLength, /*double frameFeed,*/
-      double xStart, double xPartition, double xEnd, bool flexMachining, string comment = "Notch: Wire Joint Jump Trace") {
+   public void WriteWireJointTrace (
+   ToolingSegment wjtSeg,
+   Vector3 scrapSideNormal,
+   Point3 lastPosition,
+   double notchApproachDistance,
+   ref Utils.EPlane prevPlaneType,
+   Utils.EFlange currFlangeType,
+   Tooling toolingItem,
+   ref double blockCutLength,
+   double totalToolingsCutLength,
+   double xStart,
+   double xPartition,
+   double xEnd,
+   bool flexMachining,
+   bool isValidNotch,
+   bool nextBeginFlexMachining = false,
+   string comment = "Wire Joint Jump Trace") {
+      // Determine the current plane type based on the wire joint segment's vector
       Utils.EPlane currPlaneType = Utils.GetArcPlaneType (wjtSeg.Vec1, GetXForm ());
       var nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance;
 
-      // Changes to accommodate the length of the wire joint machining start point away from
-      // tooling profile. If the length is more than the part boundary itself, the notch approach
-      // length is to be halved
+      // Adjust the machining start point based on boundary constraints
       if (scrapSideNormal.Dot (XForm4.mNegZAxis).SGT (0)) {
          if (nextMachiningStart.Z.SLT (Process.Workpiece.Bound.ZMin))
             nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * notchApproachDistance * 0.5;
@@ -2833,34 +2924,95 @@ public class GCodeGenerator {
 
       // Create the participating points list
       var fromPt = GetLastToolHeadPosition ().Item1;
-      List<Point3> pts = [];
-      pts.Add (nextMachiningStart);
-      pts.Add (wjtSeg.Curve.End);
-      pts.Add (lastPosition);
-
-      bool isFromWebFlange = true;
-      if (Math.Abs (wjtSeg.Vec0.Y) > Math.Abs (wjtSeg.Vec0.Z))
-         isFromWebFlange = false;
-
-      InitializeNotchToolingBlock (toolingItem, prevToolingItem: null, pts, wjtSeg.Vec1.Normalized (), xStart, xPartition,
-         xEnd, /*isFlexCut:*/ flexMachining, isLast: false, wjtSeg, comment);
+      List<Point3> pts = new List<Point3>
       {
-         WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
-         RapidPositionWithClearance (nextMachiningStart, wjtSeg.Vec0, mRetractClearance, toolingItem.Name, isMark: false, usePingPongOption: true);
-         MoveToMachiningStartPosition (nextMachiningStart, wjtSeg.Vec0, toolingItem.Name);
-         WriteToolCorrectionData (toolingItem, isFromWebFlange);
-         EnableMachiningDirective ();
-         {
-            WriteLine (wjtSeg.Curve.End, wjtSeg.Vec1, wjtSeg.Vec1, currPlaneType, prevPlaneType,
-               currFlangeType, toolingItem.Name);
-         }
-         blockCutLength += mToolPos[(int)Head].DistTo (fromPt);
+        nextMachiningStart,
+        wjtSeg.Curve.End,
+        lastPosition
+      };
+
+      // Determine if machining is from the web flange
+      bool isFromWebFlange = Math.Abs (wjtSeg.Vec0.Y) > Math.Abs (wjtSeg.Vec0.Z);
+
+      // Initialize tooling block for valid notches or cutouts
+      if (toolingItem.IsCutout ()) comment = "CutOut: " + comment;
+      else if (toolingItem.IsNotch () && isValidNotch) comment = "Notch: " + comment;
+
+      InitializeNotchToolingBlock (
+          toolingItem,
+          prevToolingItem: null,
+          pts,
+          wjtSeg.Vec1.Normalized (),
+          xStart,
+          xPartition,
+          xEnd,
+          isFlexCut: flexMachining,
+          isLast: false,
+          wjtSeg,
+          isValidNotch: isValidNotch,
+          comment
+      );
+
+      // Write toolplane confirmation
+      WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
+
+      // Exit if dummy block creation is enabled
+      if (CreateDummyBlock4Master) return;
+
+      // Perform rapid positioning with clearance
+      RapidPositionWithClearance (
+          nextMachiningStart,
+          wjtSeg.Vec0,
+          mRetractClearance,
+          toolingItem.Name,
+          isMark: false,
+          usePingPongOption: true
+      );
+
+      MoveToMachiningStartPosition (nextMachiningStart, wjtSeg.Vec0, toolingItem.Name);
+      WriteToolCorrectionData (toolingItem, isFromWebFlange);
+
+      // Rapid positioning again without the ping-pong option
+      RapidPositionWithClearance (
+          nextMachiningStart,
+          wjtSeg.Vec0,
+          mRetractClearance,
+          toolingItem.Name,
+          isMark: false,
+          usePingPongOption: false
+      );
+      
+      EnableMachiningDirective ();
+
+      // Write the machining trace
+      WriteLine (
+          wjtSeg.Curve.End,
+          wjtSeg.Vec1,
+          wjtSeg.Vec1,
+          currPlaneType,
+          prevPlaneType,
+          currFlangeType,
+          toolingItem.Name,
+          lineSegmentComment: "WJT approach machining"
+      );
+
+      if (nextBeginFlexMachining) {
+         // Diable Machining only if the next tooling block will start on flex
+         DisableMachiningDirective ();
+
+         // Finalize (end) the tooling block with one stroke of approach machining
+         FinalizeNotchToolingBlock (toolingItem, blockCutLength, totalToolingsCutLength);
       }
+
+      // Update the block cut length
+      blockCutLength += mToolPos[(int)Head].DistTo (fromPt);
+
+      // Update the previous plane type
       prevPlaneType = currPlaneType;
 
-      // Tooling block finalization will happen after the machining has ended or have 
-      // encountered another wire joint jump trace
+      // Tooling block finalization happens after machining or another jump trace
    }
+
 
    /// <summary>
    /// This method is used to write G Code that moves the 
@@ -2875,34 +3027,84 @@ public class GCodeGenerator {
    /// <param name="nextToolingItemName">The name of the current tooling stroke.</param>
    /// <param name="firstTime">A boolean flag that tells if the tooling item is the first one to start with.
    /// This is used for angle computation</param>
-   public void MoveToNextTooling (Vector3 prevToolingEndNormal, ToolingSegment? prevToolingEndSegment,
-      Point3 nextToolingStartPoint, Vector3 nextToolingStartNormal, string prevToolingItemName,
-      string nextToolingItemName, bool firstTime, bool isMark, bool usePingPongOption = true) {
+   public void MoveToNextTooling (
+    Vector3 prevToolingEndNormal,
+    ToolingSegment? prevToolingEndSegment,
+    Point3 nextToolingStartPoint,
+    Vector3 nextToolingStartNormal,
+    string prevToolingItemName,
+    string nextToolingItemName,
+    bool firstTime,
+    bool isMark,
+    bool usePingPongOption = true) {
       double changeInAngle;
-      if (firstTime) changeInAngle = Utils.GetAngleAboutXAxis (XForm4.mZAxis, nextToolingStartNormal,
-         GetXForm ()).R2D ();
-      else changeInAngle = Utils.GetAngleAboutXAxis (prevToolingEndNormal, nextToolingStartNormal,
-         GetXForm ()).R2D ();
+
+      if (firstTime) {
+         changeInAngle = Utils.GetAngleAboutXAxis (
+             XForm4.mZAxis,
+             nextToolingStartNormal,
+             GetXForm ()
+         ).R2D ();
+      } else {
+         changeInAngle = Utils.GetAngleAboutXAxis (
+             prevToolingEndNormal,
+             nextToolingStartNormal,
+             GetXForm ()
+         ).R2D ();
+      }
 
       bool movedToCurrToolingRetractedPos = false;
       bool planeChangeNeeded = false;
-      if (!changeInAngle.LieWithin (-10.0, 10.0)) {
+
+      if (!changeInAngle.LieWithin (-10.0, 10.0) && !CreateDummyBlock4Master) {
          planeChangeNeeded = true;
-         if (!isMark) sw.WriteLine ("PlaneTransfer\t( Enable Plane Transformation for Tool TurnOver )");
-         MoveFromRetractToSafety (prevToolingEndSegment,
-            prevToolingItemName, nextToolingStartPoint,
-         nextToolingStartNormal, nextToolingItemName, isMark);
-         MoveFromSafetyToRetract (nextToolingStartPoint,
-         nextToolingStartNormal, nextToolingItemName, planeChangeNeeded, isMark);
+
+         if (!isMark) {
+            sw.WriteLine ("PlaneTransfer\t( Enable Plane Transformation for Tool TurnOver )");
+         }
+
+         MoveFromRetractToSafety (
+             prevToolingEndSegment,
+             prevToolingItemName,
+             nextToolingStartPoint,
+             nextToolingStartNormal,
+             nextToolingItemName,
+             isMark
+         );
+
+         MoveFromSafetyToRetract (
+             nextToolingStartPoint,
+             nextToolingStartNormal,
+             nextToolingItemName,
+             planeChangeNeeded,
+             isMark,
+             usePingPongOption
+         );
+
          movedToCurrToolingRetractedPos = true;
          sw.WriteLine ("EndPlaneTransfer\t( Disable Plane Transformation after Tool TurnOver)");
       } else {
-         if (!isMark) sw.WriteLine ("ToolPlane\t( Confirm Cutting Plane )");
+         if (!isMark) {
+            sw.WriteLine ("ToolPlane\t( Confirm Cutting Plane )");
+
+            if (CreateDummyBlock4Master) {
+               return;
+            }
+         }
       }
-      if (!movedToCurrToolingRetractedPos)
-         MoveFromSafetyToRetract (nextToolingStartPoint,
-            nextToolingStartNormal, nextToolingItemName, planeChangeNeeded, isMark, usePingPongOption);
+
+      if (!movedToCurrToolingRetractedPos) {
+         MoveFromSafetyToRetract (
+             nextToolingStartPoint,
+             nextToolingStartNormal,
+             nextToolingItemName,
+             planeChangeNeeded,
+             isMark,
+             usePingPongOption
+         );
+      }
    }
+
 
    /// <summary>
    /// This method makes the tool move from previous tooling retract position, which is 
@@ -2999,6 +3201,10 @@ public class GCodeGenerator {
    /// <param name="comment"></param>
    public void RapidMoveToPiercingPosition (
     Point3 stPoint, Vector3 stNormal, bool usePingPongOption = true, string comment = "") {
+      // Debug
+      if (IsRapidMoveToPiercingPositionWithPingPong && usePingPongOption)
+         return;
+      if (CreateDummyBlock4Master) return;
       var mcCoordsStPoint = XfmToMachine (stPoint);
       var planeType = Utils.GetPlaneType (stNormal, GetXForm ());
       comment = "Move to Piercing Position " + comment;
@@ -3015,6 +3221,10 @@ public class GCodeGenerator {
              (UsePingPong && usePingPongOption) ? "M1014" : "",
              createDummyBlock4Master: CreateDummyBlock4Master);
       }
+      if (usePingPongOption)
+         IsRapidMoveToPiercingPositionWithPingPong = true;
+      else
+         IsRapidMoveToPiercingPositionWithPingPong = false;
       sw.WriteLine ();
    }
 

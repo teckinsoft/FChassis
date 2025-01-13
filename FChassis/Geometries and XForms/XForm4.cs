@@ -185,8 +185,21 @@ public class Geom {
    }
 
    public static Tuple<double, EArcSense> GetArcAngleAndSense (Arc3 arc, Point3 start, Point3 end, Vector3 normal) {
-      if (Utils.IsCircle (arc))
-         return new Tuple<double, EArcSense> (2 * Math.PI, EArcSense.CCW);
+      if (Utils.IsCircle (arc)) {
+         if ( arc.Start.EQ(start) && arc.End.EQ(end))
+            return new Tuple<double, EArcSense> (Math.PI * 2, EArcSense.CCW);
+         var (cen, rad) = EvaluateCenterAndRadius (arc);
+         if (!IsPointOnCurve (arc as Curve3, start, normal))
+            throw new Exception ("In GetArcAngleAndSense: For the circle, the start point is not on the circle");
+         if (!IsPointOnCurve (arc as Curve3, end, normal))
+            throw new Exception ("In GetArcAngleAndSense: For the circle, the end point is not on the circle");
+         var cenToStart = start - cen; var cenToEnd = end - cen;
+         var crossP = Geom.Cross(cenToStart, cenToEnd).Normalized();
+         var angBet = Math.Acos (cenToStart.Normalized ().Dot (cenToEnd.Normalized ()));
+         if (crossP.Opposing (normal)) angBet = 2 * Math.PI - angBet;
+         var dist = angBet * rad;
+         return new Tuple<double, EArcSense> (angBet, EArcSense.CCW);
+      }
 
       // Compute the vectors from center to start and center to end
       normal = normal.Normalized ();
@@ -296,6 +309,12 @@ public class Geom {
       var angDataFromPt = GetArcAngleAtPoint (arc, fromPt, planeNormal, tolerance);
       var angDataToPt = GetArcAngleAtPoint (arc, toPoint, planeNormal, tolerance);
       var deltaAngle = angDataToPt.Item1 - angDataFromPt.Item1;
+      if (Utils.IsCircle (arc)) {
+         //By default all circles are CCW in sense. If angleDataToPt is less than
+         // PI radians, the major arc angle is compiuted
+         if (deltaAngle.SLT(Math.PI))
+            deltaAngle = Math.PI *2.0 - deltaAngle;
+      }
       List<Point3> points = [];
       points.Add (GetArcPointAtAngle (arc, angDataFromPt.Item1 + deltaAngle / 4.0, planeNormal));
       points.Add (GetArcPointAtAngle (arc, angDataFromPt.Item1 + deltaAngle * (3.0 / 4.0), planeNormal));
@@ -404,6 +423,8 @@ public class Geom {
             for (int jj = 0; jj < 2; jj++) {
                var p = twoIntermediatePoints[jj];
                var np = NudgePointToArc (cen, rad, p, apn);
+               if (!Geom.IsPointOnCurve (arc as Curve3, np, apn))
+                  throw new Exception ("In SplitArc: nudged point is not on the arc with in 1e-6");
                twoIntermediatePoints[jj] = np;
             }
             var arc1 = new Arc3 (newIncrStPt, twoIntermediatePoints[0], twoIntermediatePoints[1], points[ii + 1]);
@@ -499,8 +520,8 @@ public class Geom {
 
       if (crv is Arc3) {
          if (apn == null) throw new Exception ("Arc Plane Normal needed");
-         var (arcAngle, _) = GetArcAngleAndSense (crv as Arc3, apn.Value);
-         var (arcAngleAtPt, _) = GetArcAngleAtPoint (crv as Arc3, pt, apn.Value, tolerance);
+         var (arcAngle, arcSense) = GetArcAngleAndSense (crv as Arc3, apn.Value);
+         var (arcAngleAtPt, arcSenseAtPt) = GetArcAngleAtPoint (crv as Arc3, pt, apn.Value, tolerance);
          return arcAngleAtPt / arcAngle;
       } else {
          double denomX = (crv.End.X - crv.Start.X);
@@ -556,7 +577,19 @@ public class Geom {
          var ptToCenVec = center - pt;
          var ptToCenDir = ptToCenVec.Normalized ();
          var dotp = apn.Value.Dot (ptToCenDir);
+
+         // Check for planarity
          if (!(ptToCenVec.Length - radius).EQ (0.0, tolerance) || !Math.Abs (dotp).EQ (0.0, tolerance)) return false;
+
+         // Check for circle
+         if (Utils.IsCircle (curve as Arc3)) {
+            var x = pt.X; var y = pt.Y; var z = pt.Z;
+            var xc = center.X; var yc = center.Y; var zc = center.Z;
+            if (((x - xc) * (x - xc) + (y - yc) * (y - yc) + (z - zc) * (z - zc)).EQ (radius * radius, tolerance)) return true;
+            else return false;
+         }
+
+         // Check for arc
          if (constrainedWithinSegment) {
             var arcAngle = GetArcAngleAndSense (arc, apn.Value);
             var arcAngleFromStToPt = GetArcAngleAtPoint (arc, pt, apn.Value, tolerance);
@@ -1324,6 +1357,29 @@ public class Geom {
    public static Tuple<Point3, int> GetPointAtLengthFrom (Point3 iPoint, double iLength, List<ToolingSegment> segs,
       bool reverseTrace = false, double minimumCurveLength = 0.5, double tolerance = 1e-6) {
       Tuple<Point3, int> res = null;
+      if (segs.Count == 2 || segs.Count == 1) {
+         Curve3 crv = null;
+         Vector3 normal;
+         int index = -1;
+         if (segs.Count == 2) {
+            crv = segs[1].Curve;
+            normal = segs[1].Vec0.Normalized ();
+            index = 1;
+         } else {
+            crv = segs[0].Curve;
+            normal = segs[0].Vec0.Normalized ();
+            index = 0;
+         }
+         if (Utils.IsCircle (crv)) {
+            var evalPt = Geom.Evaluate (crv, iLength / crv.Length, normal);
+            res = new Tuple<Point3, int> (evalPt, index);
+            // DEBUG_DEBUG 
+            if (!Geom.IsPointOnCurve (crv, evalPt, normal))
+               throw new Exception ("In GetPointAtLengthFrom: evalPt is not on the curve!");
+            return res;
+         }
+      }
+
       var (len, segIndex) = GetLengthAtPoint (segs, iPoint);
       var tLen = len + iLength;
       res = EvaluatePointAndIndexAtLength (segs, -1, tLen);
@@ -1365,6 +1421,14 @@ public class Geom {
    /// <returns>The length of the tooling segments from start to end index including the start and 
    /// end the segments</returns>
    public static double GetLengthBetween (List<ToolingSegment> segments, int fromIdx, int toIdx) {
+      if ( segments.Count == 2) {
+         if (Utils.IsCircle(segments[1].Curve))
+            return segments[1].Curve.Length;
+      }
+      if (segments.Count == 1) {
+         if (Utils.IsCircle (segments[0].Curve))
+            return segments[0].Curve.Length;
+      }
       // Ensure fromIdx <= toIdx
       if (fromIdx > toIdx)
          (fromIdx, toIdx) = (toIdx, fromIdx);
@@ -1392,6 +1456,32 @@ public class Geom {
    /// and the length of the last segment from start point of that segment To the given
    /// To Point</returns>
    public static double GetLengthBetween (List<ToolingSegment> segments, Point3 fromPt, Point3 toPt, bool inSameOrder = false) {
+      if (segments.Count == 2 || segments.Count == 1) {
+         Curve3 crv = null;
+         Vector3 normal;
+         int index = -1;
+         if (segments.Count == 2) {
+            crv = segments[1].Curve;
+            normal = segments[1].Vec0.Normalized ();
+            index = 1;
+         } else {
+            crv = segments[0].Curve;
+            normal = segments[0].Vec0.Normalized ();
+            index = 0;
+         }
+         if (Utils.IsCircle (crv)) {
+            //if (index == 1) {
+            //   fromPt = crv.Start;
+            //   toPt = crv.End;
+            //}
+            var t1 = Geom.GetParamAtPoint (crv, fromPt, normal);
+            var t2 = Geom.GetParamAtPoint (crv, toPt, normal);
+            if (t1 > t2) throw new Exception ("In Geom.GetLengthBetween() the param for fromPt is greater than param for to point");
+            double distBetween = (t2-t1)*crv.Length;
+            return distBetween;
+         }
+      }
+
       //var fromPtOnSegment = segments.Select ((segment, index) => new { Segment = segment, Index = index })
       //                                    .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, fromPt,
       //                                                                               x.Segment.Vec0.Normalized ()));

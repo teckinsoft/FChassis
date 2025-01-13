@@ -895,9 +895,10 @@ public static class Utils {
             break;
          case ECutKind.Top2YPos:
          case ECutKind.Top2YNeg:
+         case ECutKind.YNegToYPos: /* TRIPLE_FLANGE_NOTCH */
          case ECutKind.YPos:
          case ECutKind.YNeg:
-            if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg) {
+            if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg || profileKind == ECutKind.YNegToYPos) {
                if (seg.Curve is Line3) {
                   t = pt.DistTo (seg.Curve.Start) / seg.Curve.Length;
                   normalAtNotchPt = Geom.GetInterpolatedNormal (seg.Vec0, seg.Vec1, t);

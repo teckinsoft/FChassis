@@ -21,7 +21,7 @@ public class Hole : Feature {
    bool mIsFirstTooling = false;
    ToolingSegment? mPrevToolingSegment;
    Bound3 mBound;
-   
+
    // Local copy of tooling segments which are modified 
    // for G code writing. This is not same as Tooling.Segs
    // and do not use Tooling.Segs for holes.
@@ -67,7 +67,7 @@ public class Hole : Feature {
    /// Returns the modified Tooling Segments
    /// </summary>
    public override List<ToolingSegment> ToolingSegments { get => mToolingSegments; set => mToolingSegments = value; }
-   
+
    /// <summary>
    /// Returns the last tooling segment of the segments that this hole feature 
    /// is made of
@@ -82,8 +82,8 @@ public class Hole : Feature {
    /// </summary>
    public override void WriteTooling () {
       GCGen.InitializeToolingBlock (ToolingItem, mPrevToolingItem, /*frameFeed,*/
-               mXStart, mXPartition, mXEnd, ToolingSegments, /*isValidNotch:*/false, /*isFlexCut*/false,
-               mIsLastToolingItem);
+               mXStart, mXPartition, mXEnd, ToolingSegments, isValidNotch: false, isFlexCut: false,
+               mIsLastToolingItem/*, isToBeTreatedAsCutOut: false*/);
 
       if (ToolingSegments == null || ToolingSegments?.Count == 0) return;
 
@@ -101,9 +101,17 @@ public class Hole : Feature {
       // We are using G42 than G41 while cutting holes
       // If we are reversing y and not reversing x. We are in 4th quadrant. Flip 42 or 41
       // Tool diameter compensation
-      //GCGen.WriteToolCorrectionData (toolingItem);
+      var isFromWebNotch = Utils.IsMachiningFromWebFlange (ToolingSegments, 0);
+      if (GCGen.IsRapidMoveToPiercingPositionWithPingPong)
+         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch);
+      else {
+         GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: true);
+         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch);
+      }
+      GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: false);
       //if (!toolingItem.IsMark ())
       // ** Machining **
+      if (GCGen.CreateDummyBlock4Master) return;
       mLastToolingSegment = GCGen.WriteTooling (ToolingSegments, ToolingItem, mBound, mPrevCutToolingsLength, mTotalToolingCutLength, /*frameFeed*/
             mXStart, mXPartition, mXEnd);
 

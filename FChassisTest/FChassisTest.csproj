@@ -34,4 +34,8 @@
 		</Reference>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Update="CommunityToolkit.Mvvm" Version="8.4.0" />
+	</ItemGroup>
+
 </Project>

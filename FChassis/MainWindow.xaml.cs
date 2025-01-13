@@ -127,8 +127,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       if (this.Area.Child == this.joinPanel)
          return;
 
-      if (this.joinPanel == null)
-         this.joinPanel = new JoinControl ();
+      this.joinPanel ??= new JoinControl ();
 
       this.Area.Child = this.joinPanel;
    }

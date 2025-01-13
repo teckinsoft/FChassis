@@ -57,6 +57,8 @@ public partial class SettingsDlg : Window {
          al => { Settings.NotchWireJointDistance = al.Clamp (0, 5); IsModified = true; });
       tbMinNotchLengthThreshold.Bind (() => Settings.MinNotchLengthThreshold,
          al => { Settings.MinNotchLengthThreshold = al.Clamp (10, 300.0); IsModified = true; });
+      tbMinCutOutLengthThreshold.Bind (() => Settings.MinCutOutLengthThreshold,
+         al => { Settings.MinCutOutLengthThreshold = al.Clamp (10, 300.0); IsModified = true; });
       cbCutHoles.Bind (() => Settings.CutHoles, b => { Settings.CutHoles = b; IsModified = true; });
       cbCutNotches.Bind (() => Settings.CutNotches, b => { Settings.CutNotches = b; IsModified = true; });
       cbCutCutouts.Bind (() => Settings.CutCutouts, b => { Settings.CutCutouts = b; IsModified = true; });
@@ -66,6 +68,9 @@ public partial class SettingsDlg : Window {
       cbShowTlgExtents.Bind (() => Settings.ShowToolingExtents, b => { Settings.ShowToolingExtents = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
+
+      tbWJTPreFlexMcToken.Bind (() => Settings.WJTPreFlexMcToken, b => { Settings.WJTPreFlexMcToken = b; IsModified = true; });
+      tbWJTPostFlexMcToken.Bind (() => Settings.WJTPostFlexMcToken, b => { Settings.WJTPostFlexMcToken = b; IsModified = true; });
 
       chbMPC.Bind (() => {
          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =

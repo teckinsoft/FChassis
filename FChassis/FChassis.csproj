@@ -16,6 +16,10 @@
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
   </ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Update="CommunityToolkit.Mvvm" Version="8.4.0" />
+	</ItemGroup>
+
   <ItemGroup>
     <Reference Include="Flux.API">
       <HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>

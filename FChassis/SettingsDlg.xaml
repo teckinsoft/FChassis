@@ -80,6 +80,9 @@
                                     <RowDefinition />
                                     <RowDefinition />
                                     <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
                                 </Grid.RowDefinitions>
                                 <Label Grid.Row="0">Standoff</Label>
                                 <TextBox Grid.Row="0" Grid.Column="1" Name="tbStandoff"></TextBox>
@@ -144,12 +147,22 @@
                                 <TextBox Grid.Row="16" Grid.Column="1" Name="tbMinNotchLengthThreshold"></TextBox>
                                 <Label Grid.Row="16" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                                <Label Grid.Row="17">Min Partition Length Threshold</Label>
-                                <TextBox Grid.Row="17" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
+                                <Label Grid.Row="17">Min CutOut Length Threshold</Label>
+                                <TextBox Grid.Row="17" Grid.Column="1" Name="tbMinCutOutLengthThreshold"></TextBox>
                                 <Label Grid.Row="17" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
 
-                                <Label Grid.Row="18">DIN Filename Suffix</Label>
-                                <TextBox Grid.Row="18" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
+                                <Label Grid.Row="18">Min Partition Length Threshold</Label>
+                                <TextBox Grid.Row="18" Grid.Column="1" Name="tbMinThresholdPart"></TextBox>
+                                <Label Grid.Row="18" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
+
+                                <Label Grid.Row="19">DIN Filename Suffix</Label>
+                                <TextBox Grid.Row="19" Grid.Column="1" Name="tbDinFilenameSuffix"></TextBox>
+
+                                <Label Grid.Row="20">Wire Joint Pre Flex Mc Token</Label>
+                                <TextBox Grid.Row="20" Grid.Column="1" Name="tbWJTPreFlexMcToken"></TextBox>
+
+                                <Label Grid.Row="21">Wire Joint Post Flex Mc Token</Label>
+                                <TextBox Grid.Row="21" Grid.Column="1" Name="tbWJTPostFlexMcToken"></TextBox>
                             </Grid>
                         </StackPanel>
                     </Grid>

@@ -296,7 +296,7 @@ public class Tooling {
             break;
          }
       }
-      if (TopPlaneFeat && YPosPlaneFeat && YNegPlaneFeat)
+      if (TopPlaneFeat && (YPosPlaneFeat || cutKindAtFlex == ECutKind.YPosFlex) && (YNegPlaneFeat || cutKindAtFlex == ECutKind.YNegFlex))
          cutKindAtFlange = ECutKind.YNegToYPos;
       else if (TopPlaneFeat && (YNegPlaneFeat || cutKindAtFlex == ECutKind.YNegFlex))
          cutKindAtFlange = ECutKind.Top2YNeg;
@@ -322,6 +322,7 @@ public class Tooling {
                pline = pline.DiscretizeP (0.1);
             var seggs = pline.Segs.ToList ();
             foreach (var seg in pline.Segs) {
+               
                PointVec pva = Project (ent, seg.A),
                         pvb = Project (ent, seg.B);
                if (prevpvb != null) {

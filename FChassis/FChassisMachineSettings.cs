@@ -43,7 +43,10 @@ public class MCSettings : INotifyPropertyChanged {
 
       MinThresholdForPartition = 585.0;
       MinNotchLengthThreshold = 210;
+      MinCutOutLengthThreshold = 210;
       DINFilenameSuffix = "";
+      WJTPreFlexMcToken = "";
+      WJTPostFlexMcToken = "";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 600.0;
    }
@@ -112,7 +115,10 @@ public class MCSettings : INotifyPropertyChanged {
       CutMarks = other.CutMarks;
       MinThresholdForPartition = other.MinThresholdForPartition;
       MinNotchLengthThreshold = other.MinNotchLengthThreshold;
+      MinCutOutLengthThreshold = other.MinCutOutLengthThreshold;
       DINFilenameSuffix = other.DINFilenameSuffix;
+      WJTPreFlexMcToken = other.WJTPreFlexMcToken;
+      WJTPostFlexMcToken = other.WJTPostFlexMcToken;
       Machine = other.Machine;
       WorkpieceOptionsFilename = other.WorkpieceOptionsFilename;
       ShowToolingNames = other.ShowToolingNames;
@@ -329,11 +335,29 @@ public class MCSettings : INotifyPropertyChanged {
       set => SetProperty (ref mMinNotchLengthThreshold, value); }
    double mMinNotchLengthThreshold;
 
+   public double MinCutOutLengthThreshold {
+      get => mMinCutOutLengthThreshold;
+      set => SetProperty (ref mMinCutOutLengthThreshold, value);
+   }
+   double mMinCutOutLengthThreshold;
+
    public string DINFilenameSuffix { 
       get => mDINFilenameSuffix; 
       set => SetProperty (ref mDINFilenameSuffix, value); }
    string mDINFilenameSuffix;
-   
+
+   public string WJTPreFlexMcToken {
+      get => mWJTPreFlexMcToken;
+      set => SetProperty (ref mWJTPreFlexMcToken, value);
+   }
+   string mWJTPreFlexMcToken;
+
+   public string WJTPostFlexMcToken {
+      get => mWJTPostFlexMcToken;
+      set => SetProperty (ref mWJTPostFlexMcToken, value);
+   }
+   string mWJTPostFlexMcToken;
+
    public string WorkpieceOptionsFilename { 
       get => mWorkpieceOptionsFilename; 
       set => SetProperty (ref mWorkpieceOptionsFilename, value); }

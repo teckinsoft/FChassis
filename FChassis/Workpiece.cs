@@ -92,10 +92,12 @@ public class Workpiece : INotifyPropertyChanged {
             var shape = con.Clone ().Cleanup (threshold: 1e-3);
             EType type = Classify (ep);
 
-            // If the contour appears to be CCW w.r.t a negative X
-            // with positive Y or vice versa after projection for YNeg plane
-            // OR converse of the above consition
-            // if YPos plane, shape has to be reversed
+            // If ...
+            // 1. the contour appears to be CCW w.r.t a negative X
+            //    with positive Y OR
+            // 2. Vice versa after projection for YNeg plane OR
+            // 3. Converse of the above condition
+            // THEN shape has to be reversed
             if ((type == EType.Top && ep.Xfm.M11 * ep.Xfm.M22 < 0.0)
                || (type == EType.YNeg && ep.Xfm.M11 * ep.Xfm.M23 < 0.0)
                || (type == EType.YPos && ep.Xfm.M11 * ep.Xfm.M23 > 0.0)) {
@@ -105,12 +107,18 @@ public class Workpiece : INotifyPropertyChanged {
                shape.Reverse ();
 
             Tooling cut = new (this, ep, shape, EKind.Hole);
-            Cuts.Add (cut);
             var name = $"Tooling-{cutIndex++}";
-            var featType = $"{Utils.GetFlangeType (Cuts[^1],
-               GCodeGenerator.GetXForm(this))} - {Cuts[^1].Kind}";
-            Cuts[^1].Name = name;
-            Cuts[^1].FeatType = featType;
+            var featType = $"{Utils.GetFlangeType (cut,
+               GCodeGenerator.GetXForm (this))} - {cut.Kind}";
+            cut.Name = name;
+            cut.FeatType = featType;
+            bool toTreatAsCutOut = CutOut.ToTreatAsCutOut (cut.Segs, Bound, MCSettings.It.MinCutOutLengthThreshold);
+            if (toTreatAsCutOut) {
+               cut.CutoutKind = Tooling.GetCutKind (cut, GCodeGenerator.GetXForm (this));
+               cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
+               cut.Kind = EKind.Cutout;
+            }
+            Cuts.Add (cut);
          }
       }
       foreach (var ef in mModel.Entities.OfType<E3Flex> ()) {
@@ -327,7 +335,7 @@ public class Workpiece : INotifyPropertyChanged {
             //bool YPosPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Y - 1.0).EQ (0));
             //bool TopPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Z - 1.0).EQ (0));
             //bool FlexPlaneFeat = !YNegPlaneFeat && !YPosPlaneFeat && !TopPlaneFeat;
-            if (cut.Kind == EKind.Cutout) {
+            if (cut.Kind == EKind.Cutout || cut.Kind == EKind.Hole) {
                if (!MCSettings.It.CutCutouts)
                   continue;
 
@@ -357,7 +365,7 @@ public class Workpiece : INotifyPropertyChanged {
                                                                 GCodeGenerator.GetXForm (this));
                var NotchEndFlType = Utils.GetArcPlaneFlangeType (cutSegs[^1].Vec1,
                                                                  GCodeGenerator.GetXForm (this));
-               if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg || cut.ProfileKind == ECutKind.YNegToYPos) {
+               if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg) {
                   var endX = cutSegs[^1].Curve.End.X;
                   if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
                      cut.Reverse ();
@@ -366,7 +374,7 @@ public class Workpiece : INotifyPropertyChanged {
                } else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) {
                   if (cutSegs.First ().Curve.Start.X > cutSegs[^1].Curve.End.X)
                      cut.Reverse ();
-               } else if (cut.ProfileKind == ECutKind.Top) {
+               } else if (cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YNegToYPos ) {
                   if (cutSegs.First ().Curve.Start.Y > cutSegs[^1].Curve.End.Y)
                      cut.Reverse ();
                }
