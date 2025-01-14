@@ -19,6 +19,7 @@ public class MCSettings : INotifyPropertyChanged {
    public MCSettings () {
       mToolingPriority = [EKind.Hole, EKind.Notch, EKind.Cutout, EKind.Mark];
       mStandoff = 0.0;
+      mFlexCuttingGap = 0.0;
       mMarkText = "Deluxe";
       mPartitionRatio = 0.5;
       mHeads = EHeads.Both;
@@ -45,8 +46,8 @@ public class MCSettings : INotifyPropertyChanged {
       MinNotchLengthThreshold = 210;
       MinCutOutLengthThreshold = 210;
       DINFilenameSuffix = "";
-      WJTPreFlexMcToken = "";
-      WJTPostFlexMcToken = "";
+      WJTPreFlexMcToken = "FlexStart";
+      WJTPostFlexMcToken = "FlexEnd";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 600.0;
    }
@@ -80,6 +81,7 @@ public class MCSettings : INotifyPropertyChanged {
    private void UpdateFields (MCSettings other) {
       Heads = other.Heads;
       Standoff = other.Standoff;
+      FlexCuttingGap = other.FlexCuttingGap;
       ToolingPriority = other.ToolingPriority;
       MarkTextPosX = other.MarkTextPosX;
       MarkTextPosY = other.MarkTextPosY;
@@ -146,6 +148,9 @@ public class MCSettings : INotifyPropertyChanged {
    /// <summary>Stand-off distance between laser nozzle tip and workpiece</summary>
    public double Standoff { get => mStandoff; set => SetProperty (ref mStandoff, value); }
    double mStandoff;
+
+   public double FlexCuttingGap { get => mFlexCuttingGap; set => SetProperty (ref mFlexCuttingGap, value); }
+   double mFlexCuttingGap;
 
    public EKind[] ToolingPriority { 
       get => mToolingPriority; 

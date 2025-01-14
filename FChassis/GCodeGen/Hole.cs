@@ -103,10 +103,10 @@ public class Hole : Feature {
       // Tool diameter compensation
       var isFromWebNotch = Utils.IsMachiningFromWebFlange (ToolingSegments, 0);
       if (GCGen.IsRapidMoveToPiercingPositionWithPingPong)
-         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch);
+         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch, isFlexTooling:false);
       else {
          GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: true);
-         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch);
+         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch, isFlexTooling: false);
       }
       GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: false);
       //if (!toolingItem.IsMark ())

@@ -30,6 +30,7 @@ public partial class SettingsDlg : Window {
       // Set the internal property to the passed settings object
       Settings = set;
       tbStandoff.Bind (() => Settings.Standoff, f => { Settings.Standoff = f.Clamp (0, 100); IsModified = true; });
+      tbFlexCuttingGap.Bind (() => Settings.FlexCuttingGap, f => { Settings.FlexCuttingGap = f.Clamp (0, 100); IsModified = true; });
       tbPartition.Bind (() => Settings.PartitionRatio, f => { Settings.PartitionRatio = f.Clamp (0, 1); IsModified = true; });
       tbStepLength.Bind (() => Settings.StepLength, f => { Settings.StepLength = f.Clamp (0.001, 50); IsModified = true; });
       cbPingPong.Bind (() => Settings.UsePingPong, b => { Settings.UsePingPong = b; IsModified = true; });
@@ -69,8 +70,8 @@ public partial class SettingsDlg : Window {
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
 
-      tbWJTPreFlexMcToken.Bind (() => Settings.WJTPreFlexMcToken, b => { Settings.WJTPreFlexMcToken = b; IsModified = true; });
-      tbWJTPostFlexMcToken.Bind (() => Settings.WJTPostFlexMcToken, b => { Settings.WJTPostFlexMcToken = b; IsModified = true; });
+      //tbWJTPreFlexMcToken.Bind (() => Settings.WJTPreFlexMcToken, b => { Settings.WJTPreFlexMcToken = b; IsModified = true; });
+      //tbWJTPostFlexMcToken.Bind (() => Settings.WJTPostFlexMcToken, b => { Settings.WJTPostFlexMcToken = b; IsModified = true; });
 
       chbMPC.Bind (() => {
          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
