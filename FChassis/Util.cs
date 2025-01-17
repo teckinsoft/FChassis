@@ -311,12 +311,15 @@ public static class Utils {
    public static double GetAngleAboutXAxis (Vector3 fromPointPV,
                                             Vector3 toPointPV, XForm4 xfm) {
       //var trfFromPt = xfm * fromPointPV; var trfToPt = xfm * toPointPV;
-      var theta = fromPointPV.AngleTo (toPointPV);
-      var crossVec = Geom.Cross (fromPointPV, toPointPV);
+      var stNormal = xfm * fromPointPV;
+      var endNormal = xfm * toPointPV;
+      var theta = stNormal.AngleTo (endNormal);
+      theta *= GetAngleSignAbtX (stNormal, endNormal, XForm4.IdentityXfm);
+      //var crossVec = Geom.Cross (stNormal, endNormal).Normalized();
       //if (!crossVec.IsZero && crossVec.Opposing (XForm4.mXAxis)) 
       //   theta *= -1;
-      if (crossVec.IsZero && crossVec.Aligned (xfm.XCompRot))
-         theta *= -1;
+      //if (!crossVec.IsZero && crossVec.Aligned (xfm.XCompRot))
+
 
       return theta;
    }
@@ -342,6 +345,30 @@ public static class Utils {
          throw new NotSupportedException ("Unsupported plane type encountered");
 
       return angleBetweenStartAndEndPoints;
+   }
+
+   public static int GetAngleSignAbtX (Vector3 stNormal, Vector3 endNormal, XForm4 xfm) {
+      var stN = xfm * stNormal.Normalized ();
+      var endN = xfm * endNormal.Normalized ();
+      var cross = Geom.Cross (stN, endN).Normalized ();
+      if (!cross.IsZero && cross.Opposing (XForm4.mXAxis)) return -1;
+      return 1;
+   }
+
+   public static int GetAngleSignAbtX (Vector3 stNormal, Vector3 endNormal, Workpiece wp, GCodeGenerator gcGen) {
+      var stN = GCodeGenerator.GetXForm (wp, gcGen) * stNormal.Normalized ();
+      var endN = GCodeGenerator.GetXForm (wp, gcGen) * endNormal.Normalized ();
+      var cross = Geom.Cross (stN, endN).Normalized ();
+      if (!cross.IsZero && cross.Opposing (XForm4.mXAxis)) return -1;
+      return 1;
+   }
+
+   public static int GetAngleSignAbtX (Point3 stPoint, Point3 endPoint, Workpiece wp, GCodeGenerator gcGen) {
+      var stN = GCodeGenerator.GetXForm (wp, gcGen) * Geom.P2V (stPoint).Normalized ();
+      var endN = GCodeGenerator.GetXForm (wp, gcGen) * Geom.P2V (endPoint).Normalized ();
+      var cross = Geom.Cross (stN, endN).Normalized ();
+      if (!cross.IsZero && cross.Opposing (XForm4.mXAxis)) return -1;
+      return 1;
    }
 
    /// <summary>
@@ -906,7 +933,7 @@ public static class Utils {
                   normalAtNotchPt = seg.Vec0;
 
                if (isFlexMachining) goto case ECutKind.YPosFlex;
-               if (normalAtNotchPt.EQ(XForm4.mZAxis)) goto case ECutKind.Top;
+               if (normalAtNotchPt.EQ (XForm4.mZAxis)) goto case ECutKind.Top;
                if (Utils.IsNormalAtFlex (normalAtNotchPt)) goto case ECutKind.YPosFlex;
             }
             bdyPtZMin = new Point3 (pt.X, pt.Y, bound.ZMin);
@@ -1730,35 +1757,23 @@ public static class Utils {
             throw new Exception ("ToolingScope does not match with Tooling: In Right to left");
       }
 
-      var (notchXPt, paramAtIxn, index, doesIntersect) = GetPointParamsAtXVal (segs, xPartition);
-      List<ToolingSegment> splitSegs; 
-      //Point3 lineEndPoint; //Line3 line;
+      var (notchXPt, _, index, doesIntersect) = GetPointParamsAtXVal (segs, xPartition);
+      List<ToolingSegment> splitSegs;
+      
       if (doesIntersect) {
          splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized (), tolerance);
-         //lineEndPoint = new Point3 (notchXPt.X, notchXPt.Y, segs[index].Curve.End.Z);
-         //if (segs[index].Vec1.Normalized ().EQ (XForm4.mYAxis) ||
-         //   segs[index].Vec1.Normalized ().EQ (XForm4.mNegYAxis))
-         //   lineEndPoint = new Point3 (notchXPt.X, notchXPt.Y, bound.ZMin);
-
+         
          // Create a new line tooling segment.
-         //if (splitSegs.Count > 0 && lineEndPoint != null) {
          if (splitSegs.Count == 2) {
             if (maxSideToPartition) {
                // Take all toolingSegments from Last toolingSegmen to index-1, add the 0th index of splitSegs, add it to the lastTSG.
-               //line = new Line3 (lineEndPoint, notchXPt);
-               //var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
-               //resSegs.Add (lastTSG);
                resSegs.Add (splitSegs[1]);
                for (int ii = index + 1; ii < segs.Count; ii++)
                   resSegs.Add (segs[ii]);
             } else {
-               //line = new Line3 (notchXPt, lineEndPoint);
-               //var lastTSG = Geom.CreateToolingSegmentForCurve (line as Curve3, segs[index].Vec0.Normalized (), segs[index].Vec0.Normalized ());
                for (int ii = 0; ii < index; ii++)
                   resSegs.Add (segs[ii]);
-
                resSegs.Add (splitSegs[0]);
-               //resSegs.Add (lastTSG);
             }
          }
       }
@@ -1958,8 +1973,6 @@ public static class Utils {
    /// <param name="extraToken">This is a string that contains extra parameters to be 
    /// passed to the G Code</param>
    /// <param name="comment">G Code comment statement</param>
-   /// <param name = "createDummyBlock4Master" > The flag specifies if the head is a slave.In the case of slave for
-   /// machine type LCMMultipass2H, no g code statement is written</param>
    /// <returns>The G Code string itself</returns>
    public static string RapidPosition (StreamWriter sw, double x, OrdinateAxis oaxis, double val,
                                      double a, MachineType machine = MachineType.LCMMultipass2H,
