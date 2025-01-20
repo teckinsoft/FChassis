@@ -39,6 +39,18 @@ public static class DoubleExtensions {
    public static bool SGT (this float a, float b) => !(a - b).EQ (0) && a > b;
    public static bool SLT (this float a, float b, float tol) => !a.EQ (b, tol) && a < b;
    public static bool SLT (this float a, float b) => !(a - b).EQ (0) && a < b;
+
+   /// <summary>
+   /// Rounds the double to the specified number of decimal places.
+   /// </summary>
+   /// <param name="value">The double value to round.</param>
+   /// <param name="decimalPlaces">The number of decimal places to round to.</param>
+   /// <param name="rounding">Optional: The rounding mode to use. Defaults to MidpointRounding.ToEven.</param>
+   /// <returns>The rounded double value.</returns>
+   public static double Round (this double value, int decimalPlaces,
+      MidpointRounding rounding = MidpointRounding.ToEven)
+      => Math.Round (value, decimalPlaces, rounding);
+
 }
 
 public static class Vector3Extensions {
@@ -62,6 +74,13 @@ public static class Vector3Extensions {
       return true;
    }
 
+}
+
+public static class Vector2Extensions {
+   public static Vector2 Round (this Vector2 vec, int decimalPlaces,
+      MidpointRounding rounding = MidpointRounding.ToEven) {
+      return new Vector2 (Math.Round (vec.X, decimalPlaces, rounding), Math.Round (vec.Y, decimalPlaces, rounding));
+   }
 }
 public class Geom {
    #region Enums
@@ -186,7 +205,7 @@ public class Geom {
 
    public static Tuple<double, EArcSense> GetArcAngleAndSense (Arc3 arc, Point3 start, Point3 end, Vector3 normal) {
       if (Utils.IsCircle (arc)) {
-         if ( arc.Start.EQ(start) && arc.End.EQ(end))
+         if (arc.Start.EQ (start) && arc.End.EQ (end))
             return new Tuple<double, EArcSense> (Math.PI * 2, EArcSense.CCW);
          var (cen, rad) = EvaluateCenterAndRadius (arc);
          if (!IsPointOnCurve (arc as Curve3, start, normal))
@@ -194,7 +213,7 @@ public class Geom {
          if (!IsPointOnCurve (arc as Curve3, end, normal))
             throw new Exception ("In GetArcAngleAndSense: For the circle, the end point is not on the circle");
          var cenToStart = start - cen; var cenToEnd = end - cen;
-         var crossP = Geom.Cross(cenToStart, cenToEnd).Normalized();
+         var crossP = Geom.Cross (cenToStart, cenToEnd).Normalized ();
          var angBet = Math.Acos (cenToStart.Normalized ().Dot (cenToEnd.Normalized ()));
          if (crossP.Opposing (normal)) angBet = 2 * Math.PI - angBet;
          var dist = angBet * rad;
@@ -312,8 +331,8 @@ public class Geom {
       if (Utils.IsCircle (arc)) {
          //By default all circles are CCW in sense. If angleDataToPt is less than
          // PI radians, the major arc angle is compiuted
-         if (deltaAngle.SLT(Math.PI))
-            deltaAngle = Math.PI *2.0 - deltaAngle;
+         if (deltaAngle.SLT (Math.PI))
+            deltaAngle = Math.PI * 2.0 - deltaAngle;
       }
       List<Point3> points = [];
       points.Add (GetArcPointAtAngle (arc, angDataFromPt.Item1 + deltaAngle / 4.0, planeNormal));
@@ -1421,8 +1440,8 @@ public class Geom {
    /// <returns>The length of the tooling segments from start to end index including the start and 
    /// end the segments</returns>
    public static double GetLengthBetween (List<ToolingSegment> segments, int fromIdx, int toIdx) {
-      if ( segments.Count == 2) {
-         if (Utils.IsCircle(segments[1].Curve))
+      if (segments.Count == 2) {
+         if (Utils.IsCircle (segments[1].Curve))
             return segments[1].Curve.Length;
       }
       if (segments.Count == 1) {
@@ -1477,7 +1496,7 @@ public class Geom {
             var t1 = Geom.GetParamAtPoint (crv, fromPt, normal);
             var t2 = Geom.GetParamAtPoint (crv, toPt, normal);
             if (t1 > t2) throw new Exception ("In Geom.GetLengthBetween() the param for fromPt is greater than param for to point");
-            double distBetween = (t2-t1)*crv.Length;
+            double distBetween = (t2 - t1) * crv.Length;
             return distBetween;
          }
       }

@@ -10,6 +10,7 @@ using static System.Math;
 using FChassis.GCodeGen;
 using Flux.API;
 using FChassis.Core;
+using System.Diagnostics;
 namespace FChassis;
 
 public struct NotchAttribute (Curve3 crv, Vector3 stNormal, Vector3 endNormal, Vector3 oFlgNormal,
@@ -2421,5 +2422,27 @@ public static class Utils {
          }
       }
       throw new Exception ("Can not figure the next ordinate flange");
+   }
+
+   public static ToolingSegment GetMachiningSegmentPostWJT (
+      ToolingSegment wjtSeg,
+      Vector3 scrapSideNormal,
+      Bound3 partBound,
+      double approachDistance) {
+      var nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * approachDistance;
+
+      // Adjust the machining start point based on boundary constraints
+      if (scrapSideNormal.Dot (XForm4.mNegZAxis).SGT (0)) {
+         if (nextMachiningStart.Z.SLT (partBound.ZMin))
+            nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * approachDistance * 0.5;
+      } else if (scrapSideNormal.Dot (XForm4.mXAxis).SGT (0)) {
+         if (nextMachiningStart.X.SGT (partBound.XMax))
+            nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * approachDistance * 0.5;
+      } else if (scrapSideNormal.Dot (XForm4.mNegXAxis).SGT (0)) {
+         if (nextMachiningStart.X.SLT (partBound.XMin))
+            nextMachiningStart = wjtSeg.Curve.End + scrapSideNormal.Normalized () * approachDistance * 0.5;
+      }
+
+      return new ToolingSegment (new Line3 (nextMachiningStart, wjtSeg.Curve.End) as Curve3, wjtSeg.Vec1, wjtSeg.Vec1);
    }
 }

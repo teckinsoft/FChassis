@@ -1,12 +1,12 @@
 [*.cs]
-#Editor settings -----------------------------------------------------
+# Editor settings -----------------------------------------------------
 indent_size = 3
 indent_style = space
 tab_width = 3
 end_of_line = crlf
 insert_final_newline = false
 
-#C# formatting rules --------------------------------------------------
+# C# formatting rules --------------------------------------------------
 # New line preferences
 csharp_new_line_before_catch = false
 csharp_new_line_before_else = false
@@ -60,7 +60,7 @@ csharp_style_var_for_built_in_types = false
 csharp_style_var_when_type_is_apparent = false
 
 # Diagnostics --------------------------------------------------------
-# These are low impact diagnostics that can be remain turned off
+# These are low impact diagnostics that can remain turned off
 dotnet_diagnostic.CA1018.severity = None      # Specify AttributeUsage
 dotnet_diagnostic.CA1041.severity = None	  # Provide a message for ObsoleteAttribute
 dotnet_diagnostic.CA1069.severity = None      # Enum member E.X has same constant value as member E.Y
@@ -95,3 +95,65 @@ dotnet_diagnostic.IDE0058.severity = None     # Expression value is never used
 dotnet_diagnostic.IDE0040.severity = None     # Accessibilty modifier required
 dotnet_diagnostic.IDE0008.severity = None     # Use explicit type instead of var
 dotnet_diagnostic.IDE0022.severity = None     # Use block body for methods
+
+[*.{cpp,h}]
+# Editor settings -----------------------------------------------------
+indent_size = 3
+indent_style = space
+tab_width = 3
+end_of_line = crlf
+insert_final_newline = false
+
+# Formatting rules ---------------------------------------------------
+# Indentation preferences
+cpp_indent_case_contents = true
+cpp_indent_access_specifiers = true
+cpp_indent_braces = false
+cpp_indent_labels = no_change
+
+# Space preferences
+cpp_space_after_comma = true
+cpp_space_after_semicolon_in_for_statement = true
+cpp_space_around_binary_operators = before_and_after
+cpp_space_before_open_square_brackets = false
+cpp_space_within_square_brackets = false
+cpp_space_within_parentheses = false
+cpp_space_within_empty_square_brackets = false
+
+# Braces
+cpp_new_line_before_open_brace = none
+cpp_preserve_single_line_statements = true
+cpp_preserve_single_line_blocks = true
+
+# Wrapping preferences
+cpp_wrap_after_comma = false
+cpp_wrap_after_binary_operator = false
+
+# Elements of style
+cpp_prefer_explicit_type = true
+cpp_prefer_braces = false
+
+# Diagnostics --------------------------------------------------------
+# These are low-impact diagnostics that can remain turned off
+dotnet_diagnostic.CA1018.severity = None      # Specify AttributeUsage
+dotnet_diagnostic.CA1041.severity = None	  # Provide a message for ObsoleteAttribute
+dotnet_diagnostic.CA1069.severity = None      # Enum member E.X has same constant value as member E.Y
+dotnet_diagnostic.CA1806.severity = None      # Object constructed but never used
+dotnet_diagnostic.CA1824.severity = None      # Mark assemblies with [NeutralResourcesLanguage]
+dotnet_diagnostic.CA1826.severity = None      # Do not use enumerable methods on indexable collections
+dotnet_diagnostic.IDE0044.severity = None     # Make field readonly
+dotnet_diagnostic.IDE0063.severity = None     # 'Using' statement can be simplified
+dotnet_diagnostic.IDE1006.severity = None     # Naming rule violation
+
+# C++ specific diagnostics
+cpp_diagnostic.CP0001.severity = None         # Avoid magic numbers
+cpp_diagnostic.CP0002.severity = None         # Use smart pointers over raw pointers
+cpp_diagnostic.CP0003.severity = None         # Avoid unnecessary dynamic allocation
+
+# Naming preferences
+cpp_naming_style_global_variable = CamelCase
+cpp_naming_style_local_variable = camelCase
+cpp_naming_style_class = PascalCase
+cpp_naming_style_function = PascalCase
+cpp_naming_style_member_variable = _camelCase
+cpp_naming_style_constant = UPPER_CASE

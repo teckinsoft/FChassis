@@ -1571,7 +1571,7 @@ public class GCodeGenerator {
       var currPlaneType = Utils.GetArcPlaneType (endNormal, XForm4.IdentityXfm);
       if (curve is Line3) {
          var endPoint = curve.End;/* end point*/
-         WriteLine (endPoint, stNormal, endNormal, toolingName);
+         WriteLineSeg (endPoint, stNormal, endNormal, toolingName);
       } else if (curve is Arc3) {
          var (cen, _) = Geom.EvaluateCenterAndRadius (curve as Arc3);
          //currFlangeType = Utils.GetArcPlaneFlangeType (endNormal);
@@ -1626,6 +1626,10 @@ public class GCodeGenerator {
       var mcCoordArcEndPoint2D = Utils.ToPlane (mcCoordArcEndPoint, arcPlaneType);
       var arcSt2CenVec = mcCoordArcCenter2D - mcCoordArcStPoint2D; // This gives I and J
       var radius = arcSt2CenVec.Length;
+
+#if DEBUG_ROUND3
+      arcSt2CenVec = arcSt2CenVec.Round (3);
+#endif
       EGCode gCmd;
       if (arcType == Utils.EArcSense.CW) gCmd = EGCode.G2; else gCmd = EGCode.G3;
       if (!CreateDummyBlock4Master) {
@@ -1715,6 +1719,10 @@ public class GCodeGenerator {
       var mcCoordArcEndPoint2D = Utils.ToPlane (mcCoordArcEndPoint, arcPlaneType);
       var arcSt2CenVec = mcCoordArcCenter2D - mcCoordArcStPoint2D; // This gives I and J
       var radius = arcSt2CenVec.Length;
+
+#if DEBUG_ROUND3
+      arcSt2CenVec = arcSt2CenVec.Round (3);
+#endif
       EGCode gCmd;
       if (arcType == Utils.EArcSense.CW) gCmd = EGCode.G2; else gCmd = EGCode.G3;
       if (!CreateDummyBlock4Master) {
@@ -1788,72 +1796,86 @@ public class GCodeGenerator {
          return "";
    }
 
-   public int GetAngleSign(Vector3 stNormal, Vector3 endNormal) {
-      var stN = GetXForm ()  * stNormal.Normalized(); var endN = GetXForm () * endNormal.Normalized ();
+   public int GetAngleSignWRTPart (Vector3 stNormal, Vector3 endNormal) {
+      var stN = GetXForm () * stNormal.Normalized (); var endN = GetXForm () * endNormal.Normalized ();
+      var cross = Geom.Cross (stN, endN).Normalized ();
+      if (cross.Opposing (XForm4.mXAxis)) return -1;
+      return 1;
+   }
+   public int GetAngleSignWRTMachine (Vector3 stNormal, Vector3 endNormal) {
+      var stN = stNormal.Normalized (); var endN = endNormal.Normalized ();
       var cross = Geom.Cross (stN, endN).Normalized ();
       if (cross.Opposing (XForm4.mXAxis)) return -1;
       return 1;
    }
 
-   public void WriteFlexLine (
- Point3 endPoint,
- Vector3 startNormal,
- Vector3 endNormal,
- bool isStartCut,
- string toolingName,
- PointVec? flexRef = null,
- string lineSegmentComment = "") {
+   public void WriteFlexLineSeg (
+    ToolingSegment ts,
+    bool isWJTStartCut,
+    string toolingName,
+    ToolingSegment? flexRefSeg = null,
+    string lineSegmentComment = "") {
+      if (flexRefSeg == null)
+         throw new ArgumentNullException (nameof (flexRefSeg), "The Wire joint machining reference for flex cut can not be null. The Flex Cut is relative positions");
+
       lineSegmentComment = GetGCodeComment (lineSegmentComment);
-      var endPointWithMCClearance = endPoint + endNormal * Standoff;
+      var tsStartPoint = ts.Curve.Start; var tsEndPoint = ts.Curve.End;
+      var mcCoordTSStPoint = XfmToMachine (tsStartPoint); var mcCoordTSEndPoint = XfmToMachine (tsEndPoint);
+      var tsStartNormalDir = ts.Vec0.Normalized (); var tsEndNormalDir = ts.Vec1.Normalized ();
+
+      var endPointWithMCClearance = tsEndPoint + tsEndNormalDir * Standoff;
       //Point3 mcCoordEndPointWithMCClearance;
-      var actualEndNormal = GetXForm () * endNormal;
-      double angleBetweenZAxisAndCurrToolingEndPoint = XForm4.mZAxis.AngleTo (actualEndNormal).R2D ();
+      var mcCoordTSEndNormalDir = GetXForm () * tsEndNormalDir;
+      double mcCoordTSAngleWithFlexRefStart = (GetXForm () * XForm4.mZAxis).AngleTo (mcCoordTSEndNormalDir).R2D ();
       //var stN = GetXForm () * startNormal; var endN = GetXForm () * endNormal;
       //var cross = Geom.Cross (stN, endN).Normalized ();
       //if (cross.Opposing (XForm4.mXAxis)) 
-      angleBetweenZAxisAndCurrToolingEndPoint *= GetAngleSign (startNormal, endNormal);
+      var flexRefTSStartPoint = flexRefSeg.Value.Curve.Start;
+      var mcCoordflexRefTSStartPoint = XfmToMachine (flexRefTSStartPoint);
+      var flexRefTSEndPoint = flexRefSeg.Value.Curve.End;
+      var mcCoordflexRefTSEndPoint = XfmToMachine (flexRefTSEndPoint);
+      var flexRefTSStartNormalDir = flexRefSeg.Value.Vec0.Normalized ();
+      var mcCoordFlexRefTSStartNormalDir = GetXForm () * flexRefTSStartNormalDir;
+      mcCoordTSAngleWithFlexRefStart *= GetAngleSignWRTMachine (mcCoordFlexRefTSStartNormalDir, mcCoordTSEndNormalDir);
 
       // This following check does not set angle every time for the same plane type.
-      if (isStartCut) {
+      if (isWJTStartCut) {
          //mcCoordEndPointWithMCClearance = XfmToMachine (endPointWithMCClearance);
-         Utils.LinearMachining (sw, 0.0, 0.0, 0.0, angleBetweenZAxisAndCurrToolingEndPoint,
+#if DEBUG_ROUND3
+         var ptDiff = (mcCoordflexRefTSEndPoint - mcCoordflexRefTSStartPoint).Round (3);
+#else
+         var ptDiff = (mcCoordflexRefTSEndPoint - mcCoordflexRefTSStartPoint);
+#endif
+         Utils.LinearMachining (sw, ptDiff.X, ptDiff.Y, ptDiff.Z, mcCoordTSAngleWithFlexRefStart,
              lineSegmentComment, machine: MachineType.LCMMultipass2H, createDummyBlock4Master: CreateDummyBlock4Master);
-
-         
       } else {
-         if (flexRef == null)
-            throw new Exception ("Flef Reference (Start WJT) segment is null");
-
-         
-
-         var mcCoordFlexRefPosition = XfmToMachine (flexRef.Value.Pt);
-         var mcFlexRefVec = GetXForm () * flexRef.Value.Vec.Normalized ();
-         var outerRad = JobInnerRadius + JobThickness + FlexCuttingGap;
+         var totalOuterRad = JobInnerRadius + JobThickness + FlexCuttingGap;
          //var mcStartNormal = GetXForm () * startNormal.Normalized ();
-         var mcEndNormal = GetXForm () * endNormal.Normalized ();
-         var sign = Math.Sign (mcEndNormal.Y);
-         var theta = mcFlexRefVec.AngleTo (mcEndNormal);
-         var yComp = sign * outerRad * Math.Sin (theta);
-         var zComp = outerRad * (Math.Cos (theta) - 1.0);
-         var mcOuterFlexPt = new Point3 (mcCoordFlexRefPosition.X - flexRef.Value.Pt.X, yComp, zComp);
-         Utils.LinearMachining (sw,
-            mcOuterFlexPt.X,
-            mcOuterFlexPt.Y,
-            mcOuterFlexPt.Z,
-               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         //var mcEndNormal = GetXForm () * endNormal.Normalized ();
+         var sign = Math.Sign (mcCoordTSEndNormalDir.Y);
+         var theta = /*mcCoordFlexRefTSStartNormalDir.AngleTo (mcCoordTSEndNormalDir);*/mcCoordTSAngleWithFlexRefStart.D2R ();
+         var yComp = sign * totalOuterRad * Math.Sin (Math.Abs (theta));
+         var zComp = totalOuterRad * (Math.Cos (Math.Abs (theta)) - 1.0);
+#if DEBUG_ROUND3
+         var mcOuterFlexPt = new Point3 (mcCoordTSEndPoint.X - mcCoordflexRefTSStartPoint.X, yComp, zComp).Round (3);
+#else
+         var mcOuterFlexPt = new Point3 (mcCoordTSEndPoint.X - mcCoordflexRefTSStartPoint.X, yComp, zComp);
+#endif
+         Utils.LinearMachining (sw, mcOuterFlexPt.X, mcOuterFlexPt.Y, mcOuterFlexPt.Z,
+               mcCoordTSAngleWithFlexRefStart, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
       }
 
       if (!CreateDummyBlock4Master) {
          mTraces[(int)Head].Add (new GCodeSeg (
              mToolPos[(int)Head],
              endPointWithMCClearance,
-             startNormal,
-             endNormal,
+             tsStartNormalDir,
+             tsEndNormalDir,
              EGCode.G1,
              EMove.Machining,
              toolingName));
          mToolPos[(int)Head] = endPointWithMCClearance;
-         mToolVec[(int)Head] = endNormal;
+         mToolVec[(int)Head] = tsEndNormalDir;
       }
    }
 
@@ -1869,7 +1891,7 @@ public class GCodeGenerator {
    /// G Code statement</param>
    /// <param name="currFlangeType">Current flange type, needed to include Y/Z coordinates in the G Code</param>
    /// <param name="toolingName">Name of the tooling for simulation purposes</param>
-   public void WriteLine (
+   public void WriteLineSeg (
     Point3 endPoint,
     Vector3 startNormal,
     Vector3 endNormal,
@@ -1892,6 +1914,10 @@ public class GCodeGenerator {
             angleBetweenZAxisAndCurrToolingEndPoint = Utils.GetAngle4PlaneTypeAboutXAxis (currPlaneType).R2D ();
 
          mcCoordEndPointWithMCClearance = XfmToMachine (endPointWithMCClearance);
+
+#if DEBUG_ROUND3
+         mcCoordEndPointWithMCClearance = mcCoordEndPointWithMCClearance.Round (3);
+#endif
 
          if (currFlangeType == Utils.EFlange.Bottom || currFlangeType == Utils.EFlange.Top)
             Utils.LinearMachining (
@@ -1985,7 +2011,7 @@ public class GCodeGenerator {
    /// <param name="startNormal">Start normal of the current linear segment, needed for simulation data</param>
    /// <param name="endNormal">End normal of the current linear segment, needed for simulation data</param>
    /// <param name="toolingName">Name of the tooling</param>
-   public void WriteLine (Point3 endPoint, Vector3 startNormal, Vector3 endNormal,
+   public void WriteLineSeg (Point3 endPoint, Vector3 startNormal, Vector3 endNormal,
       string toolingName) {
       var endPointWithMCClearance = endPoint + endNormal * Standoff;
       Point3 mcCoordEndPointWithMCClearance;
@@ -1998,6 +2024,10 @@ public class GCodeGenerator {
 
       angleBetweenZAxisAndCurrToolingEndPoint = endNormal.AngleTo (XForm4.mZAxis).R2D ();
       mcCoordEndPointWithMCClearance = XfmToMachine (endPointWithMCClearance);
+
+#if DEBUG_ROUND3
+      mcCoordEndPointWithMCClearance = mcCoordEndPointWithMCClearance.Round (3);
+#endif
 
       Vector3 stN, endN;
       if (PartConfigType == PartConfigType.LHComponent) {
@@ -2037,27 +2067,27 @@ public class GCodeGenerator {
       //      Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
       //         angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
       //} else {
-         if (planeChange) {
-            if (currFlangeType == Utils.EFlange.Bottom || currFlangeType == Utils.EFlange.Top)
-               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
-                  angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
-            else if (currFlangeType == Utils.EFlange.Web)
-               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
-                  angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
-            else
-               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
-                  angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
-         } else {
-            if (currFlangeType == Utils.EFlange.Top || currFlangeType == Utils.EFlange.Bottom)
-               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
-                  lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
-            else if (currFlangeType == Utils.EFlange.Web)
-               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
-                  lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
-            else
-               Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
-                  lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
-         }
+      if (planeChange) {
+         if (currFlangeType == Utils.EFlange.Bottom || currFlangeType == Utils.EFlange.Top)
+            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
+               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         else if (currFlangeType == Utils.EFlange.Web)
+            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
+               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         else
+            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
+               angleBetweenZAxisAndCurrToolingEndPoint, lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+      } else {
+         if (currFlangeType == Utils.EFlange.Top || currFlangeType == Utils.EFlange.Bottom)
+            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Z, mcCoordEndPointWithMCClearance.Z,
+               lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         else if (currFlangeType == Utils.EFlange.Web)
+            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, OrdinateAxis.Y, mcCoordEndPointWithMCClearance.Y,
+               lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+         else
+            Utils.LinearMachining (sw, mcCoordEndPointWithMCClearance.X, mcCoordEndPointWithMCClearance.Y, mcCoordEndPointWithMCClearance.Z,
+               lineSegmentComment, createDummyBlock4Master: CreateDummyBlock4Master);
+      }
       //}
       if (!CreateDummyBlock4Master) {
          mTraces[(int)Head].Add (new GCodeSeg (mToolPos[(int)Head], endPointWithMCClearance,
@@ -2242,7 +2272,7 @@ public class GCodeGenerator {
                (var center, _) = Geom.EvaluateCenterAndRadius (Curve as Arc3);
                WriteArc (Curve as Arc3, arcPlaneType, arcFlangeType, center, startPoint, endPoint, startNormal,
                   toolingItem.Name);
-            } else WriteLine (endPoint, startNormal, endNormal, currPlaneType, previousPlaneType,
+            } else WriteLineSeg (endPoint, startNormal, endNormal, currPlaneType, previousPlaneType,
                Utils.GetFlangeType (toolingItem, new ()), toolingItem.Name);
             previousPlaneType = currPlaneType;
          }
@@ -3088,6 +3118,7 @@ public class GCodeGenerator {
    double xEnd,
    bool isFlexCut,
    bool isValidNotch,
+   ToolingSegment? flexRefTS,
    bool toCompleteToolingBlock = false,
    string comment = "Wire Joint Jump Trace") {
       // Determine the current plane type based on the wire joint segment's vector
@@ -3116,7 +3147,12 @@ public class GCodeGenerator {
       ];
 
       // Determine if machining is from the web flange
-      bool isFromWebFlange = Math.Abs (wjtSeg.Vec0.Y) > Math.Abs (wjtSeg.Vec0.Z);
+      // The bool flag is used to generate if it is G17 or G18 for 
+      // arcs/circles. However, the wire joint jump trace before
+      // the flex machining has no meaning in specifying.
+      bool isFromWebFlange = false;
+      if (wjtSeg.Vec0.Normalized ().EQ (XForm4.mZAxis)) isFromWebFlange = true;
+      else if (wjtSeg.Vec1.Normalized ().EQ (XForm4.mZAxis)) isFromWebFlange = true;
 
       // Initialize tooling block for valid notches or cutouts
       if (toolingItem.IsCutout ()) comment = "CutOut: " + comment;
@@ -3174,15 +3210,16 @@ public class GCodeGenerator {
       EnableMachiningDirective ();
 
       // Write the machining trace
-      if (isFlexCut)
-         WriteFlexLine (wjtSeg.Curve.End,
-          wjtSeg.Vec1,
-          wjtSeg.Vec1,
-          isStartCut: true,
+      if (isFlexCut) {
+         if (flexRefTS == null)
+            throw new Exception ("For flex cut, the reference tooling segment can't be null");
+         WriteFlexLineSeg (wjtSeg,
+          isWJTStartCut: true,
           toolingItem.Name,
+          flexRefSeg: flexRefTS,
           lineSegmentComment: "WJT approach machining up to the tooling profile");
-      else
-         WriteLine (
+      } else
+         WriteLineSeg (
              wjtSeg.Curve.End,
              wjtSeg.Vec1,
              wjtSeg.Vec1,
@@ -3437,7 +3474,7 @@ public class GCodeGenerator {
    // That is in index format
    Tuple<int, int> GetSerialDigitToOutput () => Tuple.Create (0, (int)SerialNumber);
    static int GetDigitProgNo (int digitNo) => DigitProg + digitNo;
-   #endregion
+#endregion
 }
 
 /// <summary>
