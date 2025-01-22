@@ -475,7 +475,8 @@ public class Notch : Feature {
       int index = 0;
       while (index < mPercentLength.Length) {
          if (notchPoints[index] == null) { index++; continue; }
-         var (IsWithinAnyFlex, StartIndex, EndIndex) = IsPointWithinFlex (flexIndices, segs, notchPoints[index].Value, minThresholdLenFromNPToFlexPt);
+         var (IsWithinAnyFlex, StartIndex, EndIndex) = IsPointWithinFlex (flexIndices, segs, notchPoints[index].Value, 
+            segIndices[index].Value, minThresholdLenFromNPToFlexPt);
 
          if (IsWithinAnyFlex)
             RecomputeNotchPointsWithinFlex (segs, index, notchPoints[index].Value, thresholdNotchLenForNotchApproach, ref segIndices, ref notchPoints);
@@ -1063,7 +1064,7 @@ public class Notch : Feature {
             case IndexType.Flex1AfterEnd:
                if (!started) continue;
                if (prevIdxType != IndexType.Flex1End) throw new Exception ("Prev and curr idx types are not compatible");
-               forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverse));
+               forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForward));
                prevIdxType = notchIndexSequence[ii].Type;
                prevIdx = notchIndexSequence[ii].Index;
                break;
@@ -1377,11 +1378,11 @@ public class Notch : Feature {
          else throw new Exception ("All the notch attribute points are infeasible");
       }
       if (mPercentLength.Length == 1) {
-         mApproachIndex = 0;
+         mApproachIndex = 1;
       }
 
       // Find if any of the notch point is with in the flex indices
-      double minThresholdLenFromNPToFlexPt = 15;
+      double minThresholdLenFromNPToFlexPt = 40;
       double thresholdNotchLenForNotchApproach = 200.0;
 
       // Recompute or refuse the notch points if they occur within flex sections. The way to refuse the notch point
@@ -1391,7 +1392,8 @@ public class Notch : Feature {
 
       // Split the curves and modify the indices and segments in segments and
       // in mNotchPointsInfo
-      SplitToolingSegmentsAtPoints (ref mSegments, ref mNotchPointsInfo, mPercentLength, mCurveLeastLength,
+      SplitToolingSegmentsAtPoints (ref mSegments, ref mNotchPointsInfo, mPercentLength, 
+         mSegIndices.Select (v => v ?? -1).ToArray (), mCurveLeastLength,
          mIsWireJointsNeeded, mSplit ? 1e-4 : 1e-6);
       mFlexIndices = GetFlexSegmentIndices (mSegments);
       int ix = 0;
@@ -1750,6 +1752,7 @@ public class Notch : Feature {
       var notchApproachEndNormal = notchAttr.EndNormal;
       var notchApproachStNormal = notchAttr.StNormal;
       mBlockCutLength = mCutLengthTillPrevTooling;
+      Point3 prevTSPt = flangeEnd;
       bool continueMachining = false;
       for (int ii = 0; ii < mNotchSequences.Count; ii++) {
          var notchSequence = mNotchSequences[ii];
@@ -1959,6 +1962,7 @@ public class Notch : Feature {
                }
             case NotchSectionType.WireJointTraceJumpForward:
             case NotchSectionType.WireJointTraceJumpReverse:
+               var blockNoMark = mGCodeGen.BlockNumberMark;
                if (notchSequence.SectionType == NotchSectionType.WireJointTraceJumpForward)
                   notchAttr = ComputeNotchAttribute (mFullPartBound, mToolingItem, mSegments, notchSequence.StartIndex,
                      mSegments[notchSequence.StartIndex].Curve.End, isFlexMachining: true);
@@ -1999,6 +2003,7 @@ public class Notch : Feature {
                // machining
                mFlexStartRef = Utils.GetMachiningSegmentPostWJT (wjtTS, scrapSideNormal, mGCodeGen.Process.Workpiece.Bound, NotchApproachLength);
                if (nextBeginFlexMachining) {
+                  string comment1 = comment + " : Seperate WJT trace before Flex Cut";
                   mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                      mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
                      ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
@@ -2006,10 +2011,11 @@ public class Notch : Feature {
                       isValidNotch: true,
                       flexRefTS: mFlexStartRef,
                       toCompleteToolingBlock: true,
-                      comment);
+                      comment1);
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
-
+                  
+                  comment1 = comment + " : WJT trace as first part of Flex Cut";
                   mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                        mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
                        ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
@@ -2017,7 +2023,7 @@ public class Notch : Feature {
                        isValidNotch: true,
                        flexRefTS: mFlexStartRef,
                        toCompleteToolingBlock: false,
-                       comment);
+                       comment1);
 
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
@@ -2066,6 +2072,7 @@ public class Notch : Feature {
                      for (int jj = notchSequence.StartIndex; jj <= notchSequence.EndIndex; jj++) {
                         mExitTooling = mSegments[jj];
                         mGCodeGen.WriteCurve (mSegments[jj], mToolingItem.Name);
+                        prevTSPt = mSegments[jj].Curve.End;
                         mBlockCutLength += mSegments[jj].Curve.Length;
                      }
                      PreviousToolingSegment = mSegments[notchSequence.EndIndex];
@@ -2102,6 +2109,7 @@ public class Notch : Feature {
                   for (int jj = notchSequence.StartIndex; jj >= notchSequence.EndIndex; jj--) {
                      mExitTooling = Geom.GetReversedToolingSegment (mSegments[jj], tolerance: mSplit ? 1e-4 : 1e-6);
                      mGCodeGen.WriteCurve (mExitTooling, mToolingItem.Name);
+                     prevTSPt = mExitTooling.Curve.End;
                      mBlockCutLength += mExitTooling.Curve.Length;
                   }
                   PreviousToolingSegment = mSegments[notchSequence.EndIndex];
@@ -2153,6 +2161,7 @@ public class Notch : Feature {
                      //}
                      mGCodeGen.WriteFlexLineSeg (segment,
                        isWJTStartCut: false, mToolingItem.Name, flexRefSeg: mFlexStartRef);
+                     prevTSPt = segment.Curve.End;
                      mBlockCutLength += segment.Curve.Length;
                      PreviousToolingSegment = segment;
                   }
@@ -2205,7 +2214,8 @@ public class Notch : Feature {
                      
                      mGCodeGen.WriteFlexLineSeg (mSegments[jj],
                         isWJTStartCut: false, mToolingItem.Name, flexRefSeg: mFlexStartRef);
-                     
+                     prevTSPt = mSegments[jj].Curve.End;
+
                      //if (xStart == null) xStart = mSegments[jj].Curve.Start.X;
                      //else {
                      //   if (!mSegments[jj].Curve.Start.X.EQ (xStart.Value, 1e-4))
@@ -2353,19 +2363,29 @@ public class Notch : Feature {
    /// <returns>A tuple of bool: if the notch point is within the flex, 
    /// Start Index and End Index</returns>
    (bool IsWithinAnyFlex, int StartIndex, int EndIndex) IsPointWithinFlex (List<Tuple<int, int>> flexIndices,
-      List<ToolingSegment> segs, Point3 notchPoint, double minThresholdLenFromNPToFlexPt) {
+      List<ToolingSegment> segs, Point3 notchPoint, int segIndex, double minThresholdLenFromNPToFlexPt) {
       bool isWithinAnyFlex = false;
       int stIndex = -1, endIndex = -1;
       foreach (var flexIdx in flexIndices) {
-         var flexToolingLen = Geom.GetLengthBetween (segs, flexIdx.Item1, flexIdx.Item2);
-         var lenNPToFlexStPt = Geom.GetLengthBetween (segs, notchPoint, segs[flexIdx.Item1].Curve.Start);
-         var lenNPToFlexEndPt = Geom.GetLengthBetween (segs, notchPoint, segs[flexIdx.Item2].Curve.End);
-         var residue = lenNPToFlexStPt + lenNPToFlexEndPt - flexToolingLen;
-         if (lenNPToFlexStPt < minThresholdLenFromNPToFlexPt || lenNPToFlexEndPt < minThresholdLenFromNPToFlexPt ||
-            Math.Abs (residue).EQ (0, 1e-2)) {
+         if (segIndex == flexIdx.Item1)
+            throw new Exception ("In Notch.IsPointWithinFlex () , the notch point index can not be equal to flex point indices");
+         if ( (flexIdx.Item1 < segIndex && segIndex < flexIdx.Item2) ||
+            (flexIdx.Item2 < segIndex && segIndex < flexIdx.Item1)) {
             isWithinAnyFlex = true;
             stIndex = flexIdx.Item1; endIndex = flexIdx.Item2;
-            break;
+            return new (isWithinAnyFlex, stIndex, endIndex);
+         }
+      }
+      foreach (var flexIdx in flexIndices) {
+         //var flexToolingLen = Geom.GetLengthBetween (segs, flexIdx.Item1, flexIdx.Item2);
+         var lenNPToFlexStPt = Geom.GetLengthBetween (segs, notchPoint, segs[flexIdx.Item1].Curve.Start);
+         var lenNPToFlexEndPt = Geom.GetLengthBetween (segs, notchPoint, segs[flexIdx.Item2].Curve.End);
+         //var residue = lenNPToFlexStPt + lenNPToFlexEndPt - flexToolingLen;
+         if (lenNPToFlexStPt < minThresholdLenFromNPToFlexPt || lenNPToFlexEndPt < minThresholdLenFromNPToFlexPt /*|| Math.Abs (residue).EQ (0, 1e-2)*/
+            ) {
+            isWithinAnyFlex = true;
+            //stIndex = flexIdx.Item1; endIndex = flexIdx.Item2;
+            return new (isWithinAnyFlex, stIndex, endIndex);
          }
       }
       return new (isWithinAnyFlex, stIndex, endIndex);
@@ -2486,7 +2506,7 @@ public class Notch : Feature {
 
       // Split the curves and modify the indices and segments in segments and
       // in notchPointsInfo
-      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, curveLeastLength, wireJointCutsNeeded, tolerance);
+      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices, curveLeastLength, wireJointCutsNeeded, tolerance);
       var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem);
       foreach (var notchAttr in notchAttrs) {
          var approachEndPoint = notchAttr.Curve.End;
@@ -2596,7 +2616,7 @@ public class Notch : Feature {
 
       // Split the curves and modify the indices and segments in segments and
       // in notchPointsInfo
-      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, curveLeastLength,
+      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices, curveLeastLength,
          isWireJointCutsNeeded, toolingItem.FeatType.Contains ("split", StringComparison.CurrentCultureIgnoreCase) ? 1e-4 : 1e-6);
       var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem);
       foreach (var notchAttr in notchAttrs) {

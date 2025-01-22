@@ -1421,6 +1421,7 @@ public static class Utils {
    public static void SplitToolingSegmentsAtPoints (ref List<ToolingSegment> segments,
                                                     ref List<NotchPointInfo> notchPtsInfo,
                                                     double[] percentPos,
+                                                    int[] segIndices,
                                                     double curveLeastLength,
                                                     bool wireJointCuts,
                                                     double tolerance = 1e-6) {
@@ -1428,7 +1429,7 @@ public static class Utils {
       List<Point3> nptInterestPts = [], nptPts = [];
       for (int ii = 0; ii < notchPtsInfo.Count; ii++) {
          nptInterestPts = [];
-         for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++)
+         for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count && segIndices.Contains(notchPtsInfo[ii].mSegIndex) ; jj++)
             nptInterestPts.Add (notchPtsInfo[ii].mPoints[jj]);
          for (int pp = 0; pp < nptInterestPts.Count; pp++) {
             var npt = nptInterestPts[pp];
@@ -1449,7 +1450,7 @@ public static class Utils {
                segments.RemoveAt (segIndex);
                segments.InsertRange (segIndex, toolSegsForCrvs);
 
-               var (segIndices, notchPoints) = Notch.ComputeNotchPointOccuranceParams (segments, percentPos, curveLeastLength);
+               var (_, notchPoints) = Notch.ComputeNotchPointOccuranceParams (segments, percentPos, curveLeastLength);
                notchPtsInfo = Notch.GetNotchPointsInfo (segIndices, notchPoints, percentPos);
 
                nptInterestPts = [];
@@ -1477,8 +1478,9 @@ public static class Utils {
                idx = jj; break;
             }
          }
+         if (segIndices[ii] == -1) idx = -1;
          NotchPointInfo nptInfo = new ();
-         if (idx != -1) {
+         /*if (idx != -1) */{
             double atpc = 0;
             if (percentPos.Length == 1) {
                atpc = percentPos[0];

@@ -706,7 +706,7 @@ public class GCodeGenerator {
    //   } else throw new InvalidOperationException ($"Program number {progNo} is repeated");
    //}
 
-
+   public string BlockNumberMark { get; set; } = "";
    void OutN (StreamWriter sw, string comment = "") {
       int nNo;
       if (EnableMultipassCut) nNo = mCutScopeNo * mBaseBlockNo + BlockNumber;
@@ -715,6 +715,7 @@ public class GCodeGenerator {
               (string.IsNullOrEmpty (comment)
                   ? ""
                   : $"\t( {comment} )");
+      BlockNumberMark = $"N{nNo}";
       sw.WriteLine (line);
       sw.WriteLine ($"BlockID={nNo}");
       BlockNumber++;
@@ -1795,6 +1796,10 @@ public class GCodeGenerator {
       else
          return "";
    }
+
+   public void WritePointComment (Point3 pt, string comment) =>
+      WriteLineStatement( GetGCodeComment ($" {comment} Point  X:{pt.X:F3} Y:{pt.Y:F3} Z:{pt.Z:F3}"));
+   
 
    public int GetAngleSignWRTPart (Vector3 stNormal, Vector3 endNormal) {
       var stN = GetXForm () * stNormal.Normalized (); var endN = GetXForm () * endNormal.Normalized ();
@@ -3054,6 +3059,7 @@ public class GCodeGenerator {
          Utils.EPlane currPlaneType = Utils.GetArcPlaneType (endNormal, GetXForm ());
 
          if (currPlaneType == EPlane.YPos || currPlaneType == EPlane.YNeg) {
+            WritePointComment (mcCoordsToPointOffset, " WJT ## Machining from ");
             Utils.RapidPosition (
                 sw, mcCoordsToPointOffset.X, OrdinateAxis.Z, mcCoordsToPointOffset.Z, angle,
                 machine: Machine,
@@ -3061,6 +3067,7 @@ public class GCodeGenerator {
                 usePingPongOption && UsePingPong ? "M1014" : "",
                 "Rapid Position with Clearance");
          } else if (currPlaneType == EPlane.Top) {
+            WritePointComment (mcCoordsToPointOffset, " WJT ## Machining from ");
             Utils.RapidPosition (
                 sw, mcCoordsToPointOffset.X, OrdinateAxis.Y, mcCoordsToPointOffset.Y, angle,
                 machine: Machine,
