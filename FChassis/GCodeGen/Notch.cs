@@ -531,15 +531,21 @@ public class Notch : Feature {
             if (notchPointsInfo.Count > 1) throw new Exception ("Notchpoints info size > 1 for no WJT case");
 
             if (notchPointsInfo[0].mPercentage.EQ (0.25) ||
-               notchPointsInfo[0].mPercentage.EQ (0.125)) { }
-            pos = "@25"; percent = 0.25;
-         } else if (notchPointsInfo[0].mPercentage.EQ (0.50)) {
-            pos = "@50"; percent = 0.50;
-         } else if (notchPointsInfo[0].mPercentage.EQ (0.75) ||
-             notchPointsInfo[0].mPercentage.EQ (0.875)) {
-            pos = "@75"; percent = 0.75;
+               notchPointsInfo[0].mPercentage.EQ (0.125)) {
+               pos = "@25"; percent = 0.25;
+            } else if (notchPointsInfo[0].mPercentage.EQ (0.50)) {
+               pos = "@50"; percent = 0.50;
+            } else if (notchPointsInfo[0].mPercentage.EQ (0.75) ||
+                notchPointsInfo[0].mPercentage.EQ (0.875)) {
+               pos = "@75"; percent = 0.75;
+            }
          }
-         var segIndex = notchPointsInfo.Where (n => n.mPosition == pos).ToList ()[0].mSegIndex;
+
+         var segIndex = notchPointsInfo
+            .Where (n => n.mPosition == pos)
+            .Select (n => n.mSegIndex)
+            .FirstOrDefault (-1);
+
          if (notchPoints[ii] == null || segIndex == -1) { ptCount++; continue; }
 
          // Find the index of the occurrence of the point where Curve3.End matches the given point
@@ -579,10 +585,10 @@ public class Notch : Feature {
             if (pos == "@50") {
                pos = "@5001"; percent = 0.5001;
             }
-            if (pos == "@25") {
+            else if (pos == "@25") {
                pos = "@2501"; percent = 0.2501;
             }
-            if (pos == "@75") {
+            else if (pos == "@75") {
                pos = "@7501"; percent = 0.7501;
             }
 
@@ -611,10 +617,10 @@ public class Notch : Feature {
                if (pos == "@5001") {
                   pos = "@4999"; percent = 0.4999;
                }
-               if (pos == "@2501") {
+               else if (pos == "@2501") {
                   pos = "@2499"; percent = 0.2499;
                }
-               if (pos == "@7501") {
+               else if (pos == "@7501") {
                   pos = "@7499"; percent = 0.7499;
                }
             }
@@ -1378,7 +1384,7 @@ public class Notch : Feature {
          else throw new Exception ("All the notch attribute points are infeasible");
       }
       if (mPercentLength.Length == 1) {
-         mApproachIndex = 1;
+         mApproachIndex = 0;
       }
 
       // Find if any of the notch point is with in the flex indices
