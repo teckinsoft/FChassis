@@ -395,7 +395,7 @@ public class Geom {
    /// This method computes the center and radius of the arc in 3d.
    /// </summary>
    /// <param name="arc"></param>
-   /// <returns>Tuple<Center(Point3),Radius(double)></Center></returns>
+   /// <returns>Tuple of Center (type Point3),Radius( type double)</returns>
    /// <exception cref="InvalidCastException"></exception>
    public static Tuple<Point3, double> EvaluateCenterAndRadius (Arc3 arc) {
       Tuple<Point3, double> res;
@@ -684,7 +684,7 @@ public class Geom {
       //   if (param.LieWithin (0, 1)) return true;
       //} else return true;
 
-      return false;
+      //return false;
    }
 
    public static Point3 NudgePointToArc (Point3 center, double radius, Point3 point, Vector3 normal) {
@@ -1138,22 +1138,55 @@ public class Geom {
    }
 
    /// <summary>
-   /// This method is used to find the segments' winding sense if it is Clockwise or Counter-ClockWise WRT
-   /// the normal emanating towards the observer.
-   /// Algorithm: The start point of the segment is projected onto the plane define by the normal and point
-   /// of the plane. The point (q) is guaranteed outside. The normal is either chosen to be (0,sqrt(1/2),sqrt(1/2))
-   /// if one of the normals of the segment's normal is yPos or (0,-sqrt(1/2),sqrt(1/2)) if one of the segment's 
-   /// normal is yNeg. A farthest point from the start point of the segments is evaluated. The farthest point should 
-   /// be on the convex part of the polygon on the plane.The cross product between 
-   /// (Start->One-Point-before-Farthest-Point) and (Start->Farthest-Point) is evaluated. If this cross product 
-   /// bears the same sense with plane normal, the windings are counter-clockwise, otherwise clockwise
+   /// This method is used to determine the winding sense of segments, 
+   /// whether they are Clockwise (CW) or Counter-Clockwise (CCW), 
+   /// with respect to the plane's normal emanating toward the observer.
    /// </summary>
-   /// <param name="planeNormal">The normal of the plane on which the segments are to be projected. The normal is 
-   /// either chosen to be (0,sqrt(1/2),sqrt(1/2)) if one of the normals of the segment's normal is yPos or 
-   /// (0,-sqrt(1/2),sqrt(1/2)) if one of the segment's normal is yNeg</param>
-   /// <param name="pointOnPlane">A reference point on the plane to be projected that defines the plane</param>
-   /// <param name="cutSegs">Segments of lines/arcs [ ValueTuple<Point3,Vector3,Vector3>]</param>
-   /// <returns>ToolingWinding, which is either Clockwise(CW) or counter-clockwise(CCW)</returns>
+   /// <remarks>
+   /// <para>
+   /// <b>Algorithm:</b>
+   /// <list type="number">
+   /// <item>The start point of the segment is projected onto the plane defined by the plane normal and a reference point.</item>
+   /// <item>A point (q) is chosen that is guaranteed to lie outside the polygon formed by the segments.</item>
+   /// <item>
+   /// The plane normal is selected based on the segment's orientation:
+   /// <list type="bullet">
+   /// <item>(0, sqrt(1/2), sqrt(1/2)) if one of the segment normals aligns with the positive Y direction (yPos).</item>
+   /// <item>(0, -sqrt(1/2), sqrt(1/2)) if one of the segment normals aligns with the negative Y direction (yNeg).</item>
+   /// </list>
+   /// </item>
+   /// <item>
+   /// A farthest point from the start point of the segments is evaluated.
+   /// This point must lie on the convex part of the polygon projected onto the plane.
+   /// </item>
+   /// <item>The cross product of two vectors is calculated:
+   /// <list type="bullet">
+   /// <item>(Start → One-Point-before-Farthest-Point)</item>
+   /// <item>(Start → Farthest-Point)</item>
+   /// </list>
+   /// </item>
+   /// <item>
+   /// If the cross product aligns with the plane's normal, the windings are counter-clockwise (CCW).
+   /// Otherwise, they are clockwise (CW).
+   /// </item>
+   /// </list>
+   /// </para>
+   /// </remarks>
+   /// <param name="planeNormal">
+   /// The normal vector of the plane on which the segments are projected.
+   /// It is chosen to be either (0, sqrt(1/2), sqrt(1/2)) for yPos alignment or
+   /// (0, -sqrt(1/2), sqrt(1/2)) for yNeg alignment.
+   /// </param>
+   /// <param name="pointOnPlane">A reference point on the plane that defines the projection plane.</param>
+   /// <param name="cutSegs">
+   /// Segments of lines or arcs represented as tuples: 
+   /// <c>(Point3 StartPoint, Vector3 Direction, Vector3 Additional)</c>.
+   /// </param>
+   /// <returns>
+   /// The winding direction of the segments relative to the plane's normal, 
+   /// which is either Clockwise (CW) or Counter-Clockwise (CCW).
+   /// </returns>
+
    public static ToolingWinding GetToolingWinding (Vector3 planeNormal, Point3 pointOnPlane,
       List<ToolingSegment> cutSegs) {
       List<Point3> pointsOnPLane = [];
@@ -1296,24 +1329,27 @@ public class Geom {
    }
 
    /// <summary>
-   /// This method creates a list of tooling segments from the given input tooling segments, after segIndex-th item.
-   /// upto the currIndex and upto a point in the currIndex-th item in input tooling segments, at which the sum of the 
-   /// lengths ( from end of segIndex-th item to the point on the currIndex-th item) is "uptoLength".
+   /// This method creates a list of tooling segments from the given input tooling segments, starting after the
+   /// <paramref name="segStartIndex"/>-th item, and up to a length of <paramref name="uptoLength"/> from the 
+   /// end point of the tooling segment at <paramref name="segStartIndex"/> th index
    /// </summary>
-   /// <param name="toolingItem">The parent tooling item</param>
-   /// <param name="wireJointDistance">The distance by which the new tooling segment's start point should start</param>
-   /// <param name="segIndex">The index of the segments of the tooling item, after which the new tooling segment is sought</param>
-   /// <param name="segs">The segments of the tooling item. Note: This segs might not be the original segs of the tooling item,
-   /// as a provision to consider the modified segments is provided
+   /// <param name="segs">
+   /// The segments of the tooling item. 
+   /// Note: This <paramref name="segs"/> parameter may not represent the original segments of the tooling item,
+   /// as it allows for considering modified segments.
    /// </param>
-   /// <param name="reverseTrace">Boolean flag if the curves are sought in the reverse treading</param>
-   /// <returns>List<ToolingSegment>, which are the intermediate sequential tooling segments from the end of the segIndex-th
-   /// tooling segment to (forward or reverse order) the split tooling segments. The split tooling segments can be either 1 or 2
-   /// based on the point at which the split is made on the "currIndex"-th item, where the total lengths of all the tooling segments
-   /// excluding the last segment is "uptoLength". The last tooling segment after the split is also added. 
-   /// In case the last split element is the initial segment itself, (when the split point is at the end of the initial element)
-   /// the segment at next to currIndex ( +1 if not reversed, -1 if reversed), is added. 
+   /// <param name="reverseTrace">
+   /// A boolean flag indicating whether the curves are sought in reverse order.
+   /// </param>
+   /// <returns>
+   /// A list of <c>ToolingSegment</c> objects, which are the intermediate sequential tooling segments from the end 
+   /// of the <paramref name="segStartIndex"/>-th tooling segment to (forward or reverse order) the split tooling segments. 
+   /// <para>
+   /// The split tooling segments can be either 1 or 2, depending on the point at which the split is made on the 
+   /// the tooling segment at a distance of <paramref name="uptoLength"/>. 
+   /// </para>
    /// </returns>
+
    public static Tuple<Point3, int> EvaluatePointAndIndexAtLength (List<ToolingSegment> segs, int segStartIndex,
       double uptoLength, /*Vector3 fpn,*/ bool reverseTrace = false, double minimumCurveLength = 0.5) {
       Tuple<Point3, int> res;// = new (new Point3 (), -1);
@@ -1478,15 +1514,15 @@ public class Geom {
       if (segments.Count == 2 || segments.Count == 1) {
          Curve3 crv = null;
          Vector3 normal;
-         int index = -1;
+         //int index = -1;
          if (segments.Count == 2) {
             crv = segments[1].Curve;
             normal = segments[1].Vec0.Normalized ();
-            index = 1;
+            //index = 1;
          } else {
             crv = segments[0].Curve;
             normal = segments[0].Vec0.Normalized ();
-            index = 0;
+            //index = 0;
          }
          if (Utils.IsCircle (crv)) {
             //if (index == 1) {

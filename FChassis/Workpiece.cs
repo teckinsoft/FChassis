@@ -366,11 +366,17 @@ public class Workpiece : INotifyPropertyChanged {
                var NotchEndFlType = Utils.GetArcPlaneFlangeType (cutSegs[^1].Vec1,
                                                                  GCodeGenerator.GetXForm (this));
                if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg) {
-                  var endX = cutSegs[^1].Curve.End.X;
-                  if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
-                     cut.Reverse ();
-                  else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX)
-                     cut.Reverse ();
+                  // If the notch starts on a flange and ends on the same flange
+                  if (cutSegs[0].Vec0.Normalized ().EQ (cutSegs[^1].Vec1.Normalized ())) {
+                     if (cutSegs[^1].Curve.End.X < cutSegs[0].Curve.Start.X)
+                        cut.Reverse ();
+                  } else { // If the notch starts on web and ends on a flange
+                     var endX = cutSegs[^1].Curve.End.X;
+                     if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
+                        cut.Reverse ();
+                     else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX)
+                        cut.Reverse ();
+                  }
                } else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) {
                   if (cutSegs.First ().Curve.Start.X > cutSegs[^1].Curve.End.X)
                      cut.Reverse ();

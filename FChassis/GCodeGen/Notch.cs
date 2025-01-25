@@ -475,7 +475,7 @@ public class Notch : Feature {
       int index = 0;
       while (index < mPercentLength.Length) {
          if (notchPoints[index] == null) { index++; continue; }
-         var (IsWithinAnyFlex, StartIndex, EndIndex) = IsPointWithinFlex (flexIndices, segs, notchPoints[index].Value, 
+         var (IsWithinAnyFlex, StartIndex, EndIndex) = IsPointWithinFlex (flexIndices, segs, notchPoints[index].Value,
             segIndices[index].Value, minThresholdLenFromNPToFlexPt);
 
          if (IsWithinAnyFlex)
@@ -584,11 +584,9 @@ public class Notch : Feature {
          } else {
             if (pos == "@50") {
                pos = "@5001"; percent = 0.5001;
-            }
-            else if (pos == "@25") {
+            } else if (pos == "@25") {
                pos = "@2501"; percent = 0.2501;
-            }
-            else if (pos == "@75") {
+            } else if (pos == "@75") {
                pos = "@7501"; percent = 0.7501;
             }
 
@@ -616,11 +614,9 @@ public class Notch : Feature {
             } else {
                if (pos == "@5001") {
                   pos = "@4999"; percent = 0.4999;
-               }
-               else if (pos == "@2501") {
+               } else if (pos == "@2501") {
                   pos = "@2499"; percent = 0.2499;
-               }
-               else if (pos == "@7501") {
+               } else if (pos == "@7501") {
                   pos = "@7499"; percent = 0.7499;
                }
             }
@@ -839,7 +835,7 @@ public class Notch : Feature {
                if (startIndex >= notchIndexSequence[ii].Index + 1)
                   reverseNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index + 1, NotchSectionType.MachineToolingReverse));
                else throw new Exception ("Start < end Index");
-               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverse));
+               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverseOnFlex));
                prevIdxType = notchIndexSequence[ii].Type;
                prevIdx = notchIndexSequence[ii].Index;
                break;
@@ -859,7 +855,7 @@ public class Notch : Feature {
             case IndexType.Flex2BeforeStart:
                if (!started) continue;
                if (prevIdxType != IndexType.Flex2Start) throw new Exception ("Prev and curr idx types are not compatible");
-               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverse));
+               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverseOnFlex));
                prevIdxType = notchIndexSequence[ii].Type;
                prevIdx = notchIndexSequence[ii].Index;
                break;
@@ -872,7 +868,7 @@ public class Notch : Feature {
                      reverseNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index + 1, NotchSectionType.MachineToolingReverse));
                   else throw new Exception ("Start < end Index");
                }
-               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverse));
+               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverseOnFlex));
                prevIdxType = notchIndexSequence[ii].Type;
                prevIdx = notchIndexSequence[ii].Index;
                break;
@@ -892,7 +888,7 @@ public class Notch : Feature {
             case IndexType.Flex1BeforeStart:
                if (!started) continue;
                if (prevIdxType != IndexType.Flex1Start && prevIdxType != IndexType.Zero) throw new Exception ("Prev and curr idx types are not compatible");
-               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverse));
+               reverseNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverseOnFlex));
                prevIdxType = notchIndexSequence[ii].Type;
                prevIdx = notchIndexSequence[ii].Index;
                break;
@@ -1016,7 +1012,7 @@ public class Notch : Feature {
                startIndex = prevIdx + 1;
                if (startIndex < notchIndexSequence[ii].Index - 1) {
                   forwardNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index - 1, NotchSectionType.MachineToolingForward));
-                  forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForward));
+                  forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForwardOnFlex));
                   prevIdxType = notchIndexSequence[ii].Type;
                   prevIdx = notchIndexSequence[ii].Index;
                }
@@ -1037,7 +1033,7 @@ public class Notch : Feature {
             case IndexType.Flex2AfterEnd:
                if (!started) continue;
                if (prevIdxType != IndexType.Flex2End) throw new Exception ("Prev and curr idx types are not compatible");
-               forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpReverse));
+               forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForwardOnFlex));
                prevIdxType = notchIndexSequence[ii].Type;
                prevIdx = notchIndexSequence[ii].Index;
                break;
@@ -1049,7 +1045,7 @@ public class Notch : Feature {
                      forwardNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index - 1, NotchSectionType.MachineToolingForward));
                   else
                      forwardNotchSequences.Add (CreateNotchSequence (startIndex, notchIndexSequence[ii].Index, NotchSectionType.MachineToolingForward));
-                  forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForward));
+                  forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForwardOnFlex));
                   prevIdxType = notchIndexSequence[ii].Type;
                   prevIdx = notchIndexSequence[ii].Index;
                }
@@ -1070,7 +1066,7 @@ public class Notch : Feature {
             case IndexType.Flex1AfterEnd:
                if (!started) continue;
                if (prevIdxType != IndexType.Flex1End) throw new Exception ("Prev and curr idx types are not compatible");
-               forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForward));
+               forwardNotchSequences.Add (CreateNotchSequence (notchIndexSequence[ii].Index, notchIndexSequence[ii].Index, NotchSectionType.WireJointTraceJumpForwardOnFlex));
                prevIdxType = notchIndexSequence[ii].Type;
                prevIdx = notchIndexSequence[ii].Index;
                break;
@@ -1398,7 +1394,7 @@ public class Notch : Feature {
 
       // Split the curves and modify the indices and segments in segments and
       // in mNotchPointsInfo
-      SplitToolingSegmentsAtPoints (ref mSegments, ref mNotchPointsInfo, mPercentLength, 
+      SplitToolingSegmentsAtPoints (ref mSegments, ref mNotchPointsInfo, mPercentLength,
          mSegIndices.Select (v => v ?? -1).ToArray (), mCurveLeastLength,
          mIsWireJointsNeeded, mSplit ? 1e-4 : 1e-6);
       mFlexIndices = GetFlexSegmentIndices (mSegments);
@@ -1715,7 +1711,7 @@ public class Notch : Feature {
             mPrevToolingSegments, mFirstTooling, isValidNotch: true, notchEntry);
          if (!mGCodeGen.IsRapidMoveToPiercingPositionWithPingPong)
             mGCodeGen.RapidMoveToPiercingPosition (notchEntry.Item1, notchEntry.Item2, usePingPongOption: true);
-         
+
          mGCodeGen.MoveToMachiningStartPosition (notchEntry.Item1, notchEntry.Item2, mToolingItem.Name);
          var isFromWebNotch = Utils.IsMachiningFromWebFlange (mSegments, 0);
          mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebNotch, isFlexTooling: false);
@@ -1739,7 +1735,7 @@ public class Notch : Feature {
       mGCodeGen.FinalizeNotchToolingBlock (mToolingItem, mBlockCutLength, mTotalToolingsCutLength);
       Exit = mSegments[^1];
    }
-   
+
    /// <summary>
    /// This method writes the G Code for the feature, comprehensively.
    /// </summary>
@@ -1790,12 +1786,12 @@ public class Notch : Feature {
                      var notchEntry = Tuple.Create (n1, notchAttr.StNormal);
                      mGCodeGen.PrepareforToolApproach (mToolingItem, mSegments, PreviousToolingSegment, PreviousTooling,
                         mPrevToolingSegments, mFirstTooling, isValidNotch: true, notchEntry);
-                     
+
                      mGCodeGen.RapidMoveToPiercingPosition (notchEntry.Item1, notchEntry.Item2, usePingPongOption: true);
                      mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false);
                      mGCodeGen.RapidMoveToPiercingPosition (notchEntry.Item1, notchEntry.Item2, usePingPongOption: false);
                      mGCodeGen.MoveToMachiningStartPosition (notchEntry.Item1, notchEntry.Item2, mToolingItem.Name);
-                     
+
                      mGCodeGen.EnableMachiningDirective ();
                      {
                         // *** Moving to the mid point wire joint distance ***
@@ -1968,13 +1964,17 @@ public class Notch : Feature {
                }
             case NotchSectionType.WireJointTraceJumpForward:
             case NotchSectionType.WireJointTraceJumpReverse:
+            case NotchSectionType.WireJointTraceJumpReverseOnFlex:
+            case NotchSectionType.WireJointTraceJumpForwardOnFlex:
+
                var blockNoMark = mGCodeGen.BlockNumberMark;
-               if (notchSequence.SectionType == NotchSectionType.WireJointTraceJumpForward)
+               if (notchSequence.SectionType == NotchSectionType.WireJointTraceJumpForward || notchSequence.SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex)
                   notchAttr = ComputeNotchAttribute (mFullPartBound, mToolingItem, mSegments, notchSequence.StartIndex,
                      mSegments[notchSequence.StartIndex].Curve.End, isFlexMachining: true);
                else
                   notchAttr = ComputeNotchAttribute (mFullPartBound, mToolingItem, mSegments, notchSequence.StartIndex,
                      mSegments[notchSequence.StartIndex].Curve.Start, isFlexMachining: true);
+
                Vector3 scrapSideNormal;
                if (Math.Abs (mSegments[notchSequence.StartIndex].Vec0.Normalized ().Z - 1.0).EQ (0, mSplit ? 1e-4 : 1e-6) ||
                   Math.Abs (-mSegments[notchSequence.StartIndex].Vec0.Normalized ().Y + 1.0).EQ (0, mSplit ? 1e-4 : 1e-6) ||
@@ -2020,7 +2020,7 @@ public class Notch : Feature {
                       comment1);
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
-                  
+
                   comment1 = comment + " : WJT trace as first part of Flex Cut";
                   mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                        mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
@@ -2033,13 +2033,13 @@ public class Notch : Feature {
 
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
-               }else
+               } else
                   mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                         mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                         isFlexCut: false,
                         isValidNotch: true,
-                        flexRefTS:null,
+                        flexRefTS: null,
                         toCompleteToolingBlock: false,
                         comment);
 
@@ -2047,9 +2047,9 @@ public class Notch : Feature {
                mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
                //mFlexStartRef = refTS;
                //if (isNextSeqFlexMc)
-                  continueMachining = true;
+               continueMachining = true;
                //else
-                 // continueMachining = false;
+               // continueMachining = false;
                break;
             case NotchSectionType.MachineToolingForward: {
                   if (notchSequence.StartIndex > notchSequence.EndIndex)
@@ -2130,11 +2130,11 @@ public class Notch : Feature {
             case NotchSectionType.MachineFlexToolingReverse: {
                   if (notchSequence.StartIndex < notchSequence.EndIndex)
                      throw new Exception ("In WriteNotchGCode: MachineFlexToolingReverse : startIndex < endIndex");
-                  bool isPrevSeqWJTTrace = false;
+                  bool isPrevSeqWJTTrace4Flex = false;
                   if (ii - 1 >= 0) {
-                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpForward ||
-                        mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpReverse) {
-                        isPrevSeqWJTTrace = true;
+                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex ||
+                        mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpReverseOnFlex) {
+                        isPrevSeqWJTTrace4Flex = true;
                      }
                   }
                   if (!continueMachining) {
@@ -2152,7 +2152,7 @@ public class Notch : Feature {
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                         mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: false);
 
-                     if (isPrevSeqWJTTrace)
+                     if (isPrevSeqWJTTrace4Flex)
                         mGCodeGen.WriteLineStatement (mGCodeGen.WJTPreFlexMcToken);
                      mGCodeGen.EnableMachiningDirective ();
                   }
@@ -2175,7 +2175,7 @@ public class Notch : Feature {
 
                   mGCodeGen.DisableMachiningDirective ();
 
-                  if (isPrevSeqWJTTrace)
+                  if (isPrevSeqWJTTrace4Flex)
                      mGCodeGen.WriteLineStatement (mGCodeGen.WJTPostFlexMcToken);
 
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
@@ -2187,11 +2187,11 @@ public class Notch : Feature {
             case NotchSectionType.MachineFlexToolingForward: {
                   if (notchSequence.StartIndex > notchSequence.EndIndex)
                      throw new Exception ("In WriteNotch: MachineFlexToolingForward : startIndex > endIndex");
-                  bool isPrevSeqWJTTrace = false;
+                  bool isPrevSeqWJTTrace4Flex = false;
                   if (ii - 1 >= 0) {
-                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpForward ||
-                        mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpReverse) {
-                        isPrevSeqWJTTrace = true;
+                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex ||
+                        mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpReverseOnFlex) {
+                        isPrevSeqWJTTrace4Flex = true;
                      }
                   }
                   if (!continueMachining) {
@@ -2209,7 +2209,7 @@ public class Notch : Feature {
                      mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: true);
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                      mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: false);
-                     if (isPrevSeqWJTTrace)
+                     if (isPrevSeqWJTTrace4Flex)
                         mGCodeGen.WriteLineStatement (mGCodeGen.WJTPreFlexMcToken);
                      mGCodeGen.EnableMachiningDirective ();
                   }
@@ -2217,7 +2217,7 @@ public class Notch : Feature {
                   //double? xStart = null;
                   mGCodeGen.WriteLineStatement (mGCodeGen.GetGCodeComment ("NotchSequence: Machining in Flex in Forward Direction"));
                   for (int jj = notchSequence.StartIndex; jj <= notchSequence.EndIndex; jj++) {
-                     
+
                      mGCodeGen.WriteFlexLineSeg (mSegments[jj],
                         isWJTStartCut: false, mToolingItem.Name, flexRefSeg: mFlexStartRef);
                      prevTSPt = mSegments[jj].Curve.End;
@@ -2235,7 +2235,7 @@ public class Notch : Feature {
                   // continueMachining is made to false
                   mGCodeGen.DisableMachiningDirective ();
 
-                  if (isPrevSeqWJTTrace)
+                  if (isPrevSeqWJTTrace4Flex)
                      mGCodeGen.WriteLineStatement (mGCodeGen.WJTPostFlexMcToken);
 
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
@@ -2347,6 +2347,7 @@ public class Notch : Feature {
    /// <param name="notchApproachLength">The notch approach length</param>
    /// <param name="leastCurveLength">The practical least length of the curve that can 
    /// <returns>True if the notch happens on one of the boundary edges, false otherwise</returns>
+   /// </param>
    public static bool IsEdgeNotch (Bound3 bound, Tooling toolingItem,
       double[] percentPos, double notchApproachLength, double leastCurveLength, bool isWireJointCutsNeeded) {
       var attrs = GetNotchApproachParams (bound, toolingItem, percentPos, notchApproachLength, leastCurveLength, isWireJointCutsNeeded);
@@ -2375,7 +2376,7 @@ public class Notch : Feature {
       foreach (var flexIdx in flexIndices) {
          if (segIndex == flexIdx.Item1)
             throw new Exception ("In Notch.IsPointWithinFlex () , the notch point index can not be equal to flex point indices");
-         if ( (flexIdx.Item1 < segIndex && segIndex < flexIdx.Item2) ||
+         if ((flexIdx.Item1 < segIndex && segIndex < flexIdx.Item2) ||
             (flexIdx.Item2 < segIndex && segIndex < flexIdx.Item1)) {
             isWithinAnyFlex = true;
             stIndex = flexIdx.Item1; endIndex = flexIdx.Item2;

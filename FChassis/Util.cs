@@ -826,7 +826,6 @@ public static class Utils {
    /// removal side direction evaluated at the mid point.
    /// If Circle, this returns the start point of the circle and the material removal direction 
    /// evaluated at the starting point.</returns>
-   /// </exception>
    public static Tuple<Point3, Vector3> GetMaterialRemovalSideDirection (Tooling tooling) {
       var segmentsList = tooling.Segs.ToList ();
       var toolingPlaneNormal = segmentsList[0].Vec0;
@@ -1116,12 +1115,12 @@ public static class Utils {
    /// the segments, which are a list of Larcs (Line and Arcs), Line3 in 2d and 3d and planar arcs.
    /// </summary>
    /// <param name="segments">The list of tooling segments on which the notch points need to be evaluated</param>
-   /// <param name="percentage">This is the ratio of the length from start of the tooling segments' total length.
+   /// <param name="percentage">This is the ratio of the length from start of the tooling segments' total length.</param>
    /// <param name="leastCurveLength">This least possible length of the curve, 
    /// below which it is assumed a curve of zero length</param>
-   /// <returns>A tuple of the index of the occurance of the point and the point itself, at the percentage of 
+   /// <returns> A tuple of the index of the occurance of the point and the point itself, at the percentage of 
    /// the total length of the entire tooling</returns>
-   /// <exception cref="Exception">An exception is thrown if the percentage is < 0 or more than 100</exception>
+   /// <exception cref="Exception">An exception is thrown if the percentage is less than 0 or more than 100</exception>
    public static Tuple<int, Point3> GetNotchPointsOccuranceParams (List<ToolingSegment> segments,
                                                                    double percentage, double leastCurveLength = 0.5) {
       if (percentage < 1e-6 || percentage > 1.0 - 1e-6)
@@ -1429,7 +1428,7 @@ public static class Utils {
       List<Point3> nptInterestPts = [], nptPts = [];
       for (int ii = 0; ii < notchPtsInfo.Count; ii++) {
          nptInterestPts = [];
-         for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count && segIndices.Contains(notchPtsInfo[ii].mSegIndex) ; jj++)
+         for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count && segIndices.Contains (notchPtsInfo[ii].mSegIndex); jj++)
             nptInterestPts.Add (notchPtsInfo[ii].mPoints[jj]);
          for (int pp = 0; pp < nptInterestPts.Count; pp++) {
             var npt = nptInterestPts[pp];
@@ -1480,7 +1479,8 @@ public static class Utils {
          }
          if (segIndices[ii] == -1) idx = -1;
          NotchPointInfo nptInfo = new ();
-         /*if (idx != -1) */{
+         /*if (idx != -1) */
+         {
             double atpc = 0;
             if (percentPos.Length == 1) {
                atpc = percentPos[0];
@@ -1762,10 +1762,10 @@ public static class Utils {
 
       var (notchXPt, _, index, doesIntersect) = GetPointParamsAtXVal (segs, xPartition);
       List<ToolingSegment> splitSegs;
-      
+
       if (doesIntersect) {
          splitSegs = SplitToolingSegmentsAtPoint (segs, index, notchXPt, segs[index].Vec0.Normalized (), tolerance);
-         
+
          // Create a new line tooling segment.
          if (splitSegs.Count == 2) {
             if (maxSideToPartition) {

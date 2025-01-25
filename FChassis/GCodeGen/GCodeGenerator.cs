@@ -724,7 +724,6 @@ public class GCodeGenerator {
 
    #region GCode Options
    const double Rapid = 8000;
-
    bool IsSingleHead => !OptimizePartition && (PartitionRatio.EQ (0.0) ||
                           PartitionRatio.EQ (1.0));
    bool IsSingleHead1 => IsSingleHead && PartitionRatio.EQ (1.0);
@@ -1790,6 +1789,11 @@ public class GCodeGenerator {
       }
    }
 
+   /// <summary>
+   /// A utility method to create a G Code comment for a string input
+   /// </summary>
+   /// <param name="comment">The input string</param>
+   /// <returns>The G Code comment preceding "(" and succeeded by ")"</returns>
    public string GetGCodeComment (string comment) {
       if (!String.IsNullOrEmpty (comment))
          return " ( " + comment + " ) ";
@@ -1797,17 +1801,37 @@ public class GCodeGenerator {
          return "";
    }
 
+   /// <summary>
+   /// Write a G Code comment for Point3 type
+   /// </summary>
+   /// <param name="pt">The input point</param>
+   /// <param name="comment">The g code comment that containd the input point within</param>
    public void WritePointComment (Point3 pt, string comment) =>
-      WriteLineStatement( GetGCodeComment ($" {comment} Point  X:{pt.X:F3} Y:{pt.Y:F3} Z:{pt.Z:F3}"));
-   
+      WriteLineStatement (GetGCodeComment ($" {comment} Point  X:{pt.X:F3} Y:{pt.Y:F3} Z:{pt.Z:F3}"));
 
-   public int GetAngleSignWRTPart (Vector3 stNormal, Vector3 endNormal) {
+   /// <summary>
+   /// This is a utility method which finds if the the cross product between 
+   /// start and end normals ( after applying machine transform) 
+   /// bears the same direction w.r.t the positive X Axis
+   /// </summary>
+   /// <param name="stNormal">The Start Normal</param>
+   /// <param name="endNormal">The End Normal</param>
+   /// <returns>1 if the X axis is in alignment with cross product, -1 otherwise</returns>
+   public int GetAngleSignWRTPartAboutXAxis (Vector3 stNormal, Vector3 endNormal) {
       var stN = GetXForm () * stNormal.Normalized (); var endN = GetXForm () * endNormal.Normalized ();
       var cross = Geom.Cross (stN, endN).Normalized ();
       if (cross.Opposing (XForm4.mXAxis)) return -1;
       return 1;
    }
-   public int GetAngleSignWRTMachine (Vector3 stNormal, Vector3 endNormal) {
+
+   /// <summary>
+   /// This is a utility method which finds if the the cross product between 
+   /// the given start and end normals bears the same direction w.r.t the positive X Axis
+   /// </summary>
+   /// <param name="stNormal">The Start Normal</param>
+   /// <param name="endNormal">The End Normal</param>
+   /// <returns>1 if the X axis is in alignment with cross product, -1 otherwise</returns>
+   public int GetAngleSignWRTMachineAboutXAxis (Vector3 stNormal, Vector3 endNormal) {
       var stN = stNormal.Normalized (); var endN = endNormal.Normalized ();
       var cross = Geom.Cross (stN, endN).Normalized ();
       if (cross.Opposing (XForm4.mXAxis)) return -1;
@@ -1841,7 +1865,7 @@ public class GCodeGenerator {
       var mcCoordflexRefTSEndPoint = XfmToMachine (flexRefTSEndPoint);
       var flexRefTSStartNormalDir = flexRefSeg.Value.Vec0.Normalized ();
       var mcCoordFlexRefTSStartNormalDir = GetXForm () * flexRefTSStartNormalDir;
-      mcCoordTSAngleWithFlexRefStart *= GetAngleSignWRTMachine (mcCoordFlexRefTSStartNormalDir, mcCoordTSEndNormalDir);
+      mcCoordTSAngleWithFlexRefStart *= GetAngleSignWRTMachineAboutXAxis (mcCoordFlexRefTSStartNormalDir, mcCoordTSEndNormalDir);
 
       // This following check does not set angle every time for the same plane type.
       if (isWJTStartCut) {
@@ -3481,7 +3505,7 @@ public class GCodeGenerator {
    // That is in index format
    Tuple<int, int> GetSerialDigitToOutput () => Tuple.Create (0, (int)SerialNumber);
    static int GetDigitProgNo (int digitNo) => DigitProg + digitNo;
-#endregion
+   #endregion
 }
 
 /// <summary>
