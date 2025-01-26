@@ -21,7 +21,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    SettingsDlg mSetDlg;
    Processor mProcess;
    Processor.ESimulationStatus mSimulationStatus = ESimulationStatus.NotRunning;
-   readonly string mSrcDir = "W:/FChassis/Sample";
+   string mSrcDir = "W:/FChassis/Sample";
 
    public event PropertyChangedEventHandler PropertyChanged;
    #endregion
@@ -38,19 +38,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       this.luxPanel = (UIElement)Lux.CreatePanel ();
       Area.Child = this.luxPanel;
+      PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
 
+      Sys.SelectionChanged += OnSelectionChanged;
+#if DEBUG
+      SanityCheckMenuItem.Visibility = Visibility.Visible;
+#endif
+   }
+   void PopulateFilesFromDir (string dir) {
       string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
       var fxFiles = new List<string> ();
-      if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals("FX")) {
+      if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals ("FX")) {
          // Get FX files if the environment variable is set to "FX"
-         fxFiles = System.IO.Directory.GetFiles (mSrcDir, "*.fx")
+         fxFiles = System.IO.Directory.GetFiles (dir, "*.fx")
                                        .Select (System.IO.Path.GetFileName)
                                        .ToList ();
       }
 
       // Get IGES and IGS files
-      var allowedExtensions = new[] { ".iges", ".igs", ".step", ".stp", ".dxf" , ".step"};
-      var igesFiles = System.IO.Directory.GetFiles (mSrcDir)
+      var allowedExtensions = new[] { ".iges", ".igs", ".step", ".stp", ".dxf", ".step" };
+      var igesFiles = System.IO.Directory.GetFiles (dir)
                                           .Where (file => allowedExtensions.Contains (System.IO.Path.GetExtension (file).ToLower ()))
                                           .Select (System.IO.Path.GetFileName)
                                           .ToList ();
@@ -60,12 +67,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       // Assign the combined collection to ItemsSource
       Files.ItemsSource = allFiles;
-
-      Sys.SelectionChanged += OnSelectionChanged;
-#if DEBUG
-      SanityCheckMenuItem.Visibility = Visibility.Visible;
-#endif
    }
+
    #endregion
 
    #region Event handlers
@@ -107,6 +110,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
+   void OnMenuDirOpen (object sender, RoutedEventArgs e) {
+      var dlg = new FolderPicker {
+         InputPath = PathUtils.ConvertToWindowsPath (mSrcDir),
+      };
+      if (dlg.ShowDialog () == true) {
+         mSrcDir = dlg.ResultPath;
+         PopulateFilesFromDir (mSrcDir);
+      }
+   }
+
    void OnMenuImportFile (object sender, RoutedEventArgs e) {
       OpenFileDialog openFileDialog = new () {
          Filter = "GCode Files (*.din)|*.din|All files (*.*)|*.*",
@@ -123,7 +136,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnJoin (object sender, RoutedEventArgs e) {
+   void OnMirrorAndJoin (object sender, RoutedEventArgs e) {
       if (this.Area.Child == this.joinPanel)
          return;
 
@@ -131,80 +144,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       this.Area.Child = this.joinPanel;
    }
-
-   //void OnUnbendExportDXF (object sender, RoutedEventArgs e) {
-   //   SaveFileDialog saveFileDialog = new () {
-   //      Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
-   //      DefaultExt = "dxf",
-   //   };
-
-   //   // Show save file dialog box
-   //   bool? result = saveFileDialog.ShowDialog ();
-
-   //   // Process save file dialog box results
-   //   if (result == true) {
-   //      string filePath = saveFileDialog.FileName;
-   //      try {
-   //         mPart.UnfoldTo2D ();
-   //         var dwg = mPart.Dwg;
-   //         dwg.SaveDXF (filePath);
-   //      } catch (Exception ex) {
-   //         MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
-   //      }
-   //   }
-   //}
-
-   //void OnUnbendExport2D (object sender, RoutedEventArgs e) {
-   //   if (mPart == null)
-   //      return;
-
-   //   // Get the original file name (assuming mPart.FileName gives you the file name with extension)
-   //   string originalFileName = System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName);
-   //   string originalFileDir = System.IO.Path.GetDirectoryName (mPart.Info.FileName);
-   //   string originalExtension = System.IO.Path.GetExtension (mPart.Info.FileName); // Get the original extension (like .dxf, .geo, etc.)
-
-   //   // Prepare SaveFileDialog
-   //   SaveFileDialog saveFileDialog = new () {
-   //      Filter = "DXF files (*.dxf)|*.dxf|GEO files (*.geo)|*.geo|All files (*.*)|*.*",
-   //      DefaultExt = "dxf", // Set default file type as DXF
-   //      FileName = originalFileName + ".dxf" // Set default file name as the original file name + .dxf initially
-   //   };
-
-   //   // Subscribe to the FileOk event to update the file name based on the selected file type
-   //   saveFileDialog.FileOk += (s, args) => {
-   //      // Determine which file type is selected based on the filter index
-   //      if (saveFileDialog.FilterIndex == 1) // DXF selected
-   //         saveFileDialog.FileName = originalFileName + ".dxf";
-   //      else if (saveFileDialog.FilterIndex == 2) // GEO selected
-   //         saveFileDialog.FileName = originalFileName + ".geo";
-   //   };
-
-   //   // Show save file dialog box
-   //   bool? result = saveFileDialog.ShowDialog ();
-
-   //   // Process save file dialog box results
-   //   if (result == true) {
-   //      string filePath = System.IO.Path.Combine (originalFileDir, saveFileDialog.FileName);
-   //      string extension = System.IO.Path.GetExtension (filePath)?.ToLower ();
-
-   //      try {
-   //         // Perform unfolding operation
-   //         mPart.UnfoldTo2D ();
-   //         var dwg = mPart.Dwg;
-
-   //         // Determine the file type by checking the extension
-   //         if (extension == ".dxf") {
-   //            dwg.SaveDXF (filePath);
-   //         } else if (extension == ".geo") {
-   //            dwg.SaveGEO (filePath); // Assuming you have a method to save GEO files
-   //         } else {
-   //            MessageBox.Show ("Unsupported file type. Please choose either DXF or GEO.");
-   //         }
-   //      } catch (Exception ex) {
-   //         MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
-   //      }
-   //   }
-   //}
 
    void OnMenuFileSave (object sender, RoutedEventArgs e) {
       SaveFileDialog saveFileDialog = new () {
@@ -331,7 +270,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          Process.DrawGCodeForCutScope ();
       else
          Process.DrawGCode ();
-
       Process.DrawToolInstance ();
    }
 
@@ -405,11 +343,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          }
       } catch (Exception) { }
 
-      //if (mSubParts.Count > 0) {
-      //   mPart = mSubParts[1];
-      //   Mechanism lmc = Mechanism.LoadFrom ("C:\\Users\\Parthasarathy.LAP-TK01\\Downloads\\Unnamed-A4003110814_FP002_FINAL_PART.step");
-      //} else 
-      {
          if (mPart.Model == null) {
             if (mPart.Dwg != null)
                mPart.FoldTo3D ();
@@ -418,15 +351,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             else
                throw new Exception ("Invalid part");
          }
-      }
 
       mOverlay = new SimpleVM (DrawOverlay);
       Lux.UIScene = mScene = new Scene (new GroupVModel (VModel.For (mPart.Model),
                                         mOverlay), mPart.Model.Bound);
-
       Work = new Workpiece (mPart.Model, mPart);
       
-
       // Clear the zombies if any
       mProcess?.ClearZombies ();
    }
@@ -455,7 +385,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       if (!HandleNoWorkpiece ()) {
          if (Work.DoTextMarking (MCSettings.It))
             mProcess?.ClearZombies ();
-
          mOverlay.Redraw ();
       }
    }
@@ -464,7 +393,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       if (!HandleNoWorkpiece ()) {
          if (Work.DoCutNotchesAndCutouts ())
             mProcess?.ClearZombies ();
-
          mOverlay.Redraw ();
       }
    }
@@ -526,7 +454,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                            MessageBoxButton.OK, MessageBoxImage.Error);
          return true;
       }
-
       return false;
    }
 

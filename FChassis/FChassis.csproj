@@ -13,6 +13,7 @@
 	<OutDir>C:\FluxSDK\Bin</OutDir>
     <DocumentationFile>C:\FluxSDK\Bin\FChassis.xml</DocumentationFile>
 	  <DefineConstants>DEBUG_ROUND3</DefineConstants>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
