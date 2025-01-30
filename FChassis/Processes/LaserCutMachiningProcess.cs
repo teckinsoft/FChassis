@@ -86,6 +86,10 @@ public class Processor : INotifyPropertyChanged {
    double mPrevStepLen;
    private int mCutScopeIndex = 0;
    private readonly object mCutScopeLockObject = new ();
+   bool mIsZoomedToCutScope = false;
+   XForm4 mTransform0, mTransform1;
+   Point3 mWayPt0, mWayPt1;
+   EMove mMoveType0, mMoveType1;
    #endregion
 
    #region Constructor
@@ -166,7 +170,7 @@ public class Processor : INotifyPropertyChanged {
       public int gCodeSegIndex, wayPointIndex;
    }
    GCodeSegmentIndices[] mNextXFormIndex = [new (), new ()];
-   XForm4 GetNextToolXForm (int head) {
+   (XForm4 XForm, Point3 WayPt, EMove MoveType)? GetNextToolXForm (int head) {
       XForm4 xFormRes;
       if (mTraces[head] == null || MachiningTool == null) return null;
 
@@ -191,7 +195,7 @@ public class Processor : INotifyPropertyChanged {
       xFormRes = new XForm4 (XForm4.mXAxis, yComp, wayVecAtPt.Normalized (), Geom.P2V (wayPt));
       if (ReferenceCS == RefCSys.MCS) xFormRes = GCodeGenerator.XfmToMachine (mGCodeGenerator, xFormRes);
 
-      return xFormRes;
+      return (xFormRes, wayPt, mTraces[head][mNextXFormIndex[head].gCodeSegIndex].MoveType);
    }
 
    void RewindEnumerator (int head) {
@@ -204,12 +208,14 @@ public class Processor : INotifyPropertyChanged {
          mTraces[1] = CutScopeTraces[0][1];
       }
    }
-   bool mIsZoomedToCutScope = false;
-   XForm4 mTransform0, mTransform1;
+   
    void DrawToolSim (int head) {
       var mcCss = GCodeGen.MachinableCutScopes;
       Bound3 bound = new ();
-      if (mcCss.Count > 0) bound = mcCss[0].Bound;
+
+      if (mcCss.Count > 0)
+         bound = mcCss[0].Bound;
+
       if (!mIsZoomedToCutScope) {
          zoomExtentsWithBound3Delegate?.Invoke (bound);
          mIsZoomedToCutScope = true;
@@ -217,18 +223,21 @@ public class Processor : INotifyPropertyChanged {
 
       while (true) {
          if (head == 3) {
-            mTransform0 = GetNextToolXForm (0);
-            mTransform1 = GetNextToolXForm (1);
-         } else if (head == 0) mTransform0 = GetNextToolXForm (0);
-         else if (head == 1) mTransform1 = GetNextToolXForm (1);
+            (mTransform0, mWayPt0, mMoveType0) = GetNextToolXForm (0) ?? (new XForm4 (), new Point3 (), EMove.None);
+            (mTransform1, mWayPt1, mMoveType1) = GetNextToolXForm (1) ?? (new XForm4 (), new Point3 (), EMove.None);
+         } else if (head == 0) {
+            (mTransform0, mWayPt0, mMoveType0) = GetNextToolXForm (0) ?? (new XForm4 (), new Point3 (), EMove.None);
+         } else if (head == 1) {
+            (mTransform1, mWayPt1, mMoveType1) = GetNextToolXForm (1) ?? (new XForm4 (), new Point3 (), EMove.None);
+         }
 
          if (mTransform0 == null && mTransform1 == null && SimulationStatus != ESimulationStatus.NotRunning) {
             // If Multipass
             if (CutScopeTraces.Count > 1 && GetCutScopeIndex () + 1 < CutScopeTraces.Count) {
-
                // Safe incrementor
                IncrementCutScopeIndex ();
                int csIdx = GetCutScopeIndex ();
+
                if (csIdx >= 0 && csIdx < mcCss.Count)
                   zoomExtentsWithBound3Delegate?.Invoke (mcCss[csIdx].Bound);
 
@@ -236,21 +245,31 @@ public class Processor : INotifyPropertyChanged {
                RewindEnumerator (0);
                RewindEnumerator (1);
 
-               // Rewind will reset everything. So
-               // The cutscope index needs to be restored
+               // Rewind will reset everything, so the cutscope index needs to be restored
                SetCutScopeIndex (csIdx);
+
                if (head == 3) {
                   mTraces[0] = CutScopeTraces[csIdx][0];
                   mTraces[1] = CutScopeTraces[csIdx][1];
                } else {
                   mTraces[head] = CutScopeTraces[GetCutScopeIndex ()][head];
                }
-               mMachiningTool.Draw (mTransform0, Utils.LHToolColor, mTransform1, Utils.RHToolColor, mDispatcher);
+
+               mMachiningTool.Draw (
+                   mTransform0, Utils.LHToolColor,
+                   mTransform1, Utils.RHToolColor,
+                   Utils.ToolTipColor2, mDispatcher,
+                   mWayPt0, mTransform0?.ZCompRot,
+                   mWayPt1, mTransform1?.ZCompRot,
+                   mMoveType0, mMoveType1
+               );
+
                return; // Exit the loop after drawing
             } else {
-               // Draw the tool again at the beginning of process
+               // Draw the tool again at the beginning of the process
                RewindEnumerator (0);
                RewindEnumerator (1);
+
                if (CutScopeTraces.Count > 0) {
                   if (head == 3) {
                      mTraces[0] = CutScopeTraces[0][0];
@@ -260,26 +279,44 @@ public class Processor : INotifyPropertyChanged {
                   }
                }
 
-               // Draw the tool again at the beginning of process
-               mMachiningTool.Draw (mTransform0, Utils.LHToolColor, mTransform1, Utils.RHToolColor, mDispatcher);
+               mMachiningTool.Draw (
+                   mTransform0, Utils.LHToolColor,
+                   mTransform1, Utils.RHToolColor,
+                   Utils.ToolTipColor2, mDispatcher,
+                   mWayPt0, mTransform0?.ZCompRot,
+                   mWayPt1, mTransform1?.ZCompRot,
+                   mMoveType0, mMoveType1
+               );
 
                // Finish the simulation trigger
                SimulationFinished?.Invoke ();
                SimulationStatus = ESimulationStatus.NotRunning;
-               if (MCSettings.It.EnableMultipassCut) MCSettings.It.StepLength = mPrevStepLen;
+
+               if (MCSettings.It.EnableMultipassCut)
+                  MCSettings.It.StepLength = mPrevStepLen;
+
                Lux.StopContinuousRender (GFXCallback);
                TriggerRedraw ();
 
-               // Restore the zoom to cover entire part
+               // Restore the zoom to cover the entire part
                zoomExtentsWithBound3Delegate?.Invoke (Workpiece.Bound);
                return;
             }
          } else {
-            mMachiningTool.Draw (mTransform0, Utils.LHToolColor, mTransform1, Utils.RHToolColor, mDispatcher);
+            mMachiningTool.Draw (
+                mTransform0, Utils.LHToolColor,
+                mTransform1, Utils.RHToolColor,
+                Utils.ToolTipColor2, mDispatcher,
+                mWayPt0, mTransform0?.ZCompRot,
+                mWayPt1, mTransform1?.ZCompRot,
+                mMoveType0, mMoveType1
+            );
+
             return;
          }
       }
    }
+
 
    public void DrawToolInstance () {
       if (SimulationStatus == ESimulationStatus.Running) {

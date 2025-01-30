@@ -156,7 +156,8 @@ public enum EMove {
    SafeZ2Retract,
    Retract2Machining,
    Machining,
-   RapidPosition
+   RapidPosition,
+   None
 }
 
 /// <summary>
@@ -296,6 +297,10 @@ public static class Utils {
    public const double EpsilonVal = 1e-6;
    public static Color32 LHToolColor = new (57, 255, 20); // neon green
    public static Color32 RHToolColor = new (255, 87, 51); // Neon Red
+   public static Color32 ToolTipColor1 = new (70, 130, 180); // Steel Blue 
+   public static Color32 ToolTipColor2 = new (44, 90, 140); // Steel Blue Dark
+   public static Color32 SteelCutingSparkColor = new (255, 230, 80); // Bright Yellow Color
+   public static Color32 SteelCutingSparkColor2 = new (255, 255, 60); // Bright Yellow Color
    public static Color32 G0SegColor = Color32.White;
    public static Color32 G1SegColor = Color32.Blue;
    public static Color32 G2SegColor = Color32.Magenta;

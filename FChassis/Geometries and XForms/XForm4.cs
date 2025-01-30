@@ -74,6 +74,10 @@ public static class Vector3Extensions {
       return true;
    }
 
+   public static Vector3 Cross(this Vector3 v1, Vector3 v2) {
+      return Geom.Cross (v1, v2);
+   }
+
 }
 
 public static class Vector2Extensions {
@@ -107,6 +111,10 @@ public class Geom {
       public int A { get; set; } = a;
       public int B { get; set; } = b;
       public int C { get; set; } = c;
+   }
+   public struct Line3D (int a, int b) {
+      public int A { get; set; } = a;
+      public int B { get; set; } = b;
    }
    #endregion
 

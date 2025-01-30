@@ -1,38 +1,30 @@
 ﻿using Flux.API;
-using System.Windows.Threading;
-using FChassis.Core;
 using static FChassis.Core.Geom;
 namespace FChassis;
-
-/// <summary>
-/// The Cylinder class represents the laser cutting tool ( excluding tip)
-/// </summary>
-public class Cylinder {
-   readonly double mDiameter, mHeight, mOffset;
-   readonly int mSegments;
-   public List<Point3> Points { get; set; } = [];
+public class FrustumCone {
+   readonly double mBottomRadius, mTopRadius, mHeight;
+   readonly int mSegments = 50; // Fixed discretization
+   public List<Point3> Points { get; set; } = new List<Point3> ();
    public List<Triangle3D> Triangles { get; set; } = new List<Triangle3D> ();
 
-   public Cylinder (double diameter, double height, int segments, double offset) {
-      mDiameter = diameter;
+   public FrustumCone (double bottomDiamater, double topDiameter, double height) {
+      mBottomRadius = bottomDiamater/2;
+      mTopRadius = topDiameter/2;
       mHeight = height;
-      mSegments = segments;
-      mOffset = offset;
 
-      double radius = mDiameter / 2.0;
       double angleStep = 2 * Math.PI / mSegments;
-      double startZ = mOffset; // Starting Z coordinate based on the offset
+      double startZ = 0.0; // Bottom base Z-coordinate
 
       // Add points for the bottom base
-      for (int i = 0; i <= mSegments; i++) {
+      for (int i = 0; i < mSegments; i++) {
          double angle = i * angleStep;
-         Points.Add (new Point3 (radius * Math.Cos (angle), radius * Math.Sin (angle), startZ));
+         Points.Add (new Point3 (mBottomRadius * Math.Cos (angle), mBottomRadius * Math.Sin (angle), startZ));
       }
 
       // Add points for the top base
       for (int i = 0; i < mSegments; i++) {
          double angle = i * angleStep;
-         Points.Add (new Point3 (radius * Math.Cos (angle), radius * Math.Sin (angle), startZ + mHeight));
+         Points.Add (new Point3 (mTopRadius * Math.Cos (angle), mTopRadius * Math.Sin (angle), startZ + mHeight));
       }
 
       // Create triangles for the bottom base
