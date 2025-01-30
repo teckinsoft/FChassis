@@ -38,7 +38,8 @@ public class Nozzle (double diameter, double height, int segments, Point3? pt = 
                   lhCompLSPts.AddRange ([p1, p2]);
                }
             }
-            lhCompLSPts.AddRange ([lhCompLSPts[^1], lhCompLSPts[^1]]);
+            if (lhCompLSPts.Count > 0 ) 
+               lhCompLSPts.AddRange ([lhCompLSPts[^1], lhCompLSPts[^1]]);
          }
       }
 
@@ -51,7 +52,8 @@ public class Nozzle (double diameter, double height, int segments, Point3? pt = 
                   lhCompLSPts.AddRange ([p1, p2]);
                }
             }
-            rhCompLSPts.AddRange ([rhCompLSPts[^1], rhCompLSPts[^1]]);
+            if (rhCompLSPts.Count > 0 )
+               rhCompLSPts.AddRange ([rhCompLSPts[^1], rhCompLSPts[^1]]);
          }
       }
 
