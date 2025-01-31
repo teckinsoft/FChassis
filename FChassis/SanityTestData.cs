@@ -16,7 +16,7 @@ public struct SanityTestData {
    public MCSettings MCSettings { get; set; } = new MCSettings ();
 
    #region Data Members
-   JsonSerializerOptions mJSONWriteOptions, mJSONReadOptions;
+   JsonSerializerOptions /*mJSONWriteOptions, */mJSONReadOptions;
    #endregion
 
    #region JSON read/write utilities

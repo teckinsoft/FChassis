@@ -8,8 +8,8 @@
 
 	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
 	<BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(SolutionDir)\output\obj\$(MSBuildProjectName)\$(Configuration)</BaseIntermediateOutputPath>
-	<PackageOutputPath>$(SolutionDir)\output\$(OutputPath)</PackageOutputPath>      
+    <BaseIntermediateOutputPath>$(SolutionDir)\output\intermediate\$(MSBuildProjectName)\$(Platform)\</BaseIntermediateOutputPath>
+	<PackageOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)</PackageOutputPath>      
   </PropertyGroup>
 
   <ItemGroup>

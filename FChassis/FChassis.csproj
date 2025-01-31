@@ -12,11 +12,18 @@
 
 	<OutDir>C:\FluxSDK\Bin</OutDir>
     <DocumentationFile>C:\FluxSDK\Bin\FChassis.xml</DocumentationFile>
+	  
 	  <DefineConstants>DEBUG_ROUND3</DefineConstants>
 	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
+	
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <ProjectReference Include="..\IGES\IGES.vcxproj" />
   </ItemGroup>
 
 	<ItemGroup>
@@ -28,5 +35,4 @@
       <HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>

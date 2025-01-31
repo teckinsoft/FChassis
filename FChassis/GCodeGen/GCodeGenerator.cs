@@ -231,7 +231,7 @@ public class GCodeGenerator {
    readonly Point3[] mToolPos = new Point3[2];     // Tool position (for each head)
    readonly Vector3[] mToolVec = new Vector3[2];   // Tool orientaton (for each head)
    readonly Point3[] mSafePoint = new Point3[2];
-   readonly bool mDebug = false;
+   //readonly bool mDebug = false;
    StreamWriter sw;
    bool mMachiningDirectiveSet = false;
    double mCurveLeastLength = 0.5;
@@ -241,7 +241,7 @@ public class GCodeGenerator {
    string NCName;
    bool mLastCutScope = false;
    ToolingSegment? mPrevToolingSegment = null;
-   bool mShortPerimeterNotch = false;
+   //bool mShortPerimeterNotch = false;
    public bool IsRapidMoveToPiercingPositionWithPingPong { get; set; }
    #endregion
 
