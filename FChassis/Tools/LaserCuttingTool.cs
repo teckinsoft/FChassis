@@ -22,118 +22,157 @@ public class Nozzle (double diameter, double height, int segments, Point3? pt = 
    #endregion
 
    #region Draw methods
-   public void Draw (XForm4 LHCompTransform, Color32 LHToolColor, XForm4 RHCompTransform, Color32 RHToolColor, 
-      Color32 toolTipColor, Dispatcher dispatcher, Point3? tipTool0, Vector3? normalTool0,
-      Point3? tipTool1, Vector3? normalTool1, EMove t0MoveType, EMove t1MoveType) {
-      List<Point3> lhCompTrfPts = [],
-         rhCompTrfPts = [], lhCompToolTipTrfPts = [], rhCompToolTipTrfPts = [],
-      lhCompLSPts = [], rhCompLSPts = [];
+   /// <summary>
+   /// The Draw method renders ( using Flux API) the tool head (cylinder), tool tip (cone)
+   /// and the laser cutting sparks (LinearSparks) for 2 tools (which ever is available)
+   /// </summary>
+   /// <param name="trfTool0">The content for tool 0 (left side tool: Transformation, tool tip point and machining type</param>
+   /// <param name="trfTool1">The content for tool 0 (right side tool: Transformation, tool tip point and machining type</param>
+   /// <param name="dispatcher">The Dispatcher to inject the draw call to</param>
+   public void Draw (
+      (XForm4 XForm, Point3 WayPt, EMove MoveType)? trfTool0,
+      (XForm4 XForm, Point3 WayPt, EMove MoveType)? trfTool1,
+      Dispatcher dispatcher) {
+      List<Point3> t0ToolCylTrfPts = [],
+         t1ToolCylTrfPts = [], t0ToolToolTipTrfPts = [], t1ToolToolTipTrfPts = [],
+      t0CompLSPts = [], t1CompLSPts = [];
+      
+      // Tool 0 
+      if (trfTool0 != null) {
+         var t0Trf = trfTool0.Value.XForm;
+         var normalTool0 = trfTool0.Value.XForm.ZCompRot;
+         var tipTool0 = trfTool0.Value.WayPt;
 
-      if (t0MoveType == EMove.Machining) {
-         if (normalTool0 != null && tipTool0 != null) {
-            mLineSparks = new (tipTool0.Value, normalTool0.Value * -1, rc: 5.0, lc: 200, nSparksPerSet: 50, nSets: 2);
+         // Tool 0 Linear Sparks
+         if (trfTool0.Value.MoveType == EMove.Machining) {
+            mLineSparks = new (tipTool0, normalTool0 * -1, rc: 5.0, lc: 200, nSparksPerSet: 50, nSets: 2);
             foreach (var sparks in mLineSparks.Sparks) {
                foreach (var line in sparks) {
                   var p1 = mLineSparks.Points[line.A]; var p2 = mLineSparks.Points[line.B];
-                  lhCompLSPts.AddRange ([p1, p2]);
+                  t0CompLSPts.AddRange ([p1, p2]);
                }
             }
-            if (lhCompLSPts.Count > 0 ) 
-               lhCompLSPts.AddRange ([lhCompLSPts[^1], lhCompLSPts[^1]]);
+            if (t0CompLSPts.Count > 0)
+               t0CompLSPts.AddRange ([t0CompLSPts[^1], t0CompLSPts[^1]]);
+         }
+
+         // Tool 0 Tool Head
+         foreach (var trg in mCylinder.Triangles) {
+            var p1 = mCylinder.Points[trg.A]; var p2 = mCylinder.Points[trg.B];
+            var p3 = mCylinder.Points[trg.C];
+            Point3 xFormP1, xFormP2, xFormP3;
+            if (t0Trf != null) {
+               xFormP1 = Geom.V2P (t0Trf * p1); xFormP2 = Geom.V2P (t0Trf * p2);
+               xFormP3 = Geom.V2P (t0Trf * p3);
+               t0ToolCylTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
+            }
+         }
+
+         // Tool 0 Tip
+         foreach (var trg in mFCone.Triangles) {
+            var p1 = mFCone.Points[trg.A]; var p2 = mFCone.Points[trg.B];
+            var p3 = mFCone.Points[trg.C];
+            Point3 xFormP1, xFormP2, xFormP3;
+            if (t0Trf != null) {
+               xFormP1 = Geom.V2P (t0Trf * p1); xFormP2 = Geom.V2P (t0Trf * p2);
+               xFormP3 = Geom.V2P (t0Trf * p3);
+               t0ToolToolTipTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
+            }
          }
       }
-
-      if (t1MoveType == EMove.Machining) {
-         if (normalTool1 != null && tipTool1 != null) {
-            mLineSparks = new (tipTool1.Value, normalTool1.Value * -1, rc: 5.0, lc: 100, nSparksPerSet: 50, nSets: 2);
+      
+      // Tool 1
+      if (trfTool1 != null) {
+         var t1Trf = trfTool1.Value.XForm;
+         var normalTool1 = trfTool1.Value.XForm.ZCompRot;
+         var tipTool1 = trfTool1.Value.WayPt;
+         
+         // Tool 1 Linear Sparks
+         if (trfTool1.Value.MoveType == EMove.Machining) {
+            mLineSparks = new (tipTool1, normalTool1 * -1, rc: 5.0, lc: 200, nSparksPerSet: 50, nSets: 2);
             foreach (var sparks in mLineSparks.Sparks) {
                foreach (var line in sparks) {
                   var p1 = mLineSparks.Points[line.A]; var p2 = mLineSparks.Points[line.B];
-                  lhCompLSPts.AddRange ([p1, p2]);
+                  t1CompLSPts.AddRange ([p1, p2]);
                }
             }
-            if (rhCompLSPts.Count > 0 )
-               rhCompLSPts.AddRange ([rhCompLSPts[^1], rhCompLSPts[^1]]);
+            if (t1CompLSPts.Count > 0)
+               t1CompLSPts.AddRange ([t1CompLSPts[^1], t1CompLSPts[^1]]);
+         }
+
+         // Tool 1 Tool Head
+         foreach (var trg in mCylinder.Triangles) {
+            var p1 = mCylinder.Points[trg.A]; var p2 = mCylinder.Points[trg.B];
+            var p3 = mCylinder.Points[trg.C];
+            Point3 xFormP1, xFormP2, xFormP3;
+
+            if (trfTool1 != null) {
+               xFormP1 = Geom.V2P (t1Trf * p1); xFormP2 = Geom.V2P (t1Trf * p2);
+               xFormP3 = Geom.V2P (t1Trf * p3);
+               t1ToolCylTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
+            }
+         }
+
+         // Tool 1 Tool Tip
+         foreach (var trg in mFCone.Triangles) {
+            var p1 = mFCone.Points[trg.A]; var p2 = mFCone.Points[trg.B];
+            var p3 = mFCone.Points[trg.C];
+            Point3 xFormP1, xFormP2, xFormP3;
+
+            if (t1Trf != null) {
+               xFormP1 = Geom.V2P (t1Trf * p1); xFormP2 = Geom.V2P (t1Trf * p2);
+               xFormP3 = Geom.V2P (t1Trf * p3);
+               t1ToolToolTipTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
+            }
          }
       }
 
-
-      foreach (var trg in mCylinder.Triangles) {
-         var p1 = mCylinder.Points[trg.A]; var p2 = mCylinder.Points[trg.B];
-         var p3 = mCylinder.Points[trg.C];
-         Point3 xFormP1, xFormP2, xFormP3;
-         if (LHCompTransform != null) {
-            xFormP1 = Geom.V2P (LHCompTransform * p1); xFormP2 = Geom.V2P (LHCompTransform * p2);
-            xFormP3 = Geom.V2P (LHCompTransform * p3);
-            lhCompTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
-         }
-         if (RHCompTransform != null) {
-            xFormP1 = Geom.V2P (RHCompTransform * p1); xFormP2 = Geom.V2P (RHCompTransform * p2);
-            xFormP3 = Geom.V2P (RHCompTransform * p3);
-            rhCompTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
-         }
-      }
-      foreach (var trg in mFCone.Triangles) {
-         var p1 = mFCone.Points[trg.A]; var p2 = mFCone.Points[trg.B];
-         var p3 = mFCone.Points[trg.C];
-         Point3 xFormP1, xFormP2, xFormP3;
-         if (LHCompTransform != null) {
-            xFormP1 = Geom.V2P (LHCompTransform * p1); xFormP2 = Geom.V2P (LHCompTransform * p2);
-            xFormP3 = Geom.V2P (LHCompTransform * p3);
-            lhCompToolTipTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
-         }
-         if (RHCompTransform != null) {
-            xFormP1 = Geom.V2P (RHCompTransform * p1); xFormP2 = Geom.V2P (RHCompTransform * p2);
-            xFormP3 = Geom.V2P (RHCompTransform * p3);
-            rhCompToolTipTrfPts.AddRange ([xFormP1, xFormP2, xFormP3]);
-         }
-      }
-
-      if (lhCompLSPts.Count > 0) {
+      if (t0CompLSPts.Count > 0) {
          dispatcher.Invoke (() => {
             Lux.HLR = true;
             Lux.Color = Utils.SteelCutingSparkColor2;
-            Lux.Draw (EDraw.LineStrip, lhCompLSPts);
+            Lux.Draw (EDraw.LineStrip, t0CompLSPts);
          });
       }
 
-      if (rhCompLSPts.Count > 0) {
+      if (t1CompLSPts.Count > 0) {
          dispatcher.Invoke (() => {
             Lux.HLR = true;
             Lux.Color = Utils.SteelCutingSparkColor2;
-            Lux.Draw (EDraw.Lines, rhCompLSPts);
+            Lux.Draw (EDraw.Lines, t1CompLSPts);
          });
       }
 
 
-      if (lhCompTrfPts.Count > 0) {
+      if (t0ToolCylTrfPts.Count > 0) {
          dispatcher.Invoke (() => {
             Lux.HLR = true;
-            Lux.Color = LHToolColor;
-            Lux.Draw (EDraw.Triangle, lhCompTrfPts);
+            Lux.Color = Utils.LHToolColor;
+            Lux.Draw (EDraw.Triangle, t0ToolCylTrfPts);
          });
       }
-      if (rhCompTrfPts.Count > 0) {
+      if (t1ToolCylTrfPts.Count > 0) {
          dispatcher.Invoke (() => {
             Lux.HLR = true;
-            Lux.Color = RHToolColor;
-            Lux.Draw (EDraw.Triangle, rhCompTrfPts);
+            Lux.Color = Utils.RHToolColor;
+            Lux.Draw (EDraw.Triangle, t1ToolCylTrfPts);
          });
       }
-      if (lhCompToolTipTrfPts.Count > 0) {
+      if (t0ToolToolTipTrfPts.Count > 0) {
          dispatcher.Invoke (() => {
             Lux.HLR = true;
-            Lux.Color = toolTipColor;
-            Lux.Draw (EDraw.Triangle, lhCompToolTipTrfPts);
+            Lux.Color = Utils.ToolTipColor2;
+            Lux.Draw (EDraw.Triangle, t0ToolToolTipTrfPts);
          });
       }
-      if (rhCompToolTipTrfPts.Count > 0) {
+      if (t1ToolToolTipTrfPts.Count > 0) {
          dispatcher.Invoke (() => {
             Lux.HLR = true;
-            Lux.Color = toolTipColor;
-            Lux.Draw (EDraw.Triangle, rhCompToolTipTrfPts);
+            Lux.Color = Utils.ToolTipColor2;
+            Lux.Draw (EDraw.Triangle, t1ToolToolTipTrfPts);
          });
       }
+
    }
    #endregion
 }
