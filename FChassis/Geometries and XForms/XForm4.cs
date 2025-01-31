@@ -215,7 +215,7 @@ public class Geom {
       if (Utils.IsCircle (arc)) {
          if (arc.Start.EQ (start) && arc.End.EQ (end))
             return new Tuple<double, EArcSense> (Math.PI * 2, EArcSense.CCW);
-         var (cen, rad) = EvaluateCenterAndRadius (arc);
+         var (cen, _) = EvaluateCenterAndRadius (arc);
          if (!IsPointOnCurve (arc as Curve3, start, normal))
             throw new Exception ("In GetArcAngleAndSense: For the circle, the start point is not on the circle");
          if (!IsPointOnCurve (arc as Curve3, end, normal))
@@ -224,7 +224,6 @@ public class Geom {
          var crossP = Geom.Cross (cenToStart, cenToEnd).Normalized ();
          var angBet = Math.Acos (cenToStart.Normalized ().Dot (cenToEnd.Normalized ()));
          if (crossP.Opposing (normal)) angBet = 2 * Math.PI - angBet;
-         var dist = angBet * rad;
          return new Tuple<double, EArcSense> (angBet, EArcSense.CCW);
       }
 
@@ -547,8 +546,8 @@ public class Geom {
 
       if (crv is Arc3) {
          if (apn == null) throw new Exception ("Arc Plane Normal needed");
-         var (arcAngle, arcSense) = GetArcAngleAndSense (crv as Arc3, apn.Value);
-         var (arcAngleAtPt, arcSenseAtPt) = GetArcAngleAtPoint (crv as Arc3, pt, apn.Value, tolerance);
+         var (arcAngle, _) = GetArcAngleAndSense (crv as Arc3, apn.Value);
+         var (arcAngleAtPt, _) = GetArcAngleAtPoint (crv as Arc3, pt, apn.Value, tolerance);
          return arcAngleAtPt / arcAngle;
       } else {
          double denomX = (crv.End.X - crv.Start.X);
@@ -1419,11 +1418,11 @@ public class Geom {
 
    public static Tuple<Point3, int> GetPointAtLengthFrom (Point3 iPoint, double iLength, List<ToolingSegment> segs,
       bool reverseTrace = false, double minimumCurveLength = 0.5, double tolerance = 1e-6) {
-      Tuple<Point3, int> res = null;
+      Tuple<Point3, int> res;
       if (segs.Count == 2 || segs.Count == 1) {
-         Curve3 crv = null;
+         Curve3 crv;
          Vector3 normal;
-         int index = -1;
+         int index;
          if (segs.Count == 2) {
             crv = segs[1].Curve;
             normal = segs[1].Vec0.Normalized ();
@@ -1443,7 +1442,7 @@ public class Geom {
          }
       }
 
-      var (len, segIndex) = GetLengthAtPoint (segs, iPoint);
+      var (len, _) = GetLengthAtPoint (segs, iPoint);
       var tLen = len + iLength;
       res = EvaluatePointAndIndexAtLength (segs, -1, tLen);
       return res;
@@ -1520,7 +1519,7 @@ public class Geom {
    /// To Point</returns>
    public static double GetLengthBetween (List<ToolingSegment> segments, Point3 fromPt, Point3 toPt, bool inSameOrder = false) {
       if (segments.Count == 2 || segments.Count == 1) {
-         Curve3 crv = null;
+         Curve3 crv;
          Vector3 normal;
          //int index = -1;
          if (segments.Count == 2) {

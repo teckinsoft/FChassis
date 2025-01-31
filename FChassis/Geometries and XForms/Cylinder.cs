@@ -11,7 +11,7 @@ public class Cylinder {
    readonly double mDiameter, mHeight, mOffset;
    readonly int mSegments;
    public List<Point3> Points { get; set; } = [];
-   public List<Triangle3D> Triangles { get; set; } = new List<Triangle3D> ();
+   public List<Triangle3D> Triangles { get; set; } = [];
 
    public Cylinder (double diameter, double height, int segments, double offset) {
       mDiameter = diameter;

@@ -4,8 +4,8 @@ namespace FChassis;
 public class FrustumCone {
    readonly double mBottomRadius, mTopRadius, mHeight;
    readonly int mSegments = 50; // Fixed discretization
-   public List<Point3> Points { get; set; } = new List<Point3> ();
-   public List<Triangle3D> Triangles { get; set; } = new List<Triangle3D> ();
+   public List<Point3> Points { get; set; } = [];
+   public List<Triangle3D> Triangles { get; set; } = [];
 
    public FrustumCone (double bottomDiamater, double topDiameter, double height) {
       mBottomRadius = bottomDiamater/2;

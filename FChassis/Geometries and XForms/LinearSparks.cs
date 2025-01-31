@@ -63,7 +63,7 @@ public class LinearSparks {
       double theta = random.NextDouble () * 2 * Math.PI;
       double radius = Math.Sqrt (random.NextDouble ()) * rc; // Uniform distribution inside the circle
 
-      Vector3 baseCenter = new Vector3 (
+      Vector3 baseCenter = new (
           summit.X + normal.X * lc,
           summit.Y + normal.Y * lc,
           summit.Z + normal.Z * lc

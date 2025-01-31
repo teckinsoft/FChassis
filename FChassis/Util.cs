@@ -1197,7 +1197,7 @@ public static class Utils {
     bool isFlexMachining = false) {
       // Determine if the notch is on two flanges and if the start and end of the notch
       // are on the same Y flange.
-      List<ToolingSegment> webSegs = [];
+      List<ToolingSegment> webSegs;
       double yReach = 0;
       bool twoFlangeNotchStartAndEndOnSameSideFlange = false;
 
