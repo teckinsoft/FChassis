@@ -27,8 +27,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Constructor
-   UIElement luxPanel = null;
-   UserControl joinPanel = null;
    public MainWindow () {
       InitializeComponent ();
 
@@ -36,8 +34,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       Library.Init ("W:/FChassis/Data", "C:/FluxSDK/Bin", this);
       Flux.API.Settings.IGESviaHOOPS = false;
 
-      this.luxPanel = (UIElement)Lux.CreatePanel ();
-      Area.Child = this.luxPanel;
+      Area.Child = (UIElement)Lux.CreatePanel ();
       PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
 
       Sys.SelectionChanged += OnSelectionChanged;
@@ -136,14 +133,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnMirrorAndJoin (object sender, RoutedEventArgs e) {
-      if (this.Area.Child == this.joinPanel)
-         return;
-
-      this.joinPanel ??= new JoinControl ();
-
-      this.Area.Child = this.joinPanel;
-   }
+   void OnMirrorAndJoin (object sender, RoutedEventArgs e)
+      => new JoinWindow ().ShowDialog ();
 
    void OnMenuFileSave (object sender, RoutedEventArgs e) {
       SaveFileDialog saveFileDialog = new () {
