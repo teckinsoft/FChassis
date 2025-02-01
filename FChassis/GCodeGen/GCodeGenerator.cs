@@ -1106,6 +1106,17 @@ public class GCodeGenerator {
 
    /// <summary>This creates the optimal partition of holes so both heads are equally busy</summary>
    public void CreatePartition (List<Tooling> cuts, bool optimize, Bound3 bound) {
+      if (Heads == EHeads.Left || Heads == EHeads.Right) {
+         for (int ii = 0; ii < cuts.Count; ii++) {
+            var cut = cuts[ii];
+            if (Heads == EHeads.Left)
+               cut.Head = 0;
+            else if (Heads == EHeads.Right)
+               cut.Head = 1;
+            cuts[ii] = cut;
+         }
+         return;
+      }
       double min = 0.1, max = 0.9, mid = 0;
       int count = 15;
       if (!optimize) {
@@ -1413,67 +1424,22 @@ public class GCodeGenerator {
 
             // Allocate toolings for each head. It is assumed that partitioning is 
             // already made.
-            List<Tooling> cuts = null;
-            var cutsHead1 = GetToolings4Head (mcCutScope.ToolingsHead1, 0);
-            var cutsHead2 = GetToolings4Head (mcCutScope.ToolingsHead2, 1);
-            if (head == ToolHeadType.Master)
-               cuts = cutsHead1;
-            else
-               cuts = cutsHead2;
-            // Debug
-            //if (mm == mcCutScopes.Count - 1 && head == ToolHeadType.Master && cutsHead1.Count > 0) {
-            //   cutsHead2 = [.. cutsHead1];
-            //   cutsHead1.Clear ();
-            //}
-            if (cutsHead1.Count == 0 && cutsHead2.Count > 0 && Head == ToolHeadType.Master) {
+            List<Tooling> cuts = [];
+            var cutsHead1 = GetToolings4Head (mcCutScope.ToolingsHead1, (int)ToolHeadType.Master);
+            var cutsHead2 = GetToolings4Head (mcCutScope.ToolingsHead2, (int)ToolHeadType.Slave);
+            if (head == ToolHeadType.Master) cuts = cutsHead1;
+            else if (head == ToolHeadType.Slave) cuts = cutsHead2;
+
+            if ((cutsHead1.Count == 0 && cutsHead2.Count > 0 && Head == ToolHeadType.Master) ||
+               (Head == ToolHeadType.Master && Heads == EHeads.Right)) {
                CreateDummyBlock4Master = true;
-               cuts = [cutsHead2[0]];
+               if (cutsHead2.Count > 0)
+                  cuts = [cutsHead2[0]];
                WriteLineStatement (GetGCodeComment (" Writing dummy block for master head 1 "));
             }
             if (cuts.Count == 0) continue;
 
-            // Write the sequence numbers in the g code
-            int np = 0;
-            foreach (var name in Enum.GetNames (typeof (Utils.EFlange))) {
-               Utils.EFlange p = (Utils.EFlange)Enum.Parse (typeof (Utils.EFlange), name);
-               int cnt = cuts.Count (a => Utils.GetFlangeType (a, GetXForm ()) == p && !a.IsCutout () && !a.IsNotch ());
-               if (cnt == 0) continue;
-               if (p != Utils.EFlange.Flex) WriteNSequenceHeader (p, np, cnt);
-               np += cnt;
-            }
-
-            // Now write notch information
-            int cNotches = cuts.Count (a => a.Kind == EKind.Notch);
-            string gcodeStr = "";
-            if (cNotches != 0)
-               gcodeStr = $"(N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + 1} to N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + cNotches} for notches)";
-            if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
-
-            // Now write Cutout part information
-            int cMarks = cuts.Count (a => a.Kind == EKind.Mark);
-            if (cMarks != 0) gcodeStr = $"(N{GetStartMarkProgNo () + 1} to N{GetStartMarkProgNo () + cMarks} for markings)";
-            if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
-
-            // GCode generation for all the eligible tooling starts here
-            xEnd = cutScopeBound.XMax;
-            foreach (var cut in cuts) {
-               var cutBound = cut.Bound3;
-               if (((double)cutBound.XMax).SGT (xEnd))
-                  throw new Exception ("Tooling's XMax is more than frame feed");
-            }
-            // Compute the splitPartition
-            var xPartition = GetXPartition (mcCutScope.Toolings);
-
-            // Actually write toolings to g code
-            WriteCuts (cuts, cutScopeBound, xStart, xPartition, xEnd, false);
-            totalCuts.AddRange (cuts);
-
-            // Update Traces for this cutscope
-            if (CutScopeTraces[mCutScopeNo - 1][0].Count == 0)
-               CutScopeTraces[mCutScopeNo - 1][0] = mTraces[0];
-            if (CutScopeTraces[mCutScopeNo - 1][1].Count == 0)
-               CutScopeTraces[mCutScopeNo - 1][1] = mTraces[1];
-            mTraces = [[], []];
+            WriteCuts (cuts, cutScopeBound, xStart, ref xEnd, mcCutScope, totalCuts);
          }
          // Re init Traces with first entry of CutScopeTraces
          sw.WriteLine ("\r\nN65535");
@@ -1483,6 +1449,64 @@ public class GCodeGenerator {
          MachinableCutScopes = mcCutScopes;
          return totalCuts.Count;
       }
+   }
+
+   /// <summary>
+   /// This method prepares to write toolings and then writes the toolings
+   /// </summary>
+   /// <param name="cuts">List of toolings</param>
+   /// <param name="cutScopeBound">The bounding box of the entire cutscope</param>
+   /// <param name="xStart">The X Start of the cutscope bound</param>
+   /// <param name="xEnd">The X End of the cutscope bounding</param>
+   /// <param name="mcCutScope">The machinable cut scope, which contains the tooling scopes
+   /// which inturn contains the tooling</param>
+   /// <param name="totalCuts">Total toolings written</param>
+   /// <exception cref="Exception">If the tooling X max of the is more than the 
+   /// cutscope bound, an exception is thrown</exception>
+   void WriteCuts (List<Tooling> cuts, Bound3 cutScopeBound, double xStart, 
+      ref double xEnd, MachinableCutScope mcCutScope, List<Tooling> totalCuts) {
+      // Write the sequence numbers in the g code
+      int np = 0;
+      foreach (var name in Enum.GetNames (typeof (Utils.EFlange))) {
+         Utils.EFlange p = (Utils.EFlange)Enum.Parse (typeof (Utils.EFlange), name);
+         int cnt = cuts.Count (a => Utils.GetFlangeType (a, GetXForm ()) == p && !a.IsCutout () && !a.IsNotch ());
+         if (cnt == 0) continue;
+         if (p != Utils.EFlange.Flex) WriteNSequenceHeader (p, np, cnt);
+         np += cnt;
+      }
+
+      // Now write notch information
+      int cNotches = cuts.Count (a => a.Kind == EKind.Notch);
+      string gcodeStr = "";
+      if (cNotches != 0)
+         gcodeStr = $"(N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + 1} to N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + cNotches} for notches)";
+      if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
+
+      // Now write Cutout part information
+      int cMarks = cuts.Count (a => a.Kind == EKind.Mark);
+      if (cMarks != 0) gcodeStr = $"(N{GetStartMarkProgNo () + 1} to N{GetStartMarkProgNo () + cMarks} for markings)";
+      if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
+
+      // GCode generation for all the eligible tooling starts here
+      xEnd = cutScopeBound.XMax;
+      foreach (var cut in cuts) {
+         var cutBound = cut.Bound3;
+         if (((double)cutBound.XMax).SGT (xEnd))
+            throw new Exception ("Tooling's XMax is more than frame feed");
+      }
+      // Compute the splitPartition
+      var xPartition = GetXPartition (mcCutScope.Toolings);
+
+      // Actually write toolings to g code
+      DoWriteCuts (cuts, cutScopeBound, xStart, xPartition, xEnd, false);
+      totalCuts.AddRange (cuts);
+
+      // Update Traces for this cutscope
+      if (CutScopeTraces[mCutScopeNo - 1][0].Count == 0)
+         CutScopeTraces[mCutScopeNo - 1][0] = mTraces[0];
+      if (CutScopeTraces[mCutScopeNo - 1][1].Count == 0)
+         CutScopeTraces[mCutScopeNo - 1][1] = mTraces[1];
+      mTraces = [[], []];
    }
 
    /// <summary>
@@ -2911,7 +2935,7 @@ public class GCodeGenerator {
    /// </summary>
    /// <param name="toolingItems"></param>
    /// <param name="shouldOutputDigit"></param>
-   void WriteCuts (
+   void DoWriteCuts (
     List<Tooling> toolingItems, Bound3 bound, /*double frameFeed,*/ double xStart, double xPartition,
     double xEnd, bool shouldOutputDigit) {
       Tooling prevToolingItem = null;
