@@ -1,6 +1,6 @@
 ; Define installer properties
 RequestExecutionLevel user ; Prevent the installer from asking for admin permission
-Name "FChassis Installer"
+Name "FChassis Map Installer"
 
 !define OUTPUT_PATH "..\..\FChassis-Installer"
 !define FILES_PATH "..\..\FChassis-Installer\files"
@@ -73,16 +73,8 @@ Function OpenFolderDialog
     ${NSD_SetText} $TextBox $MAP_PATH
 FunctionEnd
 
-; Display a message before the installation section starts
-Function DisplayMessageBeforeInstallation
-    MessageBox MB_OK "The installation will begin. The selected directory for the 'map' folder is: $MAP_PATH"
-FunctionEnd
-
 ; Installer Sections
 Section "FChassis Installation" SecInstallation
-    ; Show the pre-installation message
-    ;Call DisplayMessageBeforeInstallation
-
     ; Ensure selected directory exists
     IfFileExists "$MAP_PATH" 0 CreateMapFolder
     Goto CopyFiles
@@ -91,12 +83,9 @@ CreateMapFolder:
     CreateDirectory "$MAP_PATH"
 
 CopyFiles:
-    ; Initialize MAP_PATH with default value
-    ;StrCpy $MAP_PATH "C:\FluxSDK\map"
-
-     ; Copy files to user-selected "map" folder
+    ; Copy files to user-selected "map" folder
     SetOutPath "$MAP_PATH"
-    ;File /r "${FILES_PATH}\map\*.*" ; Copy all files in the FChassis folder recursively
+    File /r "${FILES_PATH}\map\*.*" ; Copy all files in the FChassis folder recursively
         
     ; Map C:\FluxSDK\map to W: drive
     nsExec::ExecToLog 'subst W: "$MAP_PATH"'

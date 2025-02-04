@@ -27,22 +27,36 @@ InstallDir "C:\FluxSDK" ; Sets the default installation directory
 SectionGroup /e "Installation"
     Section "Dot Net 8.0" SecDotNet8_0
         ; Check if .NET 8.0 is already installed
-        ReadRegStr $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Version"
-        StrCmp $0 "" InstallDotNet8 NoInstall
+        ;ReadRegStr $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Version"
+        ;StrCmp $0 "" InstallDotNet8 NoInstall
 
-        InstallDotNet8:
+        SetOutPath "$INSTDIR\map"
+        File "${FILES_PATH}\dotnet-sdk-8.0.405-win-x64.exe"
+
+        ;InstallDotNet8:
         DetailPrint "Installing .NET 8.0..."
-        ExecWait '"${FILES_PATH}\dotnet-sdk-8.0.405-win-x64.exe" /quiet /norestart' $1
-        IfErrors 0 NoInstall
+        ExecWait '"$INSTDIR\map\dotnet-sdk-8.0.405-win-x64.exe"' $0
+        ;IfErrors 0 NoInstall
         MessageBox MB_ICONSTOP "Installation failed! Please install .NET 8.0 manually."
+        Goto Done
 
-        NoInstall:        
+        NoInstall:
         DetailPrint "Already .NET 8.0 installed..."
+
+        Done:
+        SetOutPath "$INSTDIR\map"
+        File "${FILES_PATH}\dotnet-sdk-8.0.405-win-x64.exe"
+        Delete "$INSTDIR\map\dotnet-sdk-8.0.405-win-x64.exe"
     SectionEnd
 
     Section "Flux SDK.4 Setup" SecFluxSDKSetup
         ; Run Setup.FluxSDK.4.exe from the NSIS script folder and wait for it to complete
-        ExecWait '"${FILES_PATH}\Setup.FluxSDK.4.exe"'
+        SetOutPath "$INSTDIR\map"
+        File "${FILES_PATH}\Setup.FluxSDK.4.exe"
+
+        ; Run Flux Data Folder Mapoing.exe
+        ExecWait '"$INSTDIR\map\Setup.FluxSDK.4.exe"' $0
+        Delete "$INSTDIR\map\Setup.FluxSDK.4.exe"
     SectionEnd
 
     Section "FChassis Installation" SecInstallation
@@ -57,16 +71,6 @@ SectionGroup /e "Installation"
         File "${SRC_BIN_DIR}\MathNet.Numerics.dll"
         File "${FILES_PATH}\FChassis.ico"
         
-        ; Copy the entire FChassis folder to C:\FluxSDK\map
-        ;SetOutPath "$INSTDIR\map"
-        ;File /r "${FILES_PATH}\map\*.*" ; Copy all files in the FChassis folder recursively
-        
-        ; Map C:\FluxSDK\map to W: drive
-        ;nsExec::ExecToLog 'subst W: "$INSTDIR\map"'
-        
-        ; Write the subst command to run on startup
-        ;WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FChassisMapWDrive" 'subst W: "$INSTDIR\map"'
-        
         ; Create the uninstaller
         WriteUninstaller "$INSTDIR\Uninstall.exe"
     
@@ -75,8 +79,12 @@ SectionGroup /e "Installation"
     SectionEnd
 
     Section "Data Folder Mapping" SecFluxDataFolderMapping
+        SetOutPath "$INSTDIR\map"
+        File "${OUTPUT_PATH}\FChassisMap_Setup.exe"
+
         ; Run Flux Data Folder Mapoing.exe
-        ExecWait '"${OUTPUT_PATH}\FChassisMap_Setup.exe"'
+        ExecWait '"$INSTDIR\map\FChassisMap_Setup.exe"' $0
+        Delete "$INSTDIR\map\FChassisMap_Setup.exe"
     SectionEnd
 SectionGroupEnd
 
@@ -90,14 +98,8 @@ Section "Uninstall"
     Delete "${SRC_BIN_DIR}\CommunityToolkit.Mvvm.dll"
     Delete "${SRC_BIN_DIR}\MathNet.Numerics.dll"
     
-    ; Remove the map directory
-    ;RMDir /r "$INSTDIR\map"
-    
     ; Remove shortcut
     Delete "$DESKTOP\FChassis.lnk"
-
-    ; Remove the registry entry
-    ;DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FChassisMapWDrive"
 
     ; Remove the W: drive mapping
     ;nsExec::ExecToLog 'subst W: /D'
