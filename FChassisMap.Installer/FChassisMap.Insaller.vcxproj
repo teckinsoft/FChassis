@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{4ad5a041-abdd-414c-aa3e-54af96448c8c}</ProjectGuid>
+    <ProjectGuid>{36170F65-4468-47A3-8EEB-725952D4C70F}</ProjectGuid>
     <RootNamespace>FChassisInsaller</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>

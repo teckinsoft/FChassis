@@ -1,0 +1,19 @@
+﻿<Window x:Class="FChassis.AboutDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FChassis"
+        mc:Ignorable="d"
+        Title="About" Height="200" Width="350">
+    <Grid Margin="10">
+        <StackPanel>
+            <TextBlock FontSize="18" FontWeight="Bold" Text="FChassis" HorizontalAlignment="Center" />
+            <TextBlock Text="CNC Software." TextWrapping="Wrap" HorizontalAlignment="Center" />
+            <TextBlock FontSize="14" Text="Version 1.0.0" HorizontalAlignment="Center" Margin="0,5,0,5"/>
+            <TextBlock Text="© 2025 TeckInSoft. All rights reserved." HorizontalAlignment="Center" />
+            <Separator Margin="0,10,0,10"/>
+            <Button Content="OK" Width="80" HorizontalAlignment="Center" Margin="0,15,0,0" Click="CloseButton_Click"/>
+        </StackPanel> 
+    </Grid>
+</Window>

@@ -1,20 +1,15 @@
 <?xml version="1.0" encoding="IBM437"?>
 <Project DefaultTargets="Build">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>	
-    <Nullable>enable</Nullable>
-	
-    <Company>TeckinSoft</Company> 
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<Company>TeckinSoft</Company>
+	</PropertyGroup>
 
-	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
-	<BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(SolutionDir)\output\intermediate\$(MSBuildProjectName)\$(Platform)\</BaseIntermediateOutputPath>
-	<PackageOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)</PackageOutputPath>      
-  </PropertyGroup>
-
-  <ItemGroup>
-  <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-</ItemGroup>
-
-  
- </Project>
+	<PropertyGroup>
+		<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+		<BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>
+		<BaseIntermediateOutputPath>$(SolutionDir)\output\obj\$(MSBuildProjectName)\$(Configuration)</BaseIntermediateOutputPath>
+		<PackageOutputPath>$(SolutionDir)\output\$(OutputPath)</PackageOutputPath>
+	</PropertyGroup>
+</Project>
