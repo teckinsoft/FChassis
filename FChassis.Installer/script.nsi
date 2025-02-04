@@ -28,7 +28,7 @@ SectionGroup /e "Installation"
 
         InstallDotNet8:
         DetailPrint "Installing .NET 8.0..."
-        ExecWait '"$EXEDIR\files\dotnet-sdk-8.0.405-win-x64.exe" /quiet /norestart' $1
+        ExecWait '"..\..\dotnet-sdk-8.0.405-win-x64.exe" /quiet /norestart' $1
         IfErrors 0 NoInstall
         MessageBox MB_ICONSTOP "Installation failed! Please install .NET 8.0 manually."
 
