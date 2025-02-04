@@ -26,6 +26,9 @@
                 <MenuItem Header="Settings" Click="OnSettings"/>
                 <MenuItem x:Name="SanityCheckMenuItem" Header="Sanity Check" Click="OnSanityCheck" Visibility="Collapsed"/>
             </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem Header="About.." Click="OnAbout"/>                
+            </MenuItem>
         </Menu>
         <DockPanel DockPanel.Dock="Left">
             <!-- Simulate Button -->

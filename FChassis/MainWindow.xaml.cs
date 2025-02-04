@@ -201,6 +201,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       sanityTestsDlg.ShowDialog ();
    }
 
+   void OnAbout (object sender, RoutedEventArgs e) 
+      => new AboutDialog().ShowDialog ();   
+
    public void OnExit () {
       // Get the user's home directory path
       string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
