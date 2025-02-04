@@ -2,8 +2,12 @@
 RequestExecutionLevel user ; Prevent the installer from asking for admin permission
 Name "FChassis Installer"
 
-OutFile "..\FChassis_Setup.exe" ; Sets the output installer file name
+!define OUTPUT_PATH "..\..\FChassis-Installer"
+!define FILES_PATH "..\..\FChassis-Installer\files"
+
+OutFile "${OUTPUT_PATH}\FChassis_Setup.exe" ; Sets the output installer file name
 InstallDir "C:\FluxSDK" ; Sets the default installation directory
+
 !define SRC_DIR C:\FluxSDK
 !define SRC_BIN_DIR C:\FluxSDK\Bin
 
@@ -28,7 +32,7 @@ SectionGroup /e "Installation"
 
         InstallDotNet8:
         DetailPrint "Installing .NET 8.0..."
-        ExecWait '"..\..\dotnet-sdk-8.0.405-win-x64.exe" /quiet /norestart' $1
+        ExecWait '"${FILES_PATH}\dotnet-sdk-8.0.405-win-x64.exe" /quiet /norestart' $1
         IfErrors 0 NoInstall
         MessageBox MB_ICONSTOP "Installation failed! Please install .NET 8.0 manually."
 
@@ -38,7 +42,7 @@ SectionGroup /e "Installation"
 
     Section "Flux SDK.4 Setup" SecFluxSDKSetup
         ; Run Setup.FluxSDK.4.exe from the NSIS script folder and wait for it to complete
-        ExecWait '"$EXEDIR\files\Setup.FluxSDK.4.exe"'
+        ExecWait '"${FILES_PATH}\Setup.FluxSDK.4.exe"'
     SectionEnd
 
     Section "FChassis Installation" SecInstallation
@@ -51,11 +55,11 @@ SectionGroup /e "Installation"
         File "${SRC_BIN_DIR}\FChassis.runtimeconfig.json"
         File "${SRC_BIN_DIR}\CommunityToolkit.Mvvm.dll"
         File "${SRC_BIN_DIR}\MathNet.Numerics.dll"
-        File "files\FChassis.ico"
+        File "${FILES_PATH}\FChassis.ico"
         
         ; Copy the entire FChassis folder to C:\FluxSDK\map
         ;SetOutPath "$INSTDIR\map"
-        ;File /r "files\map\*.*" ; Copy all files in the FChassis folder recursively
+        ;File /r "${FILES_PATH}\map\*.*" ; Copy all files in the FChassis folder recursively
         
         ; Map C:\FluxSDK\map to W: drive
         ;nsExec::ExecToLog 'subst W: "$INSTDIR\map"'
@@ -72,7 +76,7 @@ SectionGroup /e "Installation"
 
     Section "Data Folder Mapping" SecFluxDataFolderMapping
         ; Run Flux Data Folder Mapoing.exe
-        ExecWait '"..\FChassisMap_Setup.exe"'
+        ExecWait '"${OUTPUT_PATH}\FChassisMap_Setup.exe"'
     SectionEnd
 SectionGroupEnd
 

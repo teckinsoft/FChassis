@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FChassis.Insaller", "FChassis.Installer\FChassis.Insaller.vcxproj", "{4AD5A041-ABDD-414C-AA3E-54AF96448C8C}"
 	ProjectSection(ProjectDependencies) = postProject
+		{02B78A70-58D9-47F1-A90A-B5F946A9DD96} = {02B78A70-58D9-47F1-A90A-B5F946A9DD96}
 		{36170F65-4468-47A3-8EEB-725952D4C70F} = {36170F65-4468-47A3-8EEB-725952D4C70F}
 	EndProjectSection
 EndProject

@@ -2,7 +2,10 @@
 RequestExecutionLevel user ; Prevent the installer from asking for admin permission
 Name "FChassis Installer"
 
-OutFile "..\FChassisMap_Setup.exe" ; Sets the output installer file name
+!define OUTPUT_PATH "..\..\FChassis-Installer"
+!define FILES_PATH "..\..\FChassis-Installer\files"
+
+OutFile "${OUTPUT_PATH}\FChassisMap_Setup.exe" ; Sets the output installer file name
 InstallDir "C:\FluxSDK" ; Sets the default installation directory
 
 !define REG_MAP_PATH "Software\TeckinSoft\FChassis"
@@ -93,7 +96,7 @@ CopyFiles:
 
      ; Copy files to user-selected "map" folder
     SetOutPath "$MAP_PATH"
-    ;File /r "files\map\*.*" ; Copy all files in the FChassis folder recursively
+    ;File /r "${FILES_PATH}\map\*.*" ; Copy all files in the FChassis folder recursively
         
     ; Map C:\FluxSDK\map to W: drive
     nsExec::ExecToLog 'subst W: "$MAP_PATH"'
