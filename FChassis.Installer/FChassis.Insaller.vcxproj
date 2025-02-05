@@ -135,7 +135,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>"C:\Program Files (x86)\NSIS\makensis.exe" "$(ProjectDir)\script.nsi"</Command>
+      <Command>C:\Program Files (x86)\NSIS\makensis.exe v4 $(ProjectDir)\script.nsi</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
