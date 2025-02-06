@@ -132,10 +132,6 @@ FunctionEnd
 ; ===================================================================
 ; -- Copy Program Files ---------------------------------------------
 Function CopyProgramFiles
-    ;SetOutPath "${TARGET_BIN_DIR}"
-
-    ; Copy FChassis program files
-    ;File /r "P:\Paratha\New folder\FChassis-Merge\FChassis.Installer\bat\*.*"     ; Copy bat folder having batch files recursively
 
     DetailPrint "Copying Prj\bat\*.*"
     CopyFiles "${PROJECT_DIR}\bat\*.*" "${TARGET_BIN_DIR}"
@@ -145,8 +141,16 @@ Function CopyProgramFiles
     CopyFiles "$EXEDIR\files\bin\*.*" "${TARGET_BIN_DIR}"
     DetailPrint ""
 
+    DetailPrint "Copying script\files\lib\*.*" 
+    CopyFiles "$EXEDIR\files\lib\*.*" "${TARGET_BIN_DIR}"
+    DetailPrint ""
+
     DetailPrint "Copying script\files\FChassis.ico"
     CopyFiles "$EXEDIR\files\FChassis.ico" "${TARGET_BIN_DIR}"
+    DetailPrint ""
+
+    DetailPrint "Copying Prj\remove.bat"
+    CopyFiles "${PROJECT_DIR}\remove.bat" "${TARGET_BIN_DIR}"
     DetailPrint ""
 
     ; Create the uninstaller
@@ -161,16 +165,15 @@ Function un.DeleteProgramFiles
     DetailPrint ${TARGET_BIN_DIR}
     DetailPrint $EXEDIR
 
-    Push "programfiles.txt" 
-    Push "${TARGET_BIN_DIR}" 
-    call un.RemoveProgramFiles
-
-    Push "dependentFiles.txt" 
-    Push "${TARGET_BIN_DIR}" 
-    ;call un.RemoveProgramFiles
+    Push ${TARGET_BIN_DIR} 
+    Push "Program and Dependent files" 
+    Push "remove.bat" 
+    Push ${TARGET_BIN_DIR} 
+    Call un.CheckAndRun
 
     Delete "${TARGET_BIN_DIR}\programFiles.txt" 
     Delete "${TARGET_BIN_DIR}\dependentFiles.txt" 
+    Delete "${TARGET_BIN_DIR}\remove.bat" 
 
     ; Remove shortcut
     Delete "$DESKTOP\FChassis.lnk" 
@@ -180,7 +183,7 @@ FunctionEnd
 ; ===================================================================
 ; -- Map Copy -------------------------------------------------------
 Function MapAndCopyDataFiles
-    ;StrCpy $MapPath "${SRC_DIR}\map"
+    ;StrCpy $MapPath "${SRC_DIR}\map" ; for testing
 
     ; Ensure selected directory exists
     IfFileExists "$MapPath" 0 CreateMapFolder
@@ -194,7 +197,7 @@ CopyFiles:
     ; Copy Mapping Data files to user-selected "map" folder
     CopyFiles "$EXEDIR\files\map\*.*" "$MapPath" ;Copy all files in the FChassis data files folder recursively
 
-    ;nsExec::ExecToLog 'subst W: /D'
+    ;nsExec::ExecToLog 'subst W: /D' ; for testing
         
     ; Map C:\FluxSDK\map to W: drive
     nsExec::ExecToLog 'subst W: "$MapPath"'
@@ -278,60 +281,5 @@ Function CheckMapPath
     ${If} $0 = 0
         StrCpy $isMapDriveEnabled ${FALSE}
     ${EndIf}
-FunctionEnd
-
-; ===================================================================
-; -- Map Page -------------------------------------------------------
-Function un.RemoveProgramFiles
-    Pop $R0 ; Path
-    Pop $R1 ; FileName
-
-    ;$0 - File Handle
-    ;$1 - Line data
-    ;$2 - Line len
-
-    ;Open the file
-    FileOpen $0 $R0\$R1 r
-    ${DoWhile} $0 <> -1     ; While file is not at the end
-        FileRead $0 $1      ; Read one line into $1 (the filename)
-        ;Call un.TrimNewlines  ; Need to fix, check the function and fix to use
-        ;Pop $1              ; Get cleaned filename
-
-        StrLen $2 $1        ; Check if the line is not empty
-        ${If} $2 > 0
-            ${If} ${FileExists} "$R0\$1"
-                ;;MessageBox MB_OK "Deleting File: '$R0\$1'"
-                Delete "$R0\$1"
-            ${Else}
-                ;MessageBox MB_OK "File Not Found: '$R0\$1'"
-            ${EndIf}
-        ${Else}
-            Goto EndLoop
-        ${EndIf}
-    ${Loop}
-EndLoop:
-    
-    ; Close the file
-    FileClose $0
-
-FunctionEnd
-
-Function un.TrimNewlines ; Need to fix
-    Exch $0   ; Input string
-    Push $1   ; Last character storage
-
-    StrLen $1 $0
-    ${If} $1 > 0
-        StrCpy $1 $0 1 -1   ; Get last character
-        ${If} $1 == "\r"
-            StrCpy $0 $0 -1
-        ${EndIf}
-        StrCpy $1 $0 1 -1   ; Check again for \n
-        ${If} $1 == "\n"
-            StrCpy $0 $0 -1
-        ${EndIf}
-    ${EndIf}
-
-    Exch $0  ; Return cleaned string
 FunctionEnd
 ; -------------------------------------------------------------------
