@@ -2,15 +2,20 @@
 RequestExecutionLevel user ; Prevent the installer from asking for admin permission
 Name "FChassis Installer"
 
+!verbose 1
+!define TRUE 1
+!define FALSE 0
+
 ; Include modern UI for better user experience
 !include "MUI2.nsh"
 !include "nsDialogs.nsh"  
 
 ; /////////////////////////////////////////////////////////////////////////////////////////////////
-!define OUTPUT_PATH "..\..\FChassis-Installer" 
-!define FILES_PATH "..\..\FChassis-Installer\files"
-!define SRC_DIR C:\FluxSDK 
-!define SRC_BIN_DIR C:\FluxSDK\Bin
+!define TARGET_DIR C:\FluxSDK
+!define TARGET_BIN_DIR ${TARGET_DIR}\bin
+
+!define SRC_DIR "${TARGET_DIR}"
+!define SRC_BIN_DIR "${SRC_DIR}\Bin"
 
 !define REG_MAP_PATH "Software\TeckinSoft\FChassis"
 !define REG_MAP_PATH_KEY "MapPath"
@@ -18,13 +23,12 @@ Name "FChassis Installer"
 !define REG_MAP_DRIVE "Software\Microsoft\Windows\CurrentVersion\Run"
 !define REG_MAP_DRIVE_KEY "TIS_FChassisMapDrive"
 
-OutFile "${OUTPUT_PATH}\FChassis_Setup.exe" ; Sets the output installer file name
-InstallDir "C:\FluxSDK" ; Sets the default installation directory
+OutFile "${BUILD_DIR}\FChassis_Setup.exe"             ; Sets the output installer file name
+InstallDir "${TARGET_DIR}"                                      ; Sets the default installation directory
 
 ; Page setup --------------------------------------------------------
 !insertmacro MUI_PAGE_COMPONENTS
-!insertmacro MUI_PAGE_DIRECTORY
-Page custom MapPathPage
+ Page custom MapPathPage
 !insertmacro MUI_PAGE_INSTFILES
 
 ; Uninstaller page --------------------------------------------------
@@ -35,6 +39,16 @@ Page custom MapPathPage
 Var MapPath
 Var TextBox
 Var FolderTextBox
+Var isMapDriveEnabled
+
+Function .onInit
+    !if !defined(PROJECT_DIR) || !defined(BUILD_DIR)
+        MessageBox MB_OK "Either PROJECT_DIR or BUILD_DIR not defined!"
+        Abort
+    !endif
+
+    StrCpy $isMapDriveEnabled ${TRUE}    
+FunctionEnd
 
 ; /////////////////////////////////////////////////////////////////////////////////////////////////
 ; Installer Sections
@@ -61,12 +75,8 @@ SectionGroup /e "Installation"
         Call CopyProgramFiles
     SectionEnd
 
-    Section "Data Folder Mapping" SecFluxDataFolderMapping
+    Section "Data Folder Mapping" SecFluxDataFolderMapping        
         call MapAndCopyDataFiles
-        ;Push "Un Map Data Folder" 
-        ;Push "FChassisMap_Setup.exe" 
-        ;Push "$EXEDIR\" 
-        ;Call CheckAndRun
     SectionEnd
 SectionGroupEnd
 
@@ -75,21 +85,43 @@ Section "Uninstall"
     Call un.DeleteProgramFiles
     Call un.UnmapAndDeleteDataFiles
 
-    Delete "$INSTDIR\Uninstall.exe" ; Remove the uninstaller file itself
-    RMDir "$INSTDIR"                ; Remove the installation directory (if empty)
+    Delete "${TARGET_BIN_DIR}\Uninstall.exe" ; Remove the uninstaller file itself
+    RMDir "$INSTDIR"                         ; Remove the installation directory (if empty)
 SectionEnd
 
 ; /////////////////////////////////////////////////////////////////////////////////////////////////
+; ===================================================================
+; -- Check and Run --------------------------------------------------
 ; Check given path/file whether exist and run, 
 ; otherwise shows Error message
 Function CheckAndRun
     Pop $R0 ; Path
     Pop $R1 ; FileName
     Pop $R2 ; FileNameDesc
+    Pop $R3 ; Arg1
+    Pop $R4 ; Arg2
 
     DetailPrint "Installing $R2..."
     IfFileExists "$R0\$R1" 0 NotFound
-    ExecWait '"$R0\$R1"' $0
+    ExecWait '"$R0\$R1" "$R3" "$R4"' $0
+    Goto Done
+
+    NotFound:
+    MessageBox MB_ICONSTOP "'$R0\$R1' is not found!"
+    Done:
+FunctionEnd
+
+; .........................................................
+Function un.CheckAndRun
+    Pop $R0 ; Path
+    Pop $R1 ; FileName
+    Pop $R2 ; FileNameDesc
+    Pop $R3 ; Arg1
+    Pop $R4 ; Arg2
+
+    DetailPrint "Uninstalling $R2..."
+    IfFileExists "$R0\$R1" 0 NotFound
+    ExecWait '"$R0\$R1" "$R3" "$R4"' $0
     Goto Done
 
     NotFound:
@@ -98,18 +130,25 @@ Function CheckAndRun
 FunctionEnd
 
 ; ===================================================================
+; -- Copy Program Files ---------------------------------------------
 Function CopyProgramFiles
-    ; Create installation directory
-    SetOutPath "${SRC_BIN_DIR}"
-        
-    ; Copy FChassis files
-    File "${SRC_BIN_DIR}\FChassis.exe"
-    File "${SRC_BIN_DIR}\FChassis.dll"
-    File "${SRC_BIN_DIR}\FChassis.runtimeconfig.json"
-    File "${SRC_BIN_DIR}\CommunityToolkit.Mvvm.dll"
-    File "${SRC_BIN_DIR}\MathNet.Numerics.dll"
-    File "${FILES_PATH}\FChassis.ico"
-        
+    ;SetOutPath "${TARGET_BIN_DIR}"
+
+    ; Copy FChassis program files
+    ;File /r "P:\Paratha\New folder\FChassis-Merge\FChassis.Installer\bat\*.*"     ; Copy bat folder having batch files recursively
+
+    DetailPrint "Copying Prj\bat\*.*"
+    CopyFiles "${PROJECT_DIR}\bat\*.*" "${TARGET_BIN_DIR}"
+    DetailPrint ""
+    
+    DetailPrint "Copying script\files\bin\*.*" 
+    CopyFiles "$EXEDIR\files\bin\*.*" "${TARGET_BIN_DIR}"
+    DetailPrint ""
+
+    DetailPrint "Copying script\files\FChassis.ico"
+    CopyFiles "$EXEDIR\files\FChassis.ico" "${TARGET_BIN_DIR}"
+    DetailPrint ""
+
     ; Create the uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
     
@@ -117,32 +156,45 @@ Function CopyProgramFiles
     CreateShortCut "$DESKTOP\FChassis.lnk" "${SRC_BIN_DIR}\FChassis.exe" "" "${SRC_BIN_DIR}\FChassis.ico" 0
 FunctionEnd
 
-; ---------------------------------------------------------
+; .........................................................
 Function un.DeleteProgramFiles
-    ; Remove installed files
-    Delete "${SRC_BIN_DIR}\FChassis.exe"
-    Delete "${SRC_BIN_DIR}\FChassis.dll"
-    Delete "${SRC_BIN_DIR}\FChassis.ico"
-    Delete "${SRC_BIN_DIR}\FChassis.runtimeconfig.json"
-    Delete "${SRC_BIN_DIR}\CommunityToolkit.Mvvm.dll"
-    Delete "${SRC_BIN_DIR}\MathNet.Numerics.dll"
-    
+    DetailPrint ${TARGET_BIN_DIR}
+    DetailPrint $EXEDIR
+
+    Push "programfiles.txt" 
+    Push "${TARGET_BIN_DIR}" 
+    call un.RemoveProgramFiles
+
+    Push "dependentFiles.txt" 
+    Push "${TARGET_BIN_DIR}" 
+    ;call un.RemoveProgramFiles
+
+    Delete "${TARGET_BIN_DIR}\programFiles.txt" 
+    Delete "${TARGET_BIN_DIR}\dependentFiles.txt" 
+
     ; Remove shortcut
-    Delete "$DESKTOP\FChassis.lnk"
+    Delete "$DESKTOP\FChassis.lnk" 
+    Delete "$INSTDIR\Uninstall.exe"
 FunctionEnd
 
 ; ===================================================================
+; -- Map Copy -------------------------------------------------------
 Function MapAndCopyDataFiles
+    ;StrCpy $MapPath "${SRC_DIR}\map"
+
     ; Ensure selected directory exists
     IfFileExists "$MapPath" 0 CreateMapFolder
     Goto CopyFiles
+
 CreateMapFolder:
+    DetailPrint "Mapping path $MapPath to W:"
     CreateDirectory "$MapPath"
 
 CopyFiles:
-    ; Copy files to user-selected "map" folder
-    SetOutPath "$MapPath"
-    File /r "${FILES_PATH}\map\*.*" ; Copy all files in the FChassis folder recursively
+    ; Copy Mapping Data files to user-selected "map" folder
+    CopyFiles "$EXEDIR\files\map\*.*" "$MapPath" ;Copy all files in the FChassis data files folder recursively
+
+    ;nsExec::ExecToLog 'subst W: /D'
         
     ; Map C:\FluxSDK\map to W: drive
     nsExec::ExecToLog 'subst W: "$MapPath"'
@@ -150,11 +202,10 @@ CopyFiles:
         
     ; Write the subst command to run on startup
     WriteRegStr HKCU "${REG_MAP_DRIVE}" "${REG_MAP_DRIVE_KEY}" 'subst W: "$MapPath"'
-    WriteRegStr HKCU "${REG_MAP_PATH}" "${REG_MAP_PATH_KEY}" '"$MapPath"'
-       
+    WriteRegStr HKCU "${REG_MAP_PATH}" "${REG_MAP_PATH_KEY}" '"$MapPath"'       
 FunctionEnd
 
-; ---------------------------------------------------------
+; ...................................................................
 Function un.UnmapAndDeleteDataFiles
     ; Remove the map directory
     ReadRegStr $MapPath  HKCU "${REG_MAP_PATH}" '${REG_MAP_PATH_KEY}'
@@ -171,6 +222,7 @@ Function un.UnmapAndDeleteDataFiles
 FunctionEnd
 
 ; ===================================================================
+; -- Map Page -------------------------------------------------------
 ; Function to ask user for "map" path
 Function MapPathPage
     ; Initialize MapPath with default value
@@ -181,6 +233,12 @@ Function MapPathPage
     ${If} $0 == error
         Abort
     ${EndIf}
+
+    call CheckMapPath
+    ${If} $isMapDriveEnabled == 0
+        EnableWindow $0 0
+        Return
+    ${EndIf}    
 
     ; Create label
     ${NSD_CreateLabel} 10 10 280 12u "Select the path for the 'map' folder:"
@@ -197,10 +255,9 @@ Function MapPathPage
     ${NSD_OnClick} $2 OpenFolderDialog
 
     nsDialogs::Show
-      
-    Return ; Exit properly to continue installation
 FunctionEnd
 
+; ...................................................................
 Function UpdateText
     ${NSD_GetText} $TextBox $MapPath
 FunctionEnd
@@ -212,3 +269,69 @@ Function OpenFolderDialog
 
     ${NSD_SetText} $TextBox $MapPath
 FunctionEnd
+
+; ...................................................................
+Function CheckMapPath
+    StrCpy $isMapDriveEnabled ${TRUE}
+    SectionGetFlags ${SecFluxDataFolderMapping} $0
+    IntOp $0 $0 & ${SF_SELECTED} 
+    ${If} $0 = 0
+        StrCpy $isMapDriveEnabled ${FALSE}
+    ${EndIf}
+FunctionEnd
+
+; ===================================================================
+; -- Map Page -------------------------------------------------------
+Function un.RemoveProgramFiles
+    Pop $R0 ; Path
+    Pop $R1 ; FileName
+
+    ;$0 - File Handle
+    ;$1 - Line data
+    ;$2 - Line len
+
+    ;Open the file
+    FileOpen $0 $R0\$R1 r
+    ${DoWhile} $0 <> -1     ; While file is not at the end
+        FileRead $0 $1      ; Read one line into $1 (the filename)
+        ;Call un.TrimNewlines  ; Need to fix, check the function and fix to use
+        ;Pop $1              ; Get cleaned filename
+
+        StrLen $2 $1        ; Check if the line is not empty
+        ${If} $2 > 0
+            ${If} ${FileExists} "$R0\$1"
+                ;;MessageBox MB_OK "Deleting File: '$R0\$1'"
+                Delete "$R0\$1"
+            ${Else}
+                ;MessageBox MB_OK "File Not Found: '$R0\$1'"
+            ${EndIf}
+        ${Else}
+            Goto EndLoop
+        ${EndIf}
+    ${Loop}
+EndLoop:
+    
+    ; Close the file
+    FileClose $0
+
+FunctionEnd
+
+Function un.TrimNewlines ; Need to fix
+    Exch $0   ; Input string
+    Push $1   ; Last character storage
+
+    StrLen $1 $0
+    ${If} $1 > 0
+        StrCpy $1 $0 1 -1   ; Get last character
+        ${If} $1 == "\r"
+            StrCpy $0 $0 -1
+        ${EndIf}
+        StrCpy $1 $0 1 -1   ; Check again for \n
+        ${If} $1 == "\n"
+            StrCpy $0 $0 -1
+        ${EndIf}
+    ${EndIf}
+
+    Exch $0  ; Return cleaned string
+FunctionEnd
+; -------------------------------------------------------------------

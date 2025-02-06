@@ -18,6 +18,14 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="build.bat" />
+    <None Include="script.nsi" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="bat\dependentFiles.txt" />
+    <Text Include="bat\programfiles.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -116,7 +124,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>"C:\Program Files (x86)\NSIS\makensis.exe" "$(ProjectDir)\script.nsi"</Command>
+      <Command>build.bat "..\..\FChassis-Installer" C:\FluxSDK\Bin</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,12 +143,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>C:\Program Files (x86)\NSIS\makensis.exe v4 $(ProjectDir)\script.nsi</Command>
+      <Command>build.bat "..\..\FChassis-Installer" C:\FluxSDK\Bin</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <None Include="script.nsi" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

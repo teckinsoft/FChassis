@@ -1,0 +1,3 @@
+FChassis.ico
+CommunityToolkit.Mvvm.dll
+MathNet.Numerics.dll
