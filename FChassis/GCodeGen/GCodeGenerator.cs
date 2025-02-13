@@ -1463,7 +1463,7 @@ public class GCodeGenerator {
    /// <param name="totalCuts">Total toolings written</param>
    /// <exception cref="Exception">If the tooling X max of the is more than the 
    /// cutscope bound, an exception is thrown</exception>
-   void WriteCuts (List<Tooling> cuts, Bound3 cutScopeBound, double xStart, 
+   void WriteCuts (List<Tooling> cuts, Bound3 cutScopeBound, double xStart,
       ref double xEnd, MachinableCutScope mcCutScope, List<Tooling> totalCuts) {
       // Write the sequence numbers in the g code
       int np = 0;

@@ -87,9 +87,6 @@ public class Processor : INotifyPropertyChanged {
    private int mCutScopeIndex = 0;
    private readonly object mCutScopeLockObject = new ();
    bool mIsZoomedToCutScope = false;
-   XForm4 mTransform0, mTransform1;
-   Point3 mWayPt0, mWayPt1;
-
    #endregion
 
    #region Constructor

@@ -42,6 +42,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       SanityCheckMenuItem.Visibility = Visibility.Visible;
 #endif
    }
+
+   void UpdateInputFilesList (List<string> files) => Dispatcher.Invoke (() => Files.ItemsSource = files);
+
    void PopulateFilesFromDir (string dir) {
       string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
       var fxFiles = new List<string> ();
@@ -63,7 +66,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       var allFiles = igesFiles.Concat (fxFiles).ToList ();
 
       // Assign the combined collection to ItemsSource
-      Files.ItemsSource = allFiles;
+      UpdateInputFilesList (allFiles);
    }
 
    #endregion
@@ -72,7 +75,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    void TriggerRedraw ()
       => Dispatcher.Invoke (() => mOverlay?.Redraw ());
    void ZoomWithExtents (Bound3 bound) => Dispatcher.Invoke (() => mScene.Bound3 = bound);
-   void OnSimulationFinished () 
+   void OnSimulationFinished ()
       => Process.SimulationStatus = Processor.ESimulationStatus.NotRunning;
 
    protected virtual void OnPropertyChanged (string propertyName)
@@ -133,8 +136,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnMirrorAndJoin (object sender, RoutedEventArgs e)
-      => new JoinWindow ().ShowDialog ();
+   void OnMirrorAndJoin (object sender, RoutedEventArgs e) {
+      JoinWindow joinWindow = new ();
+
+      // Subscribe to the FileSaved event
+      joinWindow.joinWndVM.EvMirrorAndJoinedFileSaved += OnMirrorAndJoinedFileSaved;
+      joinWindow.joinWndVM.EvLoadPart += LoadPart;
+
+      joinWindow.ShowDialog ();
+   }
+
+   void OnMirrorAndJoinedFileSaved (string savedDirectory) {
+      // Check if the saved file's directory matches MainWindow's mSrcDir
+      if (string.Equals (Path.GetFullPath (savedDirectory), Path.GetFullPath (mSrcDir), StringComparison.OrdinalIgnoreCase)) {
+         // Refresh file list
+         PopulateFilesFromDir (mSrcDir);
+      }
+   }
+
 
    void OnMenuFileSave (object sender, RoutedEventArgs e) {
       SaveFileDialog saveFileDialog = new () {
@@ -180,7 +199,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       mProcess.TriggerRedraw += TriggerRedraw;
       mProcess.SetSimulationStatus += status => SimulationStatus = status;
       mProcess.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
-      
+
       SettingServices.It.LoadSettings (MCSettings.It);
       if (String.IsNullOrEmpty (MCSettings.It.NCFilePath))
          MCSettings.It.NCFilePath = Process?.Workpiece?.NCFilePath ?? "";
@@ -334,20 +353,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          }
       } catch (Exception) { }
 
-         if (mPart.Model == null) {
-            if (mPart.Dwg != null)
-               mPart.FoldTo3D ();
-            else if (mPart.SurfaceModel != null)
-               mPart.SheetMetalize ();
-            else
-               throw new Exception ("Invalid part");
-         }
+      if (mPart.Model == null) {
+         if (mPart.Dwg != null)
+            mPart.FoldTo3D ();
+         else if (mPart.SurfaceModel != null)
+            mPart.SheetMetalize ();
+         else
+            throw new Exception ("Invalid part");
+      }
 
       mOverlay = new SimpleVM (DrawOverlay);
       Lux.UIScene = mScene = new Scene (new GroupVModel (VModel.For (mPart.Model),
                                         mOverlay), mPart.Model.Bound);
       Work = new Workpiece (mPart.Model, mPart);
-      
+
       // Clear the zombies if any
       mProcess?.ClearZombies ();
    }

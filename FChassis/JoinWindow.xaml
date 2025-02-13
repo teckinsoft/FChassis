@@ -23,11 +23,12 @@
         <Border Grid.Row="1" Grid.ColumnSpan="3" 
                 Margin="4" Background="WhiteSmoke">
             <Image x:Name="ThumbnailImage" Margin="1"
-                   Source="{Binding ThumbnailBitmap}"/></Border>
+                   Source="{Binding ThumbnailBitmap}"/>
+        </Border>
         <Button Grid.Row="2" Margin="4" 
             Content="Flip" Command="{Binding Flip180Command}"/>
 
         <Button Grid.Row="2" Grid.Column="2" Margin="4"
-                Content="Join" Command="{Binding JoinCommand}"/>
+                Content="Mirror and Join" Command="{Binding MirrorAndJoinCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
     </Grid>
 </Window>

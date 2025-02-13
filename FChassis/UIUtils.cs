@@ -1,15 +1,9 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
-using System.Runtime.InteropServices.Marshalling;
 
 
 namespace FChassis;
@@ -50,6 +44,10 @@ public class PathUtils {
    }
 }
 
+/// <summary>
+/// The following class implements a folder picking functionality using 
+/// File Open Dialog
+/// </summary>
 public partial class FolderPicker {
    readonly List<string> mResultPaths = [];
    readonly List<string> mResultNames = [];
