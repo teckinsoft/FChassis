@@ -1,9 +1,15 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
+using FChassis.Core;
+
 
 namespace FChassis;
-using static MCSettings.EHeads;
+using static FChassis.Core.DoubleExtensions;
+using static FChassis.Core.IntExtensions;
+using static FChassis.Core.MCSettings.EHeads;
+
 
 /// <summary>Interaction logic for SettingsDlg.xaml</summary>
 public partial class SettingsDlg : Window {
@@ -16,6 +22,7 @@ public partial class SettingsDlg : Window {
       InitializeComponent ();
       SettingServices.It.LoadSettings (set);
       Bind (set);
+      tbNotchWireJointDistance.TextChanged += TbNotchWireJointDistanceValueChanged;
    }
 
    /// <summary>
@@ -26,6 +33,7 @@ public partial class SettingsDlg : Window {
       // Set the internal property to the passed settings object
       Settings = set;
       tbStandoff.Bind (() => Settings.Standoff, f => { Settings.Standoff = f.Clamp (0, 100); IsModified = true; });
+      tbFlexCuttingGap.Bind (() => Settings.FlexCuttingGap, f => { Settings.FlexCuttingGap = f.Clamp (0, 100); IsModified = true; });
       tbPartition.Bind (() => Settings.PartitionRatio, f => { Settings.PartitionRatio = f.Clamp (0, 1); IsModified = true; });
       tbStepLength.Bind (() => Settings.StepLength, f => { Settings.StepLength = f.Clamp (0.001, 50); IsModified = true; });
       cbPingPong.Bind (() => Settings.UsePingPong, b => { Settings.UsePingPong = b; IsModified = true; });
@@ -50,9 +58,11 @@ public partial class SettingsDlg : Window {
       tbNotchApproachLength.Bind (() => Settings.NotchApproachLength,
          al => { Settings.NotchApproachLength = al.Clamp (0, 6); IsModified = true; });
       tbNotchWireJointDistance.Bind (() => Settings.NotchWireJointDistance,
-         al => { Settings.NotchWireJointDistance = al.Clamp (0, 6); IsModified = true; });
+         al => { Settings.NotchWireJointDistance = al.Clamp (0, 5); IsModified = true; });
       tbMinNotchLengthThreshold.Bind (() => Settings.MinNotchLengthThreshold,
          al => { Settings.MinNotchLengthThreshold = al.Clamp (10, 300.0); IsModified = true; });
+      tbMinCutOutLengthThreshold.Bind (() => Settings.MinCutOutLengthThreshold,
+         al => { Settings.MinCutOutLengthThreshold = al.Clamp (10, 300.0); IsModified = true; });
       cbCutHoles.Bind (() => Settings.CutHoles, b => { Settings.CutHoles = b; IsModified = true; });
       cbCutNotches.Bind (() => Settings.CutNotches, b => { Settings.CutNotches = b; IsModified = true; });
       cbCutCutouts.Bind (() => Settings.CutCutouts, b => { Settings.CutCutouts = b; IsModified = true; });
@@ -62,6 +72,9 @@ public partial class SettingsDlg : Window {
       cbShowTlgExtents.Bind (() => Settings.ShowToolingExtents, b => { Settings.ShowToolingExtents = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
+
+      //tbWJTPreFlexMcToken.Bind (() => Settings.WJTPreFlexMcToken, b => { Settings.WJTPreFlexMcToken = b; IsModified = true; });
+      //tbWJTPostFlexMcToken.Bind (() => Settings.WJTPostFlexMcToken, b => { Settings.WJTPostFlexMcToken = b; IsModified = true; });
 
       chbMPC.Bind (() => {
          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
@@ -138,7 +151,7 @@ public partial class SettingsDlg : Window {
       }
    }
 
-   private void OnWorkpieceOptionsFileSelect (object sender, RoutedEventArgs e) {
+   void OnWorkpieceOptionsFileSelect (object sender, RoutedEventArgs e) {
       // Create an OpenFileDialog to select a JSON file
       var dialog = new OpenFileDialog {
          Title = "Select a JSON File",
@@ -154,5 +167,19 @@ public partial class SettingsDlg : Window {
          tbWPOptions.Text = selectedFile;
       }
    }
+   void TbNotchWireJointDistanceValueChanged (object sender, TextChangedEventArgs e) {
+      if (double.TryParse (tbNotchWireJointDistance.Text, out double value) && ( value.SGT(5) || value.SLT(0) )) {
+         // Show an error message
+         MessageBox.Show ("Notch Wire Joint Distance should lie betweem 0 and 5 mm", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
+         // Optionally, reset the value back to 5
+         if (value.GTEQ (5)) {
+            tbNotchWireJointDistance.Text = "5";
+            Settings.NotchWireJointDistance = value.Clamp (0, 5);
+         } else if (value.LTEQ (0)) {
+            tbNotchWireJointDistance.Text = "0";
+            Settings.NotchWireJointDistance = value.Clamp (0, 5);
+         }
+      }
+   }
 }

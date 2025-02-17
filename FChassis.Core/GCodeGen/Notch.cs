@@ -1,13 +1,7 @@
 ﻿using Flux.API;
-using MathNet.Numerics.Distributions;
-using System.CodeDom;
-using System.Text.RegularExpressions;
-namespace FChassis.GCodeGen;
+using static FChassis.Core.Utils;
 
-using static FChassis.Utils;
-using FChassis;
-using FChassis.Core;
-using static FChassis.Core.Vector3Extensions;
+namespace FChassis.Core.GCodeGen;
 
 #region Data structures and Enums used Notch Computation
 /// <summary>
@@ -193,7 +187,7 @@ public struct NotchSequenceSection {
 /// through writing the notch. The sequence is modularized as much as it is needed. Once the 
 /// the final prescription is made from the process team, more optimizations will be done
 /// </summary>
-public class Notch : Feature {
+public class Notch : ToolingFeature {
    #region Enums
    enum IndexType {
       Max,

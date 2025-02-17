@@ -1,10 +1,9 @@
 ﻿using Flux.API;
-namespace FChassis.GCodeGen;
-using FChassis.Core;
-using static FChassis.Core.Geom;
+
+namespace FChassis.Core.GCodeGen;
+
 using ToolingCutScope = (double Position, ToolingScope ToolScope, bool IsStart);
 using CutScopeToolingList = List<(List<Tooling> ToolingList, double XMin, double XMax)>;
-
 
 public class Scope (double xmin, double xmax) {
    public double XMax { get; set; } = xmax;

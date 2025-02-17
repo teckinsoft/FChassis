@@ -1,9 +1,13 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Double;
-using Flux.API;
-using static FChassis.Utils;
-using System.CodeDom;
+﻿using System.CodeDom;
 using System.Net;
+
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+
+using Flux.API;
+
+using static FChassis.Core.Utils;
+
 
 namespace FChassis.Core;
 

@@ -1,19 +1,14 @@
 ﻿using Flux.API;
-using FChassis.Core;
-using static FChassis.Utils;
-using System.Windows.Documents;
-using System.Collections.Generic;
-using System.Net;
-using System.Xml.Linq;
+using static FChassis.Core.Utils;
 
-namespace FChassis.GCodeGen;
+namespace FChassis.Core.GCodeGen;
 
 /// <summary>
 /// This class represents the feature which is a tooling, whose curve is 
 /// closed and the curve exists on more than one plane through flex section.
 /// Note: If the curve is open, it is Notch
 /// </summary>
-public class CutOut : Feature {
+public class CutOut : ToolingFeature {
    #region Constructor
    public CutOut (GCodeGenerator gcgen, Tooling toolingItem,
       Tooling prevToolingItem, List<ToolingSegment> prevSegs, ToolingSegment? prevToolingSegment,
@@ -137,11 +132,8 @@ public class CutOut : Feature {
                   throw new Exception ("WJT length != 2.0");
                }
             }
-
-
             //throw new Exception ("WJT length != 2.0");
          }
-
 
          // The start index of ii-th cutting block shall be lesser than or equal to ii-th end index
          // The end index of ii-th cutting block shall always be < the ii+1-th cutting block's end index
@@ -156,6 +148,7 @@ public class CutOut : Feature {
             throw new Exception ("start index is greater than ToolingSegments count");
       }
    }
+
    void DoMachiningSegmentationForFlangesAndFlex () {
       mSegValLists = [];
       ToolingSegments = GCGen.GetSegmentsAccountedForApproachLength (ToolingItem);

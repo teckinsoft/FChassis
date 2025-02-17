@@ -1,19 +1,18 @@
-using FChassis.Processes;
-using Flux.API;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using System.Collections.Generic;
-
-namespace FChassis.GCodeGen;
-
-using static FChassis.MCSettings;
-using static FChassis.Utils;
-using FChassis.Core;
-using System.Windows.Documents;
 using System.Reflection.PortableExecutable;
+
+using Flux.API;
+
+using static FChassis.Core.MCSettings;
+using static FChassis.Core.Utils;
+using FChassis.Core.Processes;
+
+namespace FChassis.Core.GCodeGen;
 
 /// <summary>
 /// The following class parses any G Code and caches the G0 and G1 segments. Work is 
@@ -248,10 +247,10 @@ public class GCodeGenerator {
    #region Properties
    public List<GCodeSeg>[] mTraces = [[], []];
    //public List<GCodeSeg>[] Traces => mTraces;
-   Processor mProcess;
+   GenesysHub mGHub;
    List<List<GCodeSeg>[]> mCutScopeTraces = [];
    public List<List<GCodeSeg>[]> CutScopeTraces => mCutScopeTraces;
-   public Processor Process { get => mProcess; set => mProcess = value; }
+   public GenesysHub Process { get => mGHub; set => mGHub = value; }
    List<NotchAttribute> mNotchAttributes = [];
    public List<NotchAttribute> NotchAttributes { get { return mNotchAttributes; } }
    public List<MachinableCutScope> MachinableCutScopes { get; private set; }
@@ -805,8 +804,8 @@ public class GCodeGenerator {
    #endregion
 
    #region Constructors and constructing utilities
-   public GCodeGenerator (Processor process, bool isLeftToRight) {
-      mProcess = process;
+   public GCodeGenerator (GenesysHub gHub, bool isLeftToRight) {
+      mGHub = gHub;
       SetFromMCSettings ();
       MCSettings.It.OnSettingValuesChangedEvent += SetFromMCSettings;
       mTraces = [[], []];
@@ -1068,26 +1067,26 @@ public class GCodeGenerator {
       if (!LeftToRightMachining)
          res = [..cuts.Where (cut => cut.Head == headNo)
       .OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
-      .ThenBy (cut => MCSettings.It.ToolingPriority.IndexOf (cut.Kind))
+      .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
       .ThenByDescending (cut => cut.Start.Pt.X)];
       else
          res = [..cuts.Where (cut => cut.Head == headNo && ( cut.Kind==EKind.Hole ||
          (cut.Kind==EKind.Notch && ( cut.ProfileKind == ECutKind.YPosFlex || cut.ProfileKind == ECutKind.YNegFlex ||
          cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg || /* TRIPLE_FLANGE_NOTCH */cut.ProfileKind == ECutKind.YNegToYPos))) )];
       res = [..res.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
-      .ThenBy (cut => MCSettings.It.ToolingPriority.IndexOf (cut.Kind))
+      .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
       .ThenBy (cut => cut.Start.Pt.X)];
 
       // Order CutOuts
       var cutouts = (cuts.Where (cut => cut.Kind == EKind.Cutout));
       cutouts = [..cutouts.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
-      .ThenBy (cut => MCSettings.It.ToolingPriority.IndexOf (cut.Kind))
+      .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
       .ThenBy (cut => cut.Start.Pt.X)];
 
       // Order dual flange notches
       var notches = cuts.Where (cut => cut.Kind == EKind.Notch && (cut.ProfileKind == ECutKind.Top2YNeg || cut.ProfileKind == ECutKind.Top2YPos));
       notches = [..notches.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
-      .ThenBy (cut => MCSettings.It.ToolingPriority.IndexOf (cut.Kind))
+      .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
       .ThenBy (cut => cut.Start.Pt.X)];
 
       // Concat all
@@ -2980,7 +2979,7 @@ public class GCodeGenerator {
          if (!CutHoles && toolingItem.IsHole ()) continue;
 
          // ** Create the feature for which G Code needs to be created
-         Feature feature = null;
+         ToolingFeature feature = null;
          bool toTreatAsCutOut = CutOut.ToTreatAsCutOut (toolingItem.Segs, Process.Workpiece.Bound, MinCutOutLengthThreshold);
          if ((toolingItem.IsHole () && !toTreatAsCutOut) || toolingItem.IsMark ()) {
             feature = new Hole (

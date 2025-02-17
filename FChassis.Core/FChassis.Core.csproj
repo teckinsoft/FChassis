@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>disable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<OutDir>C:\FluxSDK\Bin</OutDir>
+		<DocumentationFile>$(OutDir)FChassis.Core.xml</DocumentationFile>
+
+		<DefineConstants>DEBUG_ROUND3</DefineConstants>
+		<!--<UseWPF>true</UseWPF>-->
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Flux.API">
+			<HintPath>$(OutDir)Flux.API.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<!-- Conditional References -->
+	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
+		<Reference Include="igesd">
+			<HintPath>$(OutDir)igesd.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<Reference Include="iges">
+			<HintPath>$(OutDir)iges.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+</Project>
+
+
+<!--<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>-->

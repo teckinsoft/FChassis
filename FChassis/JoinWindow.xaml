@@ -1,0 +1,34 @@
+﻿<Window x:Class="FChassis.JoinWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:local="clr-namespace:FChassis"
+             mc:Ignorable="d" 
+        Title="JoinWindow" Height="450" Width="1024">
+    <Grid Margin="0, 4, 0, 0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="32" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="100" />
+        </Grid.ColumnDefinitions>
+        <!--Left-->
+        <Button Margin="4" Content="Load .." Command="{Binding LoadCommand}"/>
+        <TextBox Grid.Column="1" Grid.ColumnSpan="2" Margin="4" Text="{Binding ModelFilename}"/>
+        <Border Grid.Row="1" Grid.ColumnSpan="3" 
+                Margin="4" Background="WhiteSmoke">
+            <Image x:Name="ThumbnailImage" Margin="1"
+                   Source="{Binding ThumbnailBitmap}"/>
+        </Border>
+        <Button Grid.Row="2" Margin="4" 
+            Content="Flip" Command="{Binding Flip180Command}"/>
+
+        <Button Grid.Row="2" Grid.Column="2" Margin="4"
+                Content="Mirror and Join" Command="{Binding MirrorAndJoinCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+    </Grid>
+</Window>
