@@ -18,6 +18,7 @@
                 <MenuItem Header="Open File" Click="OnMenuFileOpen"/>
                 <MenuItem Header="Open Folder" Click="OnMenuDirOpen"/>
                 <!--<MenuItem Header="Import" Click="OnMenuImportFile"/>-->
+                <MenuItem Header="Open DIN files (G-Codes)" Click="OnMenuOpenDINs"/>
                 <MenuItem Header="Mirror and Join" Click="OnMirrorAndJoin"/>
                 <MenuItem Header="Save" Click= "OnMenuFileSave"/>
                 <MenuItem Header="Close" Click="OnFileClose"/>

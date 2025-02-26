@@ -13,6 +13,7 @@ using FChassis.Core.Processes;
 
 using SPath = System.IO.Path;
 using System.Diagnostics;
+using static FChassis.Core.MCSettings;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
@@ -56,9 +57,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       var fxFiles = new List<string> ();
       if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals ("FX")) {
          // Get FX files if the environment variable is set to "FX"
-         fxFiles = System.IO.Directory.GetFiles (dir, "*.fx")
-                                       .Select (System.IO.Path.GetFileName)
-                                       .ToList ();
+         fxFiles = [.. System.IO.Directory.GetFiles (dir, "*.fx").Select (System.IO.Path.GetFileName)];
       }
 
       // Get IGES and IGS files
@@ -381,12 +380,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       } catch (Exception) { }
 
       if (mPart.Model == null) {
-         if (mPart.Dwg != null)
-            mPart.FoldTo3D ();
-         else if (mPart.SurfaceModel != null)
-            mPart.SheetMetalize ();
-         else
-            throw new Exception ("Invalid part");
+         try {
+            if (mPart.Dwg != null)
+               mPart.FoldTo3D ();
+            else if (mPart.SurfaceModel != null)
+               mPart.SheetMetalize ();
+            else
+               throw new Exception ("Invalid part");
+         }  catch (NullReferenceException ex) {
+            MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
+            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+         } catch (Exception ex) {
+            MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
+            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+         }
       }
 
       mOverlay = new SimpleVM (DrawOverlay);
@@ -502,6 +511,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          GenesysHub.LoadGCode (filename);
       } catch (Exception ex) {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+      }
+   }
+
+   void OnMenuOpenDINs (object sender, RoutedEventArgs e) {
+      string dinFileNameH1 = "", dinFileNameH2 = "";
+      try {
+         string[] paths = Environment.GetEnvironmentVariable ("PATH")?.Split (';');
+         string notepadPlusPlus = paths?.Select (p => Path.Combine (p, "notepad++.exe")).FirstOrDefault (File.Exists);
+         string notepad = paths?.Select (p => Path.Combine (p, "notepad.exe")).FirstOrDefault (File.Exists);
+
+         string editor = notepadPlusPlus ?? notepad; // Prioritize Notepad++, fallback to Notepad
+
+         if (editor == null) {
+            MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+         }
+         if (mWork == null || GenesysHub.GCodeGen == null ) return;
+         // Get the DIN filenames
+         dinFileNameH1 = @"W:\FChassis\Sample\Head1\" + mWork.NCFileName + "-" + $"{1}" + 
+            $"({(GenesysHub.GCodeGen.PartConfigType == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+         dinFileNameH2 = @"W:\FChassis\Sample\Head2\" + mWork.NCFileName + "-" + $"{2}" +
+            $"({(GenesysHub.GCodeGen.PartConfigType == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+
+         // Open both files in the selected editor
+         if ( notepadPlusPlus != null )
+            Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH1}\" \"{dinFileNameH2}\"") { UseShellExecute = true });
+         else if ( notepad != null) {
+            Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH1}\"") { UseShellExecute = true });
+            Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH2}\"") { UseShellExecute = true });
+         }  
+      } catch (Exception ex) {
+         MessageBox.Show ($"Error opening files \"{dinFileNameH1}\" and \"{dinFileNameH2}\": {ex.Message}. "
+            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
       }
    }
    #endregion

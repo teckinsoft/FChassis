@@ -2548,8 +2548,10 @@ public class GCodeGenerator {
       // Statements specific to dual headed laser multi pass machine
       sw.WriteLine ("SplitStartX={0} SplitPartitionX={1} SplitEndX={2} ( Cut Scope Length:{3} )",
          xStart.ToString ("F3"), xPartition.ToString ("F3"), SplitEndX.ToString ("F3"), (xEnd - xStart).ToString ("F3"));
-      WriteBounds (toolingItem, segs, startIndex, endIndex);
+      
       if (CreateDummyBlock4Master) return;
+      
+      WriteBounds (toolingItem, segs, startIndex, endIndex);
       if (!isValidNotch) CalibrateForCircle (toolingItem, prevToolingItem);
       sw.WriteLine ("X_Correction=0 YZ_Correction=0");
    }
