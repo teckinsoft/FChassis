@@ -2444,4 +2444,14 @@ public static class Utils {
 
       return new ToolingSegment (new Line3 (nextMachiningStart, wjtSeg.Curve.End) as Curve3, wjtSeg.Vec1, wjtSeg.Vec1);
    }
+
+   public static string BuildDINFileName (string filename, int head, MCSettings.PartConfigType partCfgType, string dinFilenameSuffix) {
+      string dinFileSuffix = string.IsNullOrEmpty (dinFilenameSuffix) ? "" : $"-{dinFilenameSuffix}-";
+      string dinFileName = $@"{filename}-{head + 1}{dinFileSuffix}({(partCfgType == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+      return dinFileName;
+   }
+   public static string RemoveLastExtension (string filePath) {
+      return Path.Combine (Path.GetDirectoryName (filePath) ?? "",
+                          Path.GetFileNameWithoutExtension (filePath));
+   }
 }

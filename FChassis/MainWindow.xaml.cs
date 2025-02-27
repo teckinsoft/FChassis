@@ -57,7 +57,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       var fxFiles = new List<string> ();
       if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals ("FX")) {
          // Get FX files if the environment variable is set to "FX"
-         fxFiles = [.. System.IO.Directory.GetFiles (dir, "*.fx").Select (System.IO.Path.GetFileName)];
+         fxFiles = System.IO.Directory.GetFiles (dir, "*.fx")
+                                       .Select (System.IO.Path.GetFileName)
+                                       .ToList ();
       }
 
       // Get IGES and IGS files
@@ -387,7 +389,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                mPart.SheetMetalize ();
             else
                throw new Exception ("Invalid part");
-         }  catch (NullReferenceException ex) {
+         } catch (NullReferenceException ex) {
             MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
             , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
@@ -514,36 +516,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnMenuOpenDINs (object sender, RoutedEventArgs e) {
-      string dinFileNameH1 = "", dinFileNameH2 = "";
-      try {
-         string[] paths = Environment.GetEnvironmentVariable ("PATH")?.Split (';');
-         string notepadPlusPlus = paths?.Select (p => Path.Combine (p, "notepad++.exe")).FirstOrDefault (File.Exists);
-         string notepad = paths?.Select (p => Path.Combine (p, "notepad.exe")).FirstOrDefault (File.Exists);
 
-         string editor = notepadPlusPlus ?? notepad; // Prioritize Notepad++, fallback to Notepad
+   void OpenDINsClick (object sender, RoutedEventArgs e) {
+      if (Files.SelectedItem is string selectedFile) {
+         string dinFileNameH1 = "", dinFileNameH2 = "";
+         try {
+            string[] paths = Environment.GetEnvironmentVariable ("PATH")?.Split (';');
+            string notepadPlusPlus = paths?.Select (p => Path.Combine (p, "notepad++.exe")).FirstOrDefault (File.Exists);
+            string notepad = paths?.Select (p => Path.Combine (p, "notepad.exe")).FirstOrDefault (File.Exists);
+            string editor = notepadPlusPlus ?? notepad; // Prioritize Notepad++, fallback to Notepad
 
-         if (editor == null) {
-            MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-         }
-         if (mWork == null || GenesysHub.GCodeGen == null ) return;
-         // Get the DIN filenames
-         dinFileNameH1 = @"W:\FChassis\Sample\Head1\" + mWork.NCFileName + "-" + $"{1}" + 
-            $"({(GenesysHub.GCodeGen.PartConfigType == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
-         dinFileNameH2 = @"W:\FChassis\Sample\Head2\" + mWork.NCFileName + "-" + $"{2}" +
-            $"({(GenesysHub.GCodeGen.PartConfigType == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+            if (editor == null) {
+               MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+               return;
+            }
 
-         // Open both files in the selected editor
-         if ( notepadPlusPlus != null )
-            Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH1}\" \"{dinFileNameH2}\"") { UseShellExecute = true });
-         else if ( notepad != null) {
+            // Construct the DIN file paths using the selected file name
+            string dinFileSuffix = string.IsNullOrEmpty (MCSettings.It.DINFilenameSuffix) ? "" : $"-{MCSettings.It.DINFilenameSuffix}-";
+            dinFileNameH1 = $@"{Utils.RemoveLastExtension (selectedFile)}-{1}{dinFileSuffix}({(MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+            dinFileNameH1 = Path.Combine (MCSettings.It.NCFilePath, "Head1", dinFileNameH1);
+            dinFileNameH2 = $@"{Utils.RemoveLastExtension (selectedFile)}-{2}{dinFileSuffix}({(MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+            dinFileNameH2 = Path.Combine (MCSettings.It.NCFilePath, "Head2", dinFileNameH2);
+
+            if (!File.Exists (dinFileNameH1)) throw new Exception ($"File: {dinFileNameH1} does not exist.\n Generate G Code first");
+            if (!File.Exists (dinFileNameH2)) throw new Exception ($"File: {dinFileNameH2} does not exist.\n Generate G Code first");
+
+            // Open the files
             Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH1}\"") { UseShellExecute = true });
             Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH2}\"") { UseShellExecute = true });
-         }  
-      } catch (Exception ex) {
-         MessageBox.Show ($"Error opening files \"{dinFileNameH1}\" and \"{dinFileNameH2}\": {ex.Message}. "
-            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         } catch (Exception ex) {
+            MessageBox.Show ($"Error opening files \"{dinFileNameH1}\" and \"{dinFileNameH2}\n\n\": {ex.Message}.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         }
+      } else {
+         MessageBox.Show ("No file selected.");
       }
    }
    #endregion

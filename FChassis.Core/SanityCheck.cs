@@ -75,8 +75,8 @@ public class SanityCheck {
          throw new Exception ("SanityCheck.Run: testList is empty");
 
       int idx = 0;
-      DINFiles = Enumerable.Repeat ((string.Empty, string.Empty), testList.Count).ToList ();
-      List<bool> runStats = Enumerable.Repeat (false, testList.Count).ToList ();
+      DINFiles = [.. Enumerable.Repeat((string.Empty, string.Empty), testList.Count)];
+      List<bool> runStats = [.. Enumerable.Repeat (false, testList.Count)];
       foreach (SanityTestData test in testList) {
          if (!test.ToRun && !forceRun) continue;
          try {

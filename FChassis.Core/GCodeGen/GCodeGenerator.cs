@@ -1307,12 +1307,8 @@ public class GCodeGenerator {
       Head = head;
       CreateDummyBlock4Master = false;
 
-      string headPos = $"{(int)Head + 1}";
-      string dinFileSuffix = string.IsNullOrEmpty (DinFilenameSuffix) ? "" : $"-{DinFilenameSuffix}-";
-      string ncName = Process.Workpiece.NCFileName + "-" + headPos + dinFileSuffix +
-         $"({(PartConfigType == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+      string ncName = Utils.BuildDINFileName (Process.Workpiece.NCFileName, (int)Head, PartConfigType, DinFilenameSuffix);
       string ncFolder;
-
       // Output file name builder for G Code for both the heads
       if (head == ToolHeadType.Master) {
          ncFolder = Path.Combine (FxFilePath, "Head1");
@@ -2548,10 +2544,8 @@ public class GCodeGenerator {
       // Statements specific to dual headed laser multi pass machine
       sw.WriteLine ("SplitStartX={0} SplitPartitionX={1} SplitEndX={2} ( Cut Scope Length:{3} )",
          xStart.ToString ("F3"), xPartition.ToString ("F3"), SplitEndX.ToString ("F3"), (xEnd - xStart).ToString ("F3"));
-      
-      if (CreateDummyBlock4Master) return;
-      
       WriteBounds (toolingItem, segs, startIndex, endIndex);
+      if (CreateDummyBlock4Master) return;
       if (!isValidNotch) CalibrateForCircle (toolingItem, prevToolingItem);
       sw.WriteLine ("X_Correction=0 YZ_Correction=0");
    }
