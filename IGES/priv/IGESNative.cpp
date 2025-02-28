@@ -12,7 +12,7 @@ extern "C" void CleanupTCL() {
       // Properly unload Tcl/Tk resources before exiting
       Tcl_Finalize();
    }
-   catch (const std::exception& ex) {}
+   catch (const std::exception) {}
    catch (...) {}
 }
 

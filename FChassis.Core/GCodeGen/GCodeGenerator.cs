@@ -53,7 +53,7 @@ public class GCodeParser {
       mXformRH = new XForm4 ();
       mXformRH.Translate (new Vector3 (0.0, JobWidth.Value / 2.0, 0.0));
    }
-   public string GetGCodeComment (string comment) => " ( " + comment + " ) ";
+   public static string GetGCodeComment (string comment) => " ( " + comment + " ) ";
    #endregion
 
    #region Lifecyclers
@@ -1429,11 +1429,11 @@ public class GCodeGenerator {
                (Head == ToolHeadType.Master && Heads == EHeads.Right)) {
                CreateDummyBlock4Master = true;
                if (cutsHead2.Count > 0)
-                  cuts = [cutsHead2[0]];
+                  cuts = cutsHead2;
                WriteLineStatement (GetGCodeComment (" Writing dummy block for master head 1 "));
             }
             if (cuts.Count == 0) continue;
-
+            
             WriteCuts (cuts, cutScopeBound, xStart, ref xEnd, mcCutScope, totalCuts);
          }
          // Re init Traces with first entry of CutScopeTraces
@@ -1460,27 +1460,31 @@ public class GCodeGenerator {
    /// cutscope bound, an exception is thrown</exception>
    void WriteCuts (List<Tooling> cuts, Bound3 cutScopeBound, double xStart,
       ref double xEnd, MachinableCutScope mcCutScope, List<Tooling> totalCuts) {
+
       // Write the sequence numbers in the g code
-      int np = 0;
-      foreach (var name in Enum.GetNames (typeof (Utils.EFlange))) {
-         Utils.EFlange p = (Utils.EFlange)Enum.Parse (typeof (Utils.EFlange), name);
-         int cnt = cuts.Count (a => Utils.GetFlangeType (a, GetXForm ()) == p && !a.IsCutout () && !a.IsNotch ());
-         if (cnt == 0) continue;
-         if (p != Utils.EFlange.Flex) WriteNSequenceHeader (p, np, cnt);
-         np += cnt;
+      if (!CreateDummyBlock4Master) {
+         int np = 0;
+         foreach (var name in Enum.GetNames (typeof (Utils.EFlange))) {
+            Utils.EFlange p = (Utils.EFlange)Enum.Parse (typeof (Utils.EFlange), name);
+            int cnt = cuts.Count (a => Utils.GetFlangeType (a, GetXForm ()) == p && !a.IsCutout () && !a.IsNotch ());
+            if (cnt == 0) continue;
+            if (p != Utils.EFlange.Flex) WriteNSequenceHeader (p, np, cnt);
+            np += cnt;
+         }
+
+         // Now write notch information
+
+         int cNotches = cuts.Count (a => a.Kind == EKind.Notch);
+         string gcodeStr = "";
+         if (cNotches != 0)
+            gcodeStr = $"(N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + 1} to N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + cNotches} for notches)";
+         if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
+
+         // Now write Cutout part information
+         int cMarks = cuts.Count (a => a.Kind == EKind.Mark);
+         if (cMarks != 0) gcodeStr = $"(N{GetStartMarkProgNo () + 1} to N{GetStartMarkProgNo () + cMarks} for markings)";
+         if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
       }
-
-      // Now write notch information
-      int cNotches = cuts.Count (a => a.Kind == EKind.Notch);
-      string gcodeStr = "";
-      if (cNotches != 0)
-         gcodeStr = $"(N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + 1} to N{GetNotchProgNo () + (Machine == MachineType.LCMMultipass2H ? mBaseBlockNo : 0) + cNotches} for notches)";
-      if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
-
-      // Now write Cutout part information
-      int cMarks = cuts.Count (a => a.Kind == EKind.Mark);
-      if (cMarks != 0) gcodeStr = $"(N{GetStartMarkProgNo () + 1} to N{GetStartMarkProgNo () + cMarks} for markings)";
-      if (!string.IsNullOrEmpty (gcodeStr)) sw.WriteLine (gcodeStr);
 
       // GCode generation for all the eligible tooling starts here
       xEnd = cutScopeBound.XMax;
@@ -1813,7 +1817,7 @@ public class GCodeGenerator {
    /// </summary>
    /// <param name="comment">The input string</param>
    /// <returns>The G Code comment preceding "(" and succeeded by ")"</returns>
-   public string GetGCodeComment (string comment) {
+   public static string GetGCodeComment (string comment) {
       if (!String.IsNullOrEmpty (comment))
          return " ( " + comment + " ) ";
       else
@@ -2544,8 +2548,8 @@ public class GCodeGenerator {
       // Statements specific to dual headed laser multi pass machine
       sw.WriteLine ("SplitStartX={0} SplitPartitionX={1} SplitEndX={2} ( Cut Scope Length:{3} )",
          xStart.ToString ("F3"), xPartition.ToString ("F3"), SplitEndX.ToString ("F3"), (xEnd - xStart).ToString ("F3"));
-      WriteBounds (toolingItem, segs, startIndex, endIndex);
       if (CreateDummyBlock4Master) return;
+      WriteBounds (toolingItem, segs, startIndex, endIndex);
       if (!isValidNotch) CalibrateForCircle (toolingItem, prevToolingItem);
       sw.WriteLine ("X_Correction=0 YZ_Correction=0");
    }
@@ -2820,7 +2824,7 @@ public class GCodeGenerator {
    /// <param name="cutLength">cut length of tooling other than </param>
    /// <param name="totalCutLength">Total cut length of the toolings</param>
    public void FinalizeToolingBlock (Tooling toolingItem, double prevCutToolingsLength, double prevMarkToolingsLength,
-      double totalMarkLength, double totalCutLength) {
+      double totalCutLength) {
       sw.WriteLine ();
       double percentage = 0;
       //double markLength = 0;
@@ -2829,7 +2833,9 @@ public class GCodeGenerator {
          cutLength = toolingItem.Perimeter + prevCutToolingsLength;
          percentage = cutLength / totalCutLength * 100;
       }
-      sw.WriteLine ($"G253 E0 F=\"{(toolingItem.IsMark () ? 1 : 2)}=1:1:{percentage.Round (0)}\"");
+
+      if (!CreateDummyBlock4Master)
+         sw.WriteLine ($"G253 E0 F=\"{(toolingItem.IsMark () ? 1 : 2)}=1:1:{percentage.Round (0)}\"");
       sw.WriteLine ("G40 E1\t( Cancel Tool Dia Compensation )"); // Cancel tool diameter compensation
       sw.WriteLine ();
    }
@@ -2847,7 +2853,8 @@ public class GCodeGenerator {
       sw.WriteLine ();
       sw.WriteLine (GetGCodeComment ("** Tooling Block Finalization ** "));
       double percentage = (cutLength / totalCutLength) * 100;
-      sw.WriteLine ($"G253 E0 F=\"{(toolingItem.IsMark () ? 1 : 2)}=1:1:{percentage:F0}\"");
+      if (!CreateDummyBlock4Master)
+         sw.WriteLine ($"G253 E0 F=\"{(toolingItem.IsMark () ? 1 : 2)}=1:1:{percentage:F0}\"");
 
       // Cancel tool diameter compensation
       sw.WriteLine ("G40 E1");
@@ -2876,7 +2883,8 @@ public class GCodeGenerator {
       Tuple<Point3, Vector3>? notchEntry = null) {
 
       if (firstTooling) MoveToSafety ();
-      else if (prevToolingSegment != null) MoveToRetract (prevToolingSegment.Value.Curve.End, prevToolingSegment.Value.Vec0, prevToolingItem?.Name);
+      else if (prevToolingSegment != null) 
+         MoveToRetract (prevToolingSegment.Value.Curve.End, prevToolingSegment.Value.Vec0, prevToolingItem?.Name);
       if (isValidNotch) {
          ArgumentNullException.ThrowIfNull (notchEntry);
          if (prevToolingSegment != null)
@@ -3013,10 +3021,12 @@ public class GCodeGenerator {
          if (first) {
             string ncname = NCName;
             if (ncname.Length > 20) ncname = ncname[..20];
-            sw.WriteLine ($"G253 E0 F=\"0=1:{ncname}:{Math.Round (totalToolingCutLength, 2)}," +
+            if (!CreateDummyBlock4Master) {
+               sw.WriteLine ($"G253 E0 F=\"0=1:{ncname}:{Math.Round (totalToolingCutLength, 2)}," +
                 $"{Math.Round (totalMarkLength, 2)}\"");
-            if (shouldOutputDigit)
-               sw.WriteLine ("G253 E0 F=\"3=THL RF\"");
+               if (shouldOutputDigit)
+                  sw.WriteLine ("G253 E0 F=\"3=THL RF\"");
+            }
          }
 
          // Output sync for reverse flange reference block

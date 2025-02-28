@@ -75,7 +75,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       // Assign the combined collection to ItemsSource
       UpdateInputFilesList (allFiles);
    }
-
    #endregion
 
    #region Event handlers
@@ -161,7 +160,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-
    void OnMenuFileSave (object sender, RoutedEventArgs e) {
       SaveFileDialog saveFileDialog = new () {
          Filter = "FX files (*.fx)|*.fx|All files (*.*)|*.*",
@@ -196,14 +194,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnSettings (object sender, RoutedEventArgs e) {
-      mSetDlg = new SettingsDlg (MCSettings.It);
+      mSetDlg = new (MCSettings.It);
       mSetDlg.OnOkAction += SaveSettings;
       mSetDlg.ShowDialog ();
    }
 
    void OnWindowLoaded (object sender, RoutedEventArgs e) {
-      GenesysHub = new GenesysHub ();
-      mProcessSimulator = new ProcessSimulator (mGHub, this.Dispatcher);
+      GenesysHub = new ();
+      mProcessSimulator = new (mGHub, this.Dispatcher);
       mProcessSimulator.TriggerRedraw += TriggerRedraw;
       mProcessSimulator.SetSimulationStatus += status => SimulationStatus = status;
       mProcessSimulator.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
@@ -389,11 +387,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                mPart.SheetMetalize ();
             else
                throw new Exception ("Invalid part");
-         } catch (NullReferenceException ex) {
+         } catch (NullReferenceException) {
             MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
             , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
-         } catch (Exception ex) {
+         } catch (Exception) {
             MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
             , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
@@ -516,7 +514,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-
    void OpenDINsClick (object sender, RoutedEventArgs e) {
       if (Files.SelectedItem is string selectedFile) {
          string dinFileNameH1 = "", dinFileNameH2 = "";
@@ -527,7 +524,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             string editor = notepadPlusPlus ?? notepad; // Prioritize Notepad++, fallback to Notepad
 
             if (editor == null) {
-               MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+               MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error", 
+                  MessageBoxButton.OK, MessageBoxImage.Error);
                return;
             }
 
@@ -538,17 +536,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             dinFileNameH2 = $@"{Utils.RemoveLastExtension (selectedFile)}-{2}{dinFileSuffix}({(MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
             dinFileNameH2 = Path.Combine (MCSettings.It.NCFilePath, "Head2", dinFileNameH2);
 
-            if (!File.Exists (dinFileNameH1)) throw new Exception ($"File: {dinFileNameH1} does not exist.\n Generate G Code first");
-            if (!File.Exists (dinFileNameH2)) throw new Exception ($"File: {dinFileNameH2} does not exist.\n Generate G Code first");
+            if (!File.Exists (dinFileNameH1)) throw new Exception ($"\nFile: {dinFileNameH1} does not exist.\nGenerate G Code first");
+            if (!File.Exists (dinFileNameH2)) throw new Exception ($"\nFile: {dinFileNameH2} does not exist.\nGenerate G Code first");
 
             // Open the files
             Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH1}\"") { UseShellExecute = true });
             Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH2}\"") { UseShellExecute = true });
          } catch (Exception ex) {
-            MessageBox.Show ($"Error opening files \"{dinFileNameH1}\" and \"{dinFileNameH2}\n\n\": {ex.Message}.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show ($"Error opening DIN files: {ex.Message}.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          }
-      } else {
-         MessageBox.Show ("No file selected.");
       }
    }
    #endregion

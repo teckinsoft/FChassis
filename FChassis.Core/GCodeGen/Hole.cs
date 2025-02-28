@@ -47,7 +47,7 @@ public class Hole : ToolingFeature {
       mIsFirstTooling = firstTooling;
       mPrevToolingSegment = prevToolingSegment;
       mBound = bound;
-      mLastToolingSegment = new ();
+      mLastToolingSegment = null;
       mPrevCutToolingsLength = prevCutToolingsLength;
       mTotalToolingCutLength = totalToolingCutLength;
       mPrevMarkToolingsLength = prevMarkToolingsLength;
@@ -83,14 +83,7 @@ public class Hole : ToolingFeature {
 
       GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mPrevToolingSegment, mPrevToolingItem,
          mPrevToolingSegs, mIsFirstTooling, isValidNotch: false);
-      //int CCNo = Utils.GetFlangeType (ToolingItem, GCGen.GetXForm ()) == Utils.EFlange.Web ? WebCCNo : FlangeCCNo;
-      //if (toolingItem.IsCircle ()) {
-      //   var evalValue = Geom.EvaluateCenterAndRadius (ToolingItem.Segs.ToList ()[0].Curve as Arc3);
-      //   if (mControlDiameter.Any (a => a.EQ (2 * evalValue.Item2))) CCNo = 4;
-      //} else if (toolingItem.IsNotch ()) CCNo = 1;
-      //int outCCNO = CCNo;
-      //if (ToolingItem.IsFlexCutout ()) outCCNO = 1;
-
+      
       // Output the Cutting offset. Customer need to cut hole slightly larger than given in geometry
       // We are using G42 than G41 while cutting holes
       // If we are reversing y and not reversing x. We are in 4th quadrant. Flip 42 or 41
@@ -103,7 +96,7 @@ public class Hole : ToolingFeature {
          GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch, isFlexTooling: false);
       }
       GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: false);
-      //if (!toolingItem.IsMark ())
+      
       // ** Machining **
       if (GCGen.CreateDummyBlock4Master) return;
       mLastToolingSegment = GCGen.WriteTooling (ToolingSegments, ToolingItem, mBound, mPrevCutToolingsLength, mTotalToolingCutLength, /*frameFeed*/
@@ -111,7 +104,7 @@ public class Hole : ToolingFeature {
 
       //// ** Tooling block finalization - Start**
       GCGen.FinalizeToolingBlock (ToolingItem, mPrevCutToolingsLength, mPrevMarkToolingsLength,
-            mTotalMarkLength, mTotalToolingCutLength);
+            mTotalToolingCutLength);
    }
    #endregion
 }

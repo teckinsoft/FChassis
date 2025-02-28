@@ -2191,25 +2191,27 @@ public static class Utils {
       // RH component Top Flange. So CW is G3 and counter-clockwise is G2
       if (oaxis == OrdinateAxis.Y) {
          if (reverseArcSense)
-            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 3 : 2)} I{i:F3} J{val:F3} ( Circle )";
+            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 3 : 2)} I{i:F3} J{val:F3} ";
          else
-            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 2 : 3)} I{i:F3} J{val:F3} ( Circle )";
+            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 2 : 3)} I{i:F3} J{val:F3} ";
       } else if (oaxis == OrdinateAxis.Z) {
          if (reverseArcSense)
-            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 3 : 2)} I{i:F3} K{val:F3} ( Circle )";
+            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 3 : 2)} I{i:F3} K{val:F3} ";
          else
-            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 2 : 3)} I{i:F3} K{val:F3} ( Circle )";
+            gCodeStatement = $"G{(arcSense == Utils.EArcSense.CW ? 2 : 3)} I{i:F3} K{val:F3} ";
       }
+      sw.Write (gCodeStatement);
 
+      string gCodeComment="";
       if (stpt != null && cen != null) {
-         gCodeStatement += $"\n( St Pt X: {stpt.Value.X:F3} Y: {stpt.Value.Y:F3} Z: {stpt.Value.Z:F3} )";
-         gCodeStatement += $"\n( Center X: {cen.Value.X:F3} Y: {cen.Value.Y:F3} Z: {cen.Value.Z:F3} )";
-         gCodeStatement += $"\n( Radius: {rad:F3} )";
+         gCodeComment = $"  Circle St Pt X: {stpt.Value.X:F3} Y: {stpt.Value.Y:F3} Z: {stpt.Value.Z:F3} ";
+         gCodeComment += $"  Center X: {cen.Value.X:F3} Y: {cen.Value.Y:F3} Z: {cen.Value.Z:F3} ";
+         gCodeComment += $"  Radius: {rad:F3} ";
       }
 
-      sw.WriteLine (gCodeStatement);
+      sw.WriteLine (GCodeGenerator.GetGCodeComment(gCodeComment));
       sw.WriteLine ();
-      return gCodeStatement;
+      return gCodeStatement+gCodeComment;
    }
 
    /// <summary>

@@ -1889,7 +1889,7 @@ public class Notch : ToolingFeature {
                }
                break;
             case NotchSectionType.ApproachOnReEntry: {
-                  mGCodeGen.WriteLineStatement (mGCodeGen.GetGCodeComment ("NotchSequence: Approaching notch profile after Re-Entry"));
+                  mGCodeGen.WriteLineStatement (GCodeGenerator.GetGCodeComment ("NotchSequence: Approaching notch profile after Re-Entry"));
                   Utils.EPlane currPlaneType = Utils.GetFeatureNormalPlaneType (notchApproachEndNormal, new ());
 
                   // @Notchpoint at approach
@@ -1925,9 +1925,9 @@ public class Notch : ToolingFeature {
             case NotchSectionType.GambitMachiningAt50Reverse: {
                   string titleComment;
                   if (notchSequence.SectionType == NotchSectionType.GambitMachiningAt50Forward)
-                     titleComment = mGCodeGen.GetGCodeComment ("NotchSequence: Machining Gambit Forward");
+                     titleComment = GCodeGenerator.GetGCodeComment ("NotchSequence: Machining Gambit Forward");
                   else
-                     titleComment = mGCodeGen.GetGCodeComment ("NotchSequence: Machining Gambit Reverse");
+                     titleComment = GCodeGenerator.GetGCodeComment ("NotchSequence: Machining Gambit Reverse");
                   mGCodeGen.WriteLineStatement (titleComment);
                   //mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments, notchApproachStNormal,
                   //   mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count - 1, notchSequence.StartIndex, notchSequence.EndIndex,
@@ -1979,11 +1979,11 @@ public class Notch : ToolingFeature {
                if (mTwoFlangeNotchStartAndEndOnSameSideFlange)
                   scrapSideNormal = notchAttr.ScrapSideDir;
 
-               string comment = mGCodeGen.GetGCodeComment ("** Notch: Wire Joint Jump Trace Forward Direction ** ");
+               string comment = GCodeGenerator.GetGCodeComment ("** Notch: Wire Joint Jump Trace Forward Direction ** ");
                var wjtTS = mSegments[notchSequence.StartIndex];
                if (notchSequence.SectionType == NotchSectionType.WireJointTraceJumpReverse) {
                   wjtTS = Geom.GetReversedToolingSegment (wjtTS);
-                  comment = mGCodeGen.GetGCodeComment ("** Notch: Wire Joint Jump Trace Reverse Direction ** ");
+                  comment = GCodeGenerator.GetGCodeComment ("** Notch: Wire Joint Jump Trace Reverse Direction ** ");
                }
                bool isNextSeqFlexMc = (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingReverse ||
                   mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingForward);
@@ -2054,7 +2054,7 @@ public class Notch : ToolingFeature {
                         /*isToBeTreatedAsCutOut: false,*/ isValidNotch: true, notchSequence.StartIndex, notchSequence.EndIndex,
                         comment: "NotchSequence: Machining Forward Direction");
                   } else {
-                     string titleComment = mGCodeGen.GetGCodeComment ("NotchSequence: Machining Forward Direction");
+                     string titleComment = GCodeGenerator.GetGCodeComment ("NotchSequence: Machining Forward Direction");
                      mGCodeGen.WriteLineStatement (titleComment);
                   }
                   {
@@ -2092,7 +2092,7 @@ public class Notch : ToolingFeature {
                         mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mNotchSequences.Count - 1, /*isToBeTreatedAsCutOut:false,*/
                         isValidNotch: true, notchSequence.StartIndex, notchSequence.EndIndex, comment: "NotchSequence: Machining Reverse Direction");
                   } else {
-                     string titleComment = mGCodeGen.GetGCodeComment ("NotchSequence: Machining Reverse Direction");
+                     string titleComment = GCodeGenerator.GetGCodeComment ("NotchSequence: Machining Reverse Direction");
                      mGCodeGen.WriteLineStatement (titleComment);
                   }
 
@@ -2151,7 +2151,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.EnableMachiningDirective ();
                   }
                   //double? xStart = null;
-                  mGCodeGen.WriteLineStatement (mGCodeGen.GetGCodeComment ("NotchSequence: Machining in Flex in Reverse Direction"));
+                  mGCodeGen.WriteLineStatement (GCodeGenerator.GetGCodeComment ("NotchSequence: Machining in Flex in Reverse Direction"));
                   for (int jj = notchSequence.StartIndex; jj >= notchSequence.EndIndex; jj--) {
                      var segment = Geom.GetReversedToolingSegment (mSegments[jj], tolerance: mSplit ? 1e-4 : 1e-6);
                      //if (xStart == null) xStart = segment.Curve.Start.X;
@@ -2209,7 +2209,7 @@ public class Notch : ToolingFeature {
                   }
 
                   //double? xStart = null;
-                  mGCodeGen.WriteLineStatement (mGCodeGen.GetGCodeComment ("NotchSequence: Machining in Flex in Forward Direction"));
+                  mGCodeGen.WriteLineStatement (GCodeGenerator.GetGCodeComment ("NotchSequence: Machining in Flex in Forward Direction"));
                   for (int jj = notchSequence.StartIndex; jj <= notchSequence.EndIndex; jj++) {
 
                      mGCodeGen.WriteFlexLineSeg (mSegments[jj],
@@ -2239,7 +2239,7 @@ public class Notch : ToolingFeature {
                continueMachining = false;
                break;
             case NotchSectionType.MoveToMidApproach: {
-                  string titleComment = mGCodeGen.GetGCodeComment ("NotchSequence: Rapid Move from one end of the notch tooling to the mid approach");
+                  string titleComment = GCodeGenerator.GetGCodeComment ("NotchSequence: Rapid Move from one end of the notch tooling to the mid approach");
                   mGCodeGen.WriteLineStatement (titleComment);
                   Point3 prevEndPoint = mExitTooling.Curve.End;
                   Vector3 PrevEndNormal = mExitTooling.Vec1.Normalized ();

@@ -654,7 +654,7 @@ public class CutOut : ToolingFeature {
                         /*isToBeTreatedAsCutOut: mFeatureToBeTreatedAsCutout,*/ isValidNotch: false, cutoutSequence.StartIndex, cutoutSequence.EndIndex,
                         comment: "CutOutSequence: Machining Forward Direction");
                   else {
-                     string titleComment = GCGen.GetGCodeComment ("CutOutSequence: Machining Forward Direction");
+                     string titleComment = GCodeGenerator.GetGCodeComment ("CutOutSequence: Machining Forward Direction");
                      GCGen.WriteLineStatement (titleComment);
                   }
                   if (ii == 0) {
@@ -719,7 +719,7 @@ public class CutOut : ToolingFeature {
                            ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: false);
                         GCGen.EnableMachiningDirective ();
                      }
-                     GCGen.WriteLineStatement (GCGen.GetGCodeComment ("CutOutSequence: Machining in Flex in Forward Direction"));
+                     GCGen.WriteLineStatement (GCodeGenerator.GetGCodeComment ("CutOutSequence: Machining in Flex in Forward Direction"));
                      for (int jj = cutoutSequence.StartIndex; jj <= cutoutSequence.EndIndex; jj++) {
                         GCGen.WriteFlexLineSeg (ToolingSegments[jj],
                         isWJTStartCut: false, ToolingItem.Name, flexRefSeg: mFlexStartRef);
