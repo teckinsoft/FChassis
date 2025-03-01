@@ -46,8 +46,8 @@ public class MCSettings : INotifyPropertyChanged {
       MinNotchLengthThreshold = 210;
       MinCutOutLengthThreshold = 210;
       DINFilenameSuffix = "";
-      WJTPreFlexMcToken = "FlexStart";
-      WJTPostFlexMcToken = "FlexEnd";
+      NotchCutStartToken = "NCutStart";
+      NotchCutEndToken = "NCutEnd";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 600.0;
    }
@@ -119,8 +119,8 @@ public class MCSettings : INotifyPropertyChanged {
       MinNotchLengthThreshold = other.MinNotchLengthThreshold;
       MinCutOutLengthThreshold = other.MinCutOutLengthThreshold;
       DINFilenameSuffix = other.DINFilenameSuffix;
-      WJTPreFlexMcToken = other.WJTPreFlexMcToken;
-      WJTPostFlexMcToken = other.WJTPostFlexMcToken;
+      NotchCutStartToken = other.NotchCutStartToken;
+      NotchCutEndToken = other.NotchCutEndToken;
       Machine = other.Machine;
       WorkpieceOptionsFilename = other.WorkpieceOptionsFilename;
       ShowToolingNames = other.ShowToolingNames;
@@ -351,17 +351,17 @@ public class MCSettings : INotifyPropertyChanged {
       set => SetProperty (ref mDINFilenameSuffix, value); }
    string mDINFilenameSuffix;
 
-   public string WJTPreFlexMcToken {
-      get => mWJTPreFlexMcToken;
-      set => SetProperty (ref mWJTPreFlexMcToken, value);
+   public string NotchCutStartToken {
+      get => mNotchCutStartToken;
+      set => SetProperty (ref mNotchCutStartToken, value);
    }
-   string mWJTPreFlexMcToken;
+   string mNotchCutStartToken;
 
-   public string WJTPostFlexMcToken {
-      get => mWJTPostFlexMcToken;
-      set => SetProperty (ref mWJTPostFlexMcToken, value);
+   public string NotchCutEndToken {
+      get => mNotchCutEndToken;
+      set => SetProperty (ref mNotchCutEndToken, value);
    }
-   string mWJTPostFlexMcToken;
+   string mNotchCutEndToken;
 
    public string WorkpieceOptionsFilename { 
       get => mWorkpieceOptionsFilename; 

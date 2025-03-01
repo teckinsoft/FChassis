@@ -240,7 +240,7 @@ public class GCodeGenerator {
    string NCName;
    bool mLastCutScope = false;
    ToolingSegment? mPrevToolingSegment = null;
-   //bool mShortPerimeterNotch = false;
+   bool mHeaderComplete = true;
    public bool IsRapidMoveToPiercingPositionWithPingPong { get; set; }
    #endregion
 
@@ -586,8 +586,8 @@ public class GCodeGenerator {
       MinNotchLengthThreshold = mcs.MinNotchLengthThreshold;
       MinCutOutLengthThreshold = mcs.MinCutOutLengthThreshold;
       DinFilenameSuffix = mcs.DINFilenameSuffix;
-      WJTPreFlexMcToken = mcs.WJTPreFlexMcToken;
-      WJTPostFlexMcToken = mcs.WJTPostFlexMcToken;
+      NotchCutStartToken = mcs.NotchCutStartToken;
+      NotchCutEndToken = mcs.NotchCutEndToken;
       FxFilePath = mcs.NCFilePath;
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
@@ -645,8 +645,8 @@ public class GCodeGenerator {
    public double MinNotchLengthThreshold { get; set; }
    public double MinCutOutLengthThreshold { get; set; }
    public string DinFilenameSuffix { get; set; }
-   public string WJTPreFlexMcToken { get; set; }
-   public string WJTPostFlexMcToken { get; set; }
+   public string NotchCutStartToken { get; set; }
+   public string NotchCutEndToken { get; set; }
    public MachineType Machine { get; set; }
    public string FxFilePath { get; set; }
    public string DINFileNameHead1 { get; set; }
@@ -811,8 +811,8 @@ public class GCodeGenerator {
       mTraces = [[], []];
       LeftToRightMachining = isLeftToRight;
       DinFilenameSuffix = "";
-      WJTPreFlexMcToken = "";
-      WJTPostFlexMcToken = "";
+      NotchCutStartToken = "";
+      NotchCutEndToken = "";
 
       //Point3 ps = new (39.33026, -23.696316, 6);
       //Point3 pe = new (41.124299, -26.224453, 6);
@@ -864,8 +864,8 @@ public class GCodeGenerator {
       MinNotchLengthThreshold = MCSettings.It.MinNotchLengthThreshold;
       MinCutOutLengthThreshold = MCSettings.It.MinCutOutLengthThreshold;
       DinFilenameSuffix = MCSettings.It.DINFilenameSuffix;
-      WJTPreFlexMcToken = MCSettings.It.WJTPreFlexMcToken;
-      WJTPostFlexMcToken = MCSettings.It.WJTPostFlexMcToken;
+      NotchCutStartToken = MCSettings.It.NotchCutStartToken;
+      NotchCutEndToken = MCSettings.It.NotchCutEndToken;
       FxFilePath = MCSettings.It.NCFilePath;
       DINFileNameHead1 = "";
       DINFileNameHead2 = "";
@@ -1371,8 +1371,8 @@ public class GCodeGenerator {
          sw.WriteLine ("M15");
          sw.WriteLine ("H=LaserTableID");
          sw.WriteLine ("G61\t( Stop Block Preparation )\r\nG40 E0");
-         sw.WriteLine (GetGCodeComment ($" Cutting with {Head} head) "));
-         sw.WriteLine ($"G20 X=BlockID\r\n");
+         sw.WriteLine (GetGCodeComment ($" Cutting with {Head} head "));
+         mHeaderComplete = false;
          // ****************************************************************************
          // Logic to change scope goes here.
          // 0. Create partition for multipass tooling ( sets head 0 or 1 )
@@ -1462,7 +1462,7 @@ public class GCodeGenerator {
       ref double xEnd, MachinableCutScope mcCutScope, List<Tooling> totalCuts) {
 
       // Write the sequence numbers in the g code
-      if (!CreateDummyBlock4Master) {
+      if (false) {
          int np = 0;
          foreach (var name in Enum.GetNames (typeof (Utils.EFlange))) {
             Utils.EFlange p = (Utils.EFlange)Enum.Parse (typeof (Utils.EFlange), name);
@@ -1572,10 +1572,10 @@ public class GCodeGenerator {
    /// <param name="toolingName">The input tooling name</param>
    /// <param name="isFlexSection">Flag, true if the tooling is on flex, 
    /// false otherwise</param>
-   public void WriteCurve (ToolingSegment segment, string toolingName) {
+   public void WriteCurve (ToolingSegment segment, string toolingName, bool relativeCoords = false) {
       var stNormal = segment.Vec0.Normalized ();
       var endNormal = segment.Vec1.Normalized ();
-      WriteCurve (segment.Curve, stNormal, endNormal, toolingName);
+      WriteCurve (segment.Curve, stNormal, endNormal, toolingName, relativeCoords);
    }
 
    /// <summary>
@@ -1589,11 +1589,12 @@ public class GCodeGenerator {
    /// <param name="isFlexSection">Flag, true if the tooling is on flex, 
    /// false otherwise</param>
    public void WriteCurve (Curve3 curve, Vector3 stNormal, Vector3 endNormal,
-      string toolingName, bool isFlexSection = false, PointVec? flexRef = null) {
+      string toolingName, bool isFlexSection = false, PointVec? flexRef = null, bool relativeCoords = false) {
       /* current normal plane type (at the end) */
       var currPlaneType = Utils.GetArcPlaneType (endNormal, XForm4.IdentityXfm);
       if (curve is Line3) {
          var endPoint = curve.End;/* end point*/
+         if (relativeCoords) endPoint = endPoint.Subtract (curve.Start);
          WriteLineSeg (endPoint, stNormal, endNormal, toolingName);
       } else if (curve is Arc3) {
          var (cen, _) = Geom.EvaluateCenterAndRadius (curve as Arc3);
@@ -2306,8 +2307,6 @@ public class GCodeGenerator {
       MoveToMachiningStartPosition (curve.Start, CurveStartNormal, toolingItem.Name);
       EnableMachiningDirective ();
       {
-         //var isMcFromOnWeb = Utils.IsMachiningFromWebFlange (toolingSegmentsList, 0);
-
          // Write all other features such as Holes, Cutouts and edge notches
          for (int ii = 0; ii < toolingSegmentsList.Count; ii++) {
             var (Curve, startNormal, endNormal) = toolingSegmentsList[ii];
@@ -3024,6 +3023,10 @@ public class GCodeGenerator {
             if (!CreateDummyBlock4Master) {
                sw.WriteLine ($"G253 E0 F=\"0=1:{ncname}:{Math.Round (totalToolingCutLength, 2)}," +
                 $"{Math.Round (totalMarkLength, 2)}\"");
+               if (!mHeaderComplete) {
+                  sw.WriteLine ($"G20 X=BlockID");
+                  mHeaderComplete = true;
+               }
                if (shouldOutputDigit)
                   sw.WriteLine ("G253 E0 F=\"3=THL RF\"");
             }
@@ -3264,9 +3267,7 @@ public class GCodeGenerator {
           usePingPongOption: false
       );
 
-      if (isFlexCut)
-         WriteLineStatement ("\n" + WJTPreFlexMcToken);
-
+      WriteLineStatement ("\n" + NotchCutStartToken);
       EnableMachiningDirective ();
 
       // Write the machining trace
@@ -3293,6 +3294,7 @@ public class GCodeGenerator {
       if (toCompleteToolingBlock) {
          // Diable Machining only if the next tooling block will start on flex
          DisableMachiningDirective ();
+         WriteLineStatement (NotchCutEndToken);
 
          // Finalize (end) the tooling block with one stroke of approach machining
          FinalizeNotchToolingBlock (toolingItem, blockCutLength, totalToolingsCutLength);

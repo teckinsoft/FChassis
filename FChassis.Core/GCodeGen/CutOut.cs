@@ -735,7 +735,7 @@ public class CutOut : ToolingFeature {
                      GCGen.DisableMachiningDirective ();
                      mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
                   }
-                  GCGen.WriteLineStatement (GCGen.WJTPostFlexMcToken);
+                  GCGen.WriteLineStatement (GCGen.NotchCutEndToken);
                   GCGen.FinalizeNotchToolingBlock (ToolingItem, mBlockCutLength, mTotalToolingsCutLength);
                }
                continueMachining = false;

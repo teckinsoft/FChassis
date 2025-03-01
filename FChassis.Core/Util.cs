@@ -97,6 +97,11 @@ internal static class Extensions {
    public static bool LieWithin (this double val, double leftLimit,
                                  double rightLimit, double epsilon = 1e-6)
       => (leftLimit - epsilon < val && val < rightLimit + epsilon);
+
+   public static Point3 Subtract(this Point3 val, Point3 sub) {
+      Point3 pt = new (val.X - sub.X, val.Y - sub.Y, val.Z - sub.Z);
+      return pt;
+   }
 }
 
 public class NegZException : Exception {
@@ -2210,7 +2215,6 @@ public static class Utils {
       }
 
       sw.WriteLine (GCodeGenerator.GetGCodeComment(gCodeComment));
-      sw.WriteLine ();
       return gCodeStatement+gCodeComment;
    }
 
@@ -2283,7 +2287,6 @@ public static class Utils {
          gCodeStatement += $" X{x:F3} Z{y:F3}";
       }
       sw.WriteLine (gCodeStatement);
-      sw.WriteLine ();
       return gCodeStatement;
    }
 
