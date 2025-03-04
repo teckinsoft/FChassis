@@ -21,7 +21,7 @@ public struct NotchPointInfo (int sgIndx, Point3 pt, double percent, string posi
       var copy = new NotchPointInfo {
          mSegIndex = this.mSegIndex,
          mPercentage = this.mPercentage,
-         mPoints = new List<Point3> (this.mPoints) // Deep copy the list
+         mPoints = [.. this.mPoints] // Deep copy the list
       };
       return copy;
    }
@@ -1391,7 +1391,7 @@ public class Notch : ToolingFeature {
       // Split the curves and modify the indices and segments in segments and
       // in mNotchPointsInfo
       SplitToolingSegmentsAtPoints (ref mSegments, ref mNotchPointsInfo, mPercentLength,
-         mSegIndices.Select (v => v ?? -1).ToArray (), mCurveLeastLength,
+         [.. mSegIndices.Select (v => v ?? -1)], mCurveLeastLength,
          mIsWireJointsNeeded, mSplit ? 1e-4 : 1e-6);
       mFlexIndices = GetFlexSegmentIndices (mSegments);
       int ix = 0;
@@ -1710,7 +1710,7 @@ public class Notch : ToolingFeature {
 
          mGCodeGen.MoveToMachiningStartPosition (notchEntry.Item1, notchEntry.Item2, mToolingItem.Name);
          var isFromWebNotch = Utils.IsMachiningFromWebFlange (mSegments, 0);
-         mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebNotch, isFlexTooling: false);
+         mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebNotch, isFlexTooling: false, isNotchBlock: true);
          mGCodeGen.RapidMoveToPiercingPosition (notchEntry.Item1, notchEntry.Item2, usePingPongOption: false);
          mGCodeGen.EnableMachiningDirective ();
          {
@@ -1742,7 +1742,7 @@ public class Notch : ToolingFeature {
       }
       var segs = mSegments;
       if (mTwoFlangeNotchStartAndEndOnSameSideFlange) {
-         segs = mSegments.Where (s => (s.Vec1.EQ (XForm4.mZAxis) && s.Vec0.EQ (XForm4.mZAxis))).ToList ();
+         segs = [.. mSegments.Where (s => (s.Vec1.EQ (XForm4.mZAxis) && s.Vec0.EQ (XForm4.mZAxis)))];
       }
       var (n1, nMid1, flangeEnd, n2, nMid2, notchPointAtApproachpc) = GetNotchApproachPositions (mToolingItem, segs, mNotchAttrs,
          mFullPartBound, mApproachIndex, mNotchWireJointDistance);
@@ -1784,19 +1784,19 @@ public class Notch : ToolingFeature {
                         mPrevToolingSegments, mFirstTooling, isValidNotch: true, notchEntry);
 
                      mGCodeGen.RapidMoveToPiercingPosition (notchEntry.Item1, notchEntry.Item2, usePingPongOption: true);
-                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false);
+                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false, isNotchBlock: true);
                      mGCodeGen.RapidMoveToPiercingPosition (notchEntry.Item1, notchEntry.Item2, usePingPongOption: false);
                      mGCodeGen.MoveToMachiningStartPosition (notchEntry.Item1, notchEntry.Item2, mToolingItem.Name);
 
                      mGCodeGen.EnableMachiningDirective ();
                      {
                         // *** Moving to the mid point wire joint distance ***
-                        mGCodeGen.WriteLineSeg (nMid1, notchApproachStNormal, notchApproachEndNormal, currPlaneType,
+                        mGCodeGen.WriteLineSeg (n1, nMid1, notchApproachStNormal, notchApproachEndNormal, currPlaneType,
                            mPrevPlane, Utils.GetArcPlaneFlangeType (notchApproachEndNormal.Normalized (),
                            mGCodeGen.GetXForm ()),
                            mToolingItem.Name);
 
-                        mGCodeGen.WriteLineSeg (flangeEnd, notchApproachStNormal,
+                        mGCodeGen.WriteLineSeg (n2, flangeEnd, notchApproachStNormal,
                            notchApproachEndNormal, currPlaneType, mPrevPlane,
                            Utils.GetArcPlaneFlangeType (notchApproachEndNormal.Normalized (),
                            mGCodeGen.GetXForm ()), mToolingItem.Name);
@@ -1860,21 +1860,23 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
                      if (mGCodeGen.CreateDummyBlock4Master) return;
                      mGCodeGen.RapidMoveToPiercingPosition (n2, notchApproachStNormal, usePingPongOption: true);
-                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false);
+                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false, isNotchBlock: true);
                      mGCodeGen.RapidMoveToPiercingPosition (n2, notchApproachStNormal, usePingPongOption: false);
+                     mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                      mGCodeGen.EnableMachiningDirective ();
                      {
                         // *** Start machining from n2 -> nMid2 -> 50% dist end point ***
-                        mGCodeGen.WriteLineSeg (nMid2, notchApproachStNormal, notchApproachEndNormal, currPlaneType,
+                        mGCodeGen.WriteLineSeg (n2, nMid2, notchApproachStNormal, notchApproachEndNormal, currPlaneType,
                            mPrevPlane, Utils.GetArcPlaneFlangeType (notchApproachEndNormal.Normalized (),
                            mGCodeGen.GetXForm ()),
-                           mToolingItem.Name);
+                           mToolingItem.Name, relativeCoords: true);
 
                         // @Notchpoint 50
-                        mGCodeGen.WriteLineSeg (mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.End, notchApproachStNormal,
+                        mGCodeGen.WriteLineSeg (mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.Start,
+                           mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.End, notchApproachStNormal,
                            notchApproachEndNormal, currPlaneType, mPrevPlane,
                            Utils.GetArcPlaneFlangeType (notchApproachEndNormal.Normalized (),
-                           mGCodeGen.GetXForm ()), mToolingItem.Name);
+                           mGCodeGen.GetXForm ()), mToolingItem.Name, relativeCoords: true);
 
                         PreviousToolingSegment = new ((new Line3 (nMid2, mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.End),
                            notchApproachStNormal, notchApproachStNormal));
@@ -1886,7 +1888,6 @@ public class Notch : ToolingFeature {
 
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
                   continueMachining = true;
-                  mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                   mFirstTooling = false;
                }
                break;
@@ -1902,10 +1903,13 @@ public class Notch : ToolingFeature {
                   pts.Add (n1); pts.Add (nMid1);
 
                   {
-                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.MoveToMidApproach)
+                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.MoveToMidApproach) {
+                        mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                         mGCodeGen.EnableMachiningDirective ();
+                     }
                      {
-                        mGCodeGen.WriteLineSeg (mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.End, notchApproachStNormal,
+                        mGCodeGen.WriteLineSeg (mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.Start,
+                           mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.End, notchApproachStNormal,
                            notchApproachEndNormal, currPlaneType, mPrevPlane,
                            Utils.GetArcPlaneFlangeType (notchApproachEndNormal.Normalized (),
                            mGCodeGen.GetXForm ()), mToolingItem.Name);
@@ -1996,7 +2000,7 @@ public class Notch : ToolingFeature {
                       isValidNotch: true,
                       flexRefTS: mFlexStartRef,
                       toCompleteToolingBlock: true,
-                      comment1);
+                      comment1, relativeCoords: true);
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
 
@@ -2008,7 +2012,8 @@ public class Notch : ToolingFeature {
                        isValidNotch: true,
                        flexRefTS: mFlexStartRef,
                        toCompleteToolingBlock: false,
-                       comment1);
+                       comment1,
+                       relativeCoords: true);
 
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
@@ -2020,7 +2025,7 @@ public class Notch : ToolingFeature {
                         isValidNotch: true,
                         flexRefTS: null,
                         toCompleteToolingBlock: false,
-                        comment);
+                        comment, relativeCoords: true);
 
                PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
@@ -2044,7 +2049,7 @@ public class Notch : ToolingFeature {
                         mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.Start,
                            mSegments[notchSequence.StartIndex].Vec0, usePingPongOption: true);
                         var isFromWebFlange = Utils.IsMachiningFromWebFlange (mSegments, notchSequence.StartIndex);
-                        mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false);
+                        mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false, isNotchBlock: true);
                         mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.Start,
                            mSegments[notchSequence.StartIndex].Vec0, usePingPongOption: false);
                         mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
@@ -2053,7 +2058,7 @@ public class Notch : ToolingFeature {
 
                      for (int jj = notchSequence.StartIndex; jj <= notchSequence.EndIndex; jj++) {
                         mExitTooling = mSegments[jj];
-                        mGCodeGen.WriteCurve (mSegments[jj], mToolingItem.Name);
+                        mGCodeGen.WriteCurve (mSegments[jj], mToolingItem.Name, relativeCoords: true);
                         prevTSPt = mSegments[jj].Curve.End;
                         mBlockCutLength += mSegments[jj].Curve.Length;
                      }
@@ -2084,7 +2089,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                         mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: true);
                      var isFromWebFlange = Utils.IsMachiningFromWebFlange (mSegments, notchSequence.StartIndex);
-                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false);
+                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false, isNotchBlock: true);
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                         mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: false);
                      mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
@@ -2092,7 +2097,7 @@ public class Notch : ToolingFeature {
                   }
                   for (int jj = notchSequence.StartIndex; jj >= notchSequence.EndIndex; jj--) {
                      mExitTooling = Geom.GetReversedToolingSegment (mSegments[jj], tolerance: mSplit ? 1e-4 : 1e-6);
-                     mGCodeGen.WriteCurve (mExitTooling, mToolingItem.Name);
+                     mGCodeGen.WriteCurve (mExitTooling, mToolingItem.Name, relativeCoords: true);
                      prevTSPt = mExitTooling.Curve.End;
                      mBlockCutLength += mExitTooling.Curve.Length;
                   }
@@ -2126,7 +2131,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                         mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: true);
-                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: true);
+                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: true, isNotchBlock: true);
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                         mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: false);
 
@@ -2174,7 +2179,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                         mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: true);
-                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: true);
+                     mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: true, isNotchBlock: true);
                      mGCodeGen.RapidMoveToPiercingPosition (mSegments[notchSequence.StartIndex].Curve.End,
                      mSegments[notchSequence.StartIndex].Vec1, usePingPongOption: false);
                      //if (isPrevSeqWJTTrace4Flex)
@@ -2258,7 +2263,7 @@ public class Notch : ToolingFeature {
                   continueMachining = true;
 
                   var isFromWebFlange = Utils.IsMachiningFromWebFlange (mSegments, mNotchIndices.segIndexAtWJTApproach);
-                  mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false);
+                  mGCodeGen.WriteToolCorrectionData (mToolingItem, isFromWebFlange, isFlexTooling: false, isNotchBlock: true);
                   mGCodeGen.RapidMoveToPiercingPosition (nMid2, notchApproachStNormal, usePingPongOption: false);
                }
                break;

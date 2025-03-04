@@ -27,7 +27,7 @@ public class MachinableCutScope {
       GCGen = gCGen;
       GCodeGenerator.CreatePartition (GCGen, ToolingScopes, MCSettings.It.OptimizePartition, /*Utils.CalculateBound3 (tlList)*/cs.Bound);
       SetData ();
-      Toolings = ToolingScopes.Select (ts => ts.Tooling).ToList ();
+      Toolings = [.. ToolingScopes.Select(ts => ts.Tooling)];
       Bound = cs.Bound;
    }
    public MachinableCutScope (List<Tooling> toolings, GCodeGenerator gCGen) {
@@ -37,20 +37,20 @@ public class MachinableCutScope {
       StartX = ToolingScopes.Min (ts => ts.StartX);
       EndX = ToolingScopes.Min (ts => ts.EndX);
       GCGen = gCGen;
-      Toolings = ToolingScopes.Select (ts => ts.Tooling).ToList ();
+      Toolings = [.. ToolingScopes.Select (ts => ts.Tooling)];
       Bound = Utils.CalculateBound3 (Toolings);
       GCodeGenerator.CreatePartition (GCGen, ToolingScopes, MCSettings.It.OptimizePartition, Bound);
       SetData ();
    }
 
    void SetData () {
-      ToolingScopesH1 = ToolingScopes.Where (t => t.Tooling.Head == 0).ToList ();
-      ToolingScopesH2 = ToolingScopes.Where (t => t.Tooling.Head == 1).ToList ();
+      ToolingScopesH1 = [.. ToolingScopes.Where(t => t.Tooling.Head == 0)];
+      ToolingScopesH2 = [.. ToolingScopes.Where(t => t.Tooling.Head == 1)];
       ToolingScopesWidth = ToolingScopes.Sum (t => (t.EndX - t.StartX));
       ToolingScopesWidthH1 = ToolingScopesH1.Sum (t => (t.EndX - t.StartX));
       ToolingScopesWidthH2 = ToolingScopesH2.Sum (t => (t.EndX - t.StartX));
-      ToolingsHead1 = ToolingScopes.Select (ts => ts.Tooling).Where (ts => ts.Head == 0).ToList ();
-      ToolingsHead2 = ToolingScopes.Select (ts => ts.Tooling).Where (ts => ts.Head == 1).ToList ();
+      ToolingsHead1 = [.. ToolingScopes.Select(ts => ts.Tooling).Where(ts => ts.Head == 0)];
+      ToolingsHead2 = [.. ToolingScopes.Select(ts => ts.Tooling).Where(ts => ts.Head == 1)];
    }
    public CutScope CutScope { get; set; }
    public GCodeGenerator GCGen { get; set; }
@@ -70,7 +70,7 @@ public class MachinableCutScope {
    public List<ToolingScope> ToolingScopesH1 { get; private set; }
    public List<ToolingScope> ToolingScopesH2 { get; private set; }
    public static List<MachinableCutScope> CreateMachinableCutScopes (List<CutScope> css, GCodeGenerator gcGen) {
-      return css.Select (cs => new MachinableCutScope (cs, gcGen)).ToList ();
+      return [.. css.Select(cs => new MachinableCutScope(cs, gcGen))];
    }
    public Bound3 Bound { get; private set; }
    //public List<Tooling> ToolingsHead1 () {
@@ -100,6 +100,10 @@ internal static class Extensions {
 
    public static Point3 Subtract(this Point3 val, Point3 sub) {
       Point3 pt = new (val.X - sub.X, val.Y - sub.Y, val.Z - sub.Z);
+      return pt;
+   }
+   public static Point2 Subtract (this Point2 val, Point2 sub) {
+      Point2 pt = new (val.X - sub.X, val.Y - sub.Y);
       return pt;
    }
 }
