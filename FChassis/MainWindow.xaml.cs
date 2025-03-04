@@ -147,6 +147,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       joinWindow.joinWndVM.EvLoadPart += LoadPart;
 
       joinWindow.ShowDialog ();
+      joinWindow.Dispose ();
    }
 
    void OnMirrorAndJoinedFileSaved (string savedDirectory) {
@@ -197,9 +198,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnAboutClick (object sender, RoutedEventArgs e) {
-      About aboutWindow = new () {
+      AboutWindow aboutWindow = new () {
          Owner = this 
       };
+      aboutWindow.InitializeComponent ();
       aboutWindow.ShowDialog ();
    }
 

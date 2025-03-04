@@ -169,6 +169,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       // Ensure the dialog is opened on the UI thread
       int resVal = Application.Current.Dispatcher.Invoke (() => {
          JoinResult joinResultDialog = new ();
+         joinResultDialog.InitializeComponent ();
          bool? dialogResult = joinResultDialog.ShowDialog ();
 
          int res = 1;
@@ -192,6 +193,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
                   return 0;
             }
          }
+         joinResultDialog.Close ();
          return res;
       });
       return resVal;
