@@ -1,5 +1,4 @@
 ﻿using Microsoft.Win32;
-
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -7,11 +6,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
-
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
-using FChassis.IGES;
 
 namespace FChassis.VM;
 
@@ -22,90 +19,112 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    public event Action EvRequestCloseWindow;
    #endregion
 
-   #region Property
-   [ObservableProperty]  string modelFileName = "";
-   [ObservableProperty] string joinedFileName = "";
-   [ObservableProperty]  BitmapImage thumbnailBitmap;
+   #region Properties
+   [ObservableProperty]
+   private string _part1FileName = "";
+
+   [ObservableProperty]
+   private string _part2FileName = "";
+
+   [ObservableProperty]
+   private string _joinedFileName = "";
+
+   [ObservableProperty]
+   private BitmapImage _thumbnailBitmap;
    #endregion
 
    #region Fields
-   IGES.IGES iges;
-    bool disposed = false;
-   JoinResultVM.JoinResultOption mJoinResOpt = JoinResultVM.JoinResultOption.None;
+   private IGES.IGES _iges;
+   private bool _disposed = false;
+   private JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
    #endregion
 
    #region Commands
    [RelayCommand]
-    void Load () {
-      var fileName = getFilename (ModelFileName, "Select a Part File",
+   private void LoadPart1 () {
+      var fileName = GetFilename (Part1FileName, "Select a Part File",
                                 "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*");
       if (fileName == null) return;
 
-      ModelFileName = fileName;
-      action (loadPart).GetAwaiter ();
+      Part1FileName = fileName;
+      Action (() => LoadPart (0)).GetAwaiter ();
    }
 
    [RelayCommand]
-    void Flip180 () => action (flip180).GetAwaiter ();
+   private void LoadPart2 () {
+      var fileName = GetFilename (Part2FileName, "Select a Part File",
+                                "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*");
+      if (fileName == null) return;
+
+      Part2FileName = fileName;
+      Action (() => LoadPart (1)).GetAwaiter ();
+   }
 
    [RelayCommand]
-   async Task MirrorAndJoin (object parameter) {
-      await action (join); // Ensure join() completes before checking the result
+   private void FlipPart1By180 () => Action (() => Flip180Internal (0)).GetAwaiter ();
 
-      if (parameter is Window currentWindow && (mJoinResOpt == JoinResultVM.JoinResultOption.SaveAndOpen ||
-         mJoinResOpt == JoinResultVM.JoinResultOption.Cancel))
+   [RelayCommand]
+   private void FlipPart2By180 () => Action (() => Flip180Internal (1)).GetAwaiter ();
+
+   [RelayCommand]
+   private async Task Join (object parameter) {
+      await Action (Join); // Ensure Join() completes before checking the result
+
+      if (parameter is Window currentWindow && (_joinResOpt == JoinResultVM.JoinResultOption.SaveAndOpen ||
+         _joinResOpt == JoinResultVM.JoinResultOption.Cancel))
          currentWindow.Close ();
    }
    #endregion
 
    #region Initialization & Cleanup
    public bool Initialize () {
-      Debug.Assert (iges == null);
-      iges = new IGES.IGES ();
-      iges.Initialize ();
+      Debug.Assert (_iges == null);
+      _iges = new IGES.IGES ();
+      _iges.Initialize ();
       return true;
    }
 
    public bool Uninitialize () {
-      //Debug.Assert (iges != null);
-      if (iges != null) {
-         iges.Uninitialize ();
-         iges.Dispose ();
-         iges = null;
+      if (_iges != null) {
+         _iges.Uninitialize ();
+         _iges.Dispose ();
+         _iges = null;
       }
       return true;
    }
 
    public void Dispose () {
-      if (!disposed) {
-
+      if (!_disposed) {
          Uninitialize ();
-         disposed = true;
+         _disposed = true;
          GC.SuppressFinalize (this);
       }
    }
 
-   ~JoinWindowVM () {
-      Dispose ();
-   }
+   ~JoinWindowVM () => Dispose ();
    #endregion
 
    #region Methods
-    int loadPart () {
-      int errorNo;
+   int LoadPart (int pNo) {
+      if (_iges == null) return -1; // Ensure _iges is initialized
 
-      if (iges == null) return -1; // Ensure iges is initialized
-
+      int errorNo = 1;
       do {
-         int shapeType = 0;
+         //int shapeType = 0;
 
-         if ((errorNo = iges.LoadIGES (ModelFileName, shapeType)) != 0)
-            break;
+         if (pNo == 0) {
+            if ((errorNo = _iges.LoadIGES (Part1FileName, pNo)) != 0)
+               break;
+            if ((errorNo = _iges.AlignToXYPlane (pNo)) != 0)
+               break;
+         } else if (pNo == 1) {
+            if ((errorNo = _iges.LoadIGES (Part2FileName, pNo)) != 0)
+               break;
+            if ((errorNo = _iges.AlignToXYPlane (pNo)) != 0)
+               break;
+         } else break;
 
-         if ((errorNo = iges.AlignToXYPlane (shapeType)) != 0)
-            break;
-
-         convertCad2Image (false);
+         ConvertCadToImage (false, pNo);
       } while (false);
 
       if (errorNo != 0)
@@ -114,50 +133,61 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return errorNo;
    }
 
-    int flip180 () {
-      if (iges == null) return -1;
-      int errorNo = iges.RotatePartBy180AboutZAxis (0);
+   private int Flip180Internal (int pno) {
+      if (_iges == null) return -1;
+      int errorNo;
+      try {
+         errorNo = _iges.RotatePartBy180AboutZAxis (pno);
+      } catch (Exception ex) {
+         MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         return 1;
+      }
       if (errorNo == 0)
-         convertCad2Image (false);
+         ConvertCadToImage (false);
       return errorNo;
    }
 
-   int undoJoin () {
-      if (iges == null) return -1;
-      int errorNo = iges.UndoJoin ();
-      if (errorNo == 0)
-         convertCad2Image (false);
+   private int UndoJoin () {
+      int errorNo = 0;
+      if (_iges == null) return -1;
+      _iges.UndoJoin ();
       return errorNo;
    }
 
-   int join () {
-      if (iges == null) return -1;
-      int errorNo = iges.UnionShapes ();
+   private int Join () {
+      if (_iges == null) return -1;
+      int errorNo;
+      try {
+         errorNo = _iges.UnionShapes ();
+      } catch (Exception ex) {
+         MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         return 1;
+      }
       if (errorNo == 0)
-         convertCad2Image (true);
+         ConvertCadToImage (true);
 
       // Ensure the dialog is opened on the UI thread
       int resVal = Application.Current.Dispatcher.Invoke (() => {
          JoinResult joinResultDialog = new ();
          bool? dialogResult = joinResultDialog.ShowDialog ();
-         
+
          int res = 1;
          if (dialogResult == true) {
-            mJoinResOpt = joinResultDialog.joinResVM.Result;
+            _joinResOpt = joinResultDialog.joinResVM.Result;
 
-            switch (mJoinResOpt) {
+            switch (_joinResOpt) {
                case JoinResultVM.JoinResultOption.SaveAndOpen:
-                  res = joinSave ();
+                  res = JoinSave ();
                   if (res == 0)
                      OpenSavedFile ();
                   else return res;
                   break;
                case JoinResultVM.JoinResultOption.Save:
-                  res = joinSave ();
+                  res = JoinSave ();
                   break;
                case JoinResultVM.JoinResultOption.Cancel:
                case JoinResultVM.JoinResultOption.None:
-                  undoJoin ();
+                  UndoJoin ();
                   EvRequestCloseWindow?.Invoke ();
                   return 0;
             }
@@ -167,8 +197,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return resVal;
    }
 
-
-   void OpenSavedFile () {
+   private void OpenSavedFile () {
       if (!string.IsNullOrEmpty (JoinedFileName)) {
          try {
             EvLoadPart?.Invoke (JoinedFileName);
@@ -178,25 +207,25 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       }
    }
 
-   int joinSave () {
-      if (iges == null) return -1;
+   private int JoinSave () {
+      if (_iges == null) return -1;
       int errorNo = 0;
 
-      JoinedFileName = saveFilename (ModelFileName, "Select a Part File",
+      JoinedFileName = SaveFilename (Part1FileName, "Select a Part File",
           "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
           @"W:\FChassis\Sample");
 
       if (!string.IsNullOrEmpty (JoinedFileName)) {
-         errorNo = iges.SaveIGES (JoinedFileName, 2);
+         errorNo = _iges.SaveIGES (JoinedFileName, 2);
 
-         EvMirrorAndJoinedFileSaved?.Invoke (System.IO.Path.GetDirectoryName (JoinedFileName));
+         EvMirrorAndJoinedFileSaved?.Invoke (Path.GetDirectoryName (JoinedFileName));
       }
       return errorNo;
    }
    #endregion
 
    #region Helper Methods
-   async Task action (Func<int> func) {
+   private async Task Action (Func<int> func) {
       Mouse.OverrideCursor = Cursors.Wait;
       int errorNo = 0;
 
@@ -206,29 +235,31 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       Mouse.OverrideCursor = null;
    }
 
-    bool HandleIGESError (int errorNo) {
-      if (errorNo == 0 || iges == null) return false;
-
-      string message = null!;
-      iges.GetErrorMessage (out message);
-
-      MessageBox.Show (message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+   private bool HandleIGESError (int errorNo) {
+      if (errorNo == 0 || _iges == null) return false;
       return true;
    }
 
-    void convertCad2Image (bool fused) {
-      if (iges == null) return;
+   void ConvertCadToImage (bool fused, int pno = -1) {
+      if (_iges == null) return;
       int width = 800, height = 600;
       byte[] imageData = null!;
-      int errorNo = fused ? iges.GetShape (2, width, height, ref imageData)  // 2 - Fused
-                          : iges.GetShape (0, width, height, ref imageData); // 0 - Left 
-      if (HandleIGESError (errorNo))
-         return;
+      int errorNoFused = 0, errorNoP1 = 0, errorNoP2 = 0;
+      if (fused)
+         errorNoFused = _iges.GetShape (2, width, height, ref imageData);
+      else {
+         errorNoP1 = _iges.GetShape (-1, width, height, ref imageData);
+      }
+
+      if (errorNoP1 == 0 && errorNoP2 == 0 && errorNoFused != 0) {
+         if (HandleIGESError (errorNoFused))
+            return;
+      }
 
       UpdateImage (width, height, imageData);
    }
 
-    void UpdateImage (int width, int height, byte[] imageStream) {
+   private void UpdateImage (int width, int height, byte[] imageStream) {
       if (imageStream == null || imageStream.Length == 0) return;
 
       WriteableBitmap bitmap = new (width, height, 96, 96, PixelFormats.Rgb24, null);
@@ -243,7 +274,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       ThumbnailBitmap = ConvertWriteableBitmapToBitmapImage (bitmap);
    }
 
-    BitmapImage ConvertWriteableBitmapToBitmapImage (WriteableBitmap wbm) {
+   private BitmapImage ConvertWriteableBitmapToBitmapImage (WriteableBitmap wbm) {
       BitmapImage bmImage = new ();
       using (MemoryStream stream = new ()) {
          PngBitmapEncoder encoder = new ();
@@ -258,27 +289,27 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return bmImage;
    }
 
-#nullable enable
-   string? getFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
-                              bool multiselect = false, string? initialFolder = null) {
+   private string GetFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
+                              bool multiselect = false, string initialFolder = null) {
       OpenFileDialog openDlg = new () {
-         Title = title, Filter = filter, Multiselect = multiselect,
+         Title = title,
+         Filter = filter,
+         Multiselect = multiselect,
          InitialDirectory = initialFolder ?? @"W:\FChassis\Sample",
          FileName = fileName
       };
       return openDlg.ShowDialog () == true ? openDlg.FileName : null;
    }
 
-   string? saveFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
-                              string? initialFolder = null) {
+   private string SaveFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
+                               string initialFolder = null) {
       SaveFileDialog saveDlg = new () {
-         Title = title, Filter = filter,
+         Title = title,
+         Filter = filter,
          InitialDirectory = initialFolder ?? @"W:\FChassis\Sample",
          FileName = fileName
       };
       return saveDlg.ShowDialog () == true ? saveDlg.FileName : null;
    }
-#nullable restore
    #endregion
 }
-

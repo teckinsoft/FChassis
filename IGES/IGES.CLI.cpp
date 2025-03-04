@@ -12,18 +12,6 @@ extern "C" void CleanupTCL(); //Allows C++/CLI to call it
 
 namespace FChassis::IGES {
 
-   //IGES::IGES()
-   //   : pPriv(nullptr) // Initialize the shape pointer
-   //{}
-   //
-   //IGES::~IGES() {
-   //   // Clean up the unmanaged TopoDS_Shape instance
-   //   if (this->pPriv != nullptr) {
-   //      delete this->pPriv;
-   //      this->pPriv = nullptr;
-   //   }
-   //}
-
    IGES::IGES() : pPriv(nullptr) {
       _putenv("CSF_TclLib=C:\\FluxSDK\\bin\\tcl86.dll");
       _putenv("CSF_TkLib=C:\\FluxSDK\\bin\\tk86.dll");
@@ -50,10 +38,6 @@ namespace FChassis::IGES {
    }
 
    void IGES::Uninitialize() {
-      /*if (pPriv) {
-         delete pPriv;
-         pPriv = nullptr;
-      }*/
       this->!IGES();
    }
 
@@ -71,29 +55,23 @@ namespace FChassis::IGES {
       this->pPriv->PerformZoomAndRender(false);
    }
 
-   //void IGES::Initialize() {
-   //   assert(this->pPriv == nullptr);
-   //   if (this->pPriv == nullptr)
-   //      this->pPriv = new IGESNative();
-   //}
-
-   //void IGES::Uninitialize() {
-   //   /*assert(this->pPriv != nullptr);
-   //   if (this->pPriv != nullptr) {
-   //      delete this->pPriv;
-   //      this->pPriv = nullptr;
-   //   }*/
-   //   if (this->pPriv) {
-   //      delete this->pPriv;
-   //      this->pPriv = nullptr;
-   //   }
-   //}
-
    int IGES::LoadIGES(System::String^ filePath, int order) {
       assert(this->pPriv);
 
       std::string stdFilePath = msclr::interop::marshal_as<std::string>(filePath);
-      return this->pPriv->LoadIGES(stdFilePath, order);
+      try {
+         this->pPriv->LoadIGES(stdFilePath, order);
+      }
+      catch (const InputIGESFileCorruptException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const std::exception& ex) { // Catch other standard exceptions
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+      }
+      return 0;
    }
 
    int IGES::SaveIGES(System::String^ filePath, int order) {
@@ -112,7 +90,19 @@ namespace FChassis::IGES {
 
    int IGES::UnionShapes() {
       assert(this->pPriv);
-      return pPriv->UnionShapes();
+      try {
+         pPriv->UnionShapes();
+      }
+      catch (const NoPartLoadedException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const std::exception& ex) { // Catch other standard exceptions
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+      }
+      return 0;
    }
 
    int IGES::AlignToXYPlane(int order) {
@@ -125,13 +115,25 @@ namespace FChassis::IGES {
       this->pPriv->Redraw();
    }
 
-   int IGES::RotatePartBy180AboutZAxis(int order) {
+   int IGES::RotatePartBy180AboutZAxis(int pno) {
       assert(this->pPriv);
-      int errorNo = this->pPriv->RotatePartBy180AboutZAxis(order);
-      if (0 == errorNo)
-         this->Redraw();
 
-      return errorNo;
+      try {
+         int errorNo = this->pPriv->RotatePartBy180AboutZAxis(pno);
+         if (0 == errorNo)
+            this->Redraw();
+
+         return errorNo;
+      }
+      catch (const NoPartLoadedException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const std::exception& ex) { // Catch other standard exceptions
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+      }
    }
 
    int IGES::UndoJoin() {
@@ -143,19 +145,14 @@ namespace FChassis::IGES {
    }
 
    int IGES::GetShape(int shapeType, int width, int height, array<unsigned char>^% rData) {
-      assert(this->pPriv);
-
-      // Call the native RenderToPNG method
       std::vector<unsigned char> pngData;
       int errorNo = this->pPriv->GetShape(pngData, shapeType, width, height);
-      if (0 != errorNo)
-         return errorNo;
 
-      // Create a managed byte array and populate it
-      rData = gcnew array<unsigned char>(static_cast<int>(pngData.size()));
-      for (int i = 0; i < (int)pngData.size(); ++i)
+      // Marshal native data to managed array
+      rData = gcnew array<unsigned char>(pngData.size());
+      for (int i = 0; i < pngData.size(); ++i)
          rData[i] = pngData[i];
 
       return errorNo;
    }
-} // namespace IGES
+} 

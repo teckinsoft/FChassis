@@ -31,4 +31,4 @@ namespace FChassis::IGES {
       private:
       IGESNative* pPriv = nullptr;
    };
-} // namespace FChassis::IGES
+}

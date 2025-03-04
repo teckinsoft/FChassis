@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FChassis"
         mc:Ignorable="d"
         WindowState="Maximized"
-        Title="MainWindow" Height="450" Width="800" 
+        Title="FChassis" Height="450" Width="800" 
         Loaded="OnWindowLoaded">
     <Window.Resources>
         <local:SimulationStatusToVisibilityConverter x:Key="SimulationStatusToVisibilityConverter" />
@@ -33,13 +33,16 @@
             <MenuItem Header="Files">
                 <MenuItem Header="Open File" Click="OnMenuFileOpen"/>
                 <MenuItem Header="Open Folder" Click="OnMenuDirOpen"/>
-                <MenuItem Header="Mirror and Join" Click="OnMirrorAndJoin"/>
+                <MenuItem Header="Join" Click="OnMirrorAndJoin"/>
                 <MenuItem Header="Save" Click= "OnMenuFileSave"/>
                 <MenuItem Header="Close" Click="OnFileClose"/>
             </MenuItem>
             <MenuItem Header="Options">
                 <MenuItem Header="Settings" Click="OnSettings"/>
                 <MenuItem x:Name="SanityCheckMenuItem" Header="Sanity Check" Click="OnSanityCheck" Visibility="Collapsed"/>
+            </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem Header="About" Click="OnAboutClick"/>
             </MenuItem>
         </Menu>
         <DockPanel DockPanel.Dock="Left">

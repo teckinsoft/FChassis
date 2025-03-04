@@ -166,16 +166,20 @@ void IGESNative::Cleanup() {
 }
 
 // File handling
-int IGESNative::LoadIGES(const std::string& filePath, int shapeType /*= 0*/) {
+int IGESNative::LoadIGES(const std::string& filePath, int pNo /*= 0*/) {
    g_Status.errorNo = IGESStatus::NoError;
 
    IGESControl_Reader reader;
    if (!reader.ReadFile(filePath.c_str()))
-      return g_Status.SetError(IGESStatus::FileReadFailed, "IGES File Read failed");
+      throw InputIGESFileCorruptException(filePath);
 
    reader.TransferRoots();
    TopoDS_Shape shape = TopoDS_Shape(reader.OneShape());
-   this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
+   this->pShape->SetShape((IGESShapePimpl::ShapeType)pNo, shape);
+
+   // Any lew loading of Part 1 or 2, fused part should be set to null
+   shape.Nullify();
+   this->pShape->SetShape((IGESShapePimpl::ShapeType::Fused), shape);
 
    return g_Status.errorNo;
 }
@@ -229,21 +233,6 @@ int IGESNative::getShape(TopoDS_Shape& shape, int shapeType) {
    assert(shapeType >= (int)IGESShapePimpl::ShapeType::Left && shapeType <= (int)IGESShapePimpl::ShapeType::Fused);
    shape = this->pShape->GetShape((IGESShapePimpl::ShapeType)shapeType);;
 
-   if (shape.IsNull()) {
-      const char* msg = "No Left Shape is loaded";
-      switch (shapeType)
-      {
-      case 1:
-         msg = "No Right Shape is loaded";
-         break;
-
-      case 2:
-         msg = "No Fused Shape is loaded";
-      }
-
-      return g_Status.SetError(IGESStatus::ShapeError, msg);
-   }
-
    return g_Status.errorNo;
 }
 
@@ -253,10 +242,13 @@ int IGESNative::UndoJoin() {
 }
 
 // Geometry Process
-int IGESNative::AlignToXYPlane(int shapeType /*= 0*/) {
+int IGESNative::AlignToXYPlane(int pNo /*= 0*/) {
    TopoDS_Shape shape;
-   if (0 != this->getShape(shape, shapeType))
+   this->getShape(shape, pNo);
+   if (shape.IsNull()) {
+      g_Status.SetError(IGESStatus::ShapeError, "No shape to align");
       return g_Status.errorNo;
+   }
 
    double xmin, ymin, zmin, xmax, ymax, zmax;
    std::tie(xmin, ymin, zmin, xmax, ymax, zmax) = this->pShape->GetBBoxComp(shape);
@@ -318,14 +310,37 @@ int IGESNative::AlignToXYPlane(int shapeType /*= 0*/) {
       screwRotationAboutMidPart(shape, fromPt, xAxis, 180);
    }
 
-   this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
+   this->pShape->SetShape((IGESShapePimpl::ShapeType)pNo, shape);
+
+   // Translate the second part
+   TopoDS_Shape part1Shape, part2Shape;
+   this->getShape(part1Shape, (int)IGESShapePimpl::ShapeType::Left);
+   this->getShape(part2Shape, (int)IGESShapePimpl::ShapeType::Right);
+   if (!part1Shape.IsNull() && !part2Shape.IsNull()) {
+      // Compute the bounding box of the shape
+      std::tie(xmin, ymin, zmin, xmax, ymax, zmax) = this->pShape->GetBBoxComp(part1Shape);
+
+      // Calculate the translation value
+      double translationX = (xmax - xmin) - 0.5;
+
+      // Create a translation transformation
+      gp_Trsf translation;
+      translation.SetTranslation(gp_Vec(translationX, 0, 0)); // Translate along the X-axis
+
+      // Apply the transformation to the shape
+      BRepBuilderAPI_Transform shapeTransformer(part2Shape, translation, Standard_True); // Standard_True for copying the shape
+      part2Shape = shapeTransformer.Shape(); // Update the shape with the transformed shape
+      this->pShape->SetShape((IGESShapePimpl::ShapeType::Right), part2Shape);
+   }
    return g_Status.errorNo;
 }
 
 int IGESNative::RotatePartBy180AboutZAxis(int shapeType) {
    TopoDS_Shape shape;
-   if (0 != this->getShape(shape, shapeType))
-      return g_Status.errorNo;
+   this->getShape(shape, shapeType);
+   if (shape.IsNull()) {
+      throw NoPartLoadedException(shapeType);
+   }
 
    // Compute the bounding box of the shape
    auto [xmin, ymin, zmin, xmax, ymax, zmax] = this->pShape->GetBBoxComp(shape);
@@ -339,29 +354,26 @@ int IGESNative::RotatePartBy180AboutZAxis(int shapeType) {
 
    screwRotationAboutMidPart(shape, pt, parallelaxis, 180);
    this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
-   return this->AlignToXYPlane(shapeType);
+   return 0;
 }
 
 int IGESNative::UnionShapes() {
    g_Status.errorNo = IGESStatus::NoError;
 
    TopoDS_Shape leftShape;
-   if (0 != this->getShape(leftShape, (int)IGESShapePimpl::ShapeType::Left))
-      return g_Status.errorNo;
+   this->getShape(leftShape, (int)IGESShapePimpl::ShapeType::Left);
 
-   if (0 != this->mirror(leftShape))
-      return g_Status.errorNo;
-
-   TopoDS_Shape mirroredShape;
-   if (0 != this->getShape(mirroredShape, (int)IGESShapePimpl::ShapeType::Fused))
-      return g_Status.errorNo;
-
-   // Check if both shapes are solids
-   if (leftShape.ShapeType() != TopAbs_SOLID || mirroredShape.ShapeType() != TopAbs_SOLID)
-      return g_Status.SetError(IGESStatus::FuseError, "Union operation requires both shapes to be solids");
+   TopoDS_Shape rightShape;
+   this->getShape(rightShape, (int)IGESShapePimpl::ShapeType::Right);
+   if (leftShape.IsNull() && rightShape.IsNull())
+      throw NoPartLoadedException(2);
+   if (leftShape.IsNull())
+      throw NoPartLoadedException(0);
+   if (rightShape.IsNull())
+      throw NoPartLoadedException(1);
 
    // Perform the initial union operation
-   BRepAlgoAPI_Fuse fuser(leftShape, mirroredShape);
+   BRepAlgoAPI_Fuse fuser(leftShape, rightShape);
    fuser.Build();
 
    // Validate the fuse operation
@@ -374,7 +386,7 @@ int IGESNative::UnionShapes() {
       return g_Status.SetError(IGESStatus::FuseError, "Fused shape is null after the initial union operation");
 
    // Call the function to handle intersecting bounding curves
-   double tolerance = 1e-2; // Adjust the tolerance as needed
+   double tolerance = 1e-1; // Adjust the tolerance as needed
    this->handleIntersectingBoundingCurves(fusedShape, tolerance);
 
    // Check for multiple connected components
@@ -745,9 +757,8 @@ void IGESNative::ZoomIn()
    }
 
    Handle(V3d_View) view = this->pShape->GetActiveViews().First();
-   if (view.IsNull()) {
+   if (view.IsNull())
       throw std::runtime_error("Active view is not initialized.");
-   }
 
    // Get the view dimensions
    Standard_Integer width, height;
@@ -801,7 +812,7 @@ static void _addShape(Handle(AIS_InteractiveContext) context,
    BRepBndLib::Add(shape, combinedBoundingBox);
 }
 
-int IGESNative::GetShape(std::vector<unsigned char>& rData, int shapeType,
+int IGESNative::GetShape(std::vector<unsigned char>& rData, int pNo,
    int width, const int height,
    bool save /*= false*/)
 {
@@ -832,22 +843,35 @@ int IGESNative::GetShape(std::vector<unsigned char>& rData, int shapeType,
    Bnd_Box combinedBoundingBox;
 
    TopoDS_Shape fusedShape;
-   if (shapeType == (int)IGESShapePimpl::ShapeType::Fused) {
+   if (pNo == (int)IGESShapePimpl::ShapeType::Fused) {
       TopoDS_Shape fusedShape;
-      if (0 != this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused))
+      this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused);
+      if (fusedShape.IsNull()) {
+         g_Status.SetError(IGESStatus::FuseError, "No fused shapes. Fuse left and right shapes first");
          return g_Status.errorNo;
-
+      }
       _addShape(context, combinedBoundingBox, fusedShape);
    }
    else {
       std::vector<unsigned char> res;
-      TopoDS_Shape leftShape;
-      if (0 != this->getShape(leftShape, (int)IGESShapePimpl::ShapeType::Left)
-         && 0 != this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused))
-         return g_Status.errorNo;
-
-      _addShape(context, combinedBoundingBox, leftShape);
-      _addShape(context, combinedBoundingBox, fusedShape);
+      TopoDS_Shape leftShape, rightShape;
+      if (pNo == 2) {
+         this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused);
+         if (fusedShape.IsNull())
+            _addShape(context, combinedBoundingBox, fusedShape);
+         else {
+            g_Status.SetError(IGESStatus::FuseError, "fused shapes.Fuse left and right shapes first");
+            return g_Status.errorNo;
+         }
+      }
+      else {
+         this->getShape(leftShape, (int)IGESShapePimpl::ShapeType::Left);
+         if (!leftShape.IsNull())
+            _addShape(context, combinedBoundingBox, leftShape);
+         this->getShape(rightShape, (int)IGESShapePimpl::ShapeType::Right);
+         if (!rightShape.IsNull())
+            _addShape(context, combinedBoundingBox, rightShape);
+      }
    }
 
    // Check if the bounding box is valid

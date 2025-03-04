@@ -57,9 +57,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       var fxFiles = new List<string> ();
       if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals ("FX")) {
          // Get FX files if the environment variable is set to "FX"
-         fxFiles = System.IO.Directory.GetFiles (dir, "*.fx")
-                                       .Select (System.IO.Path.GetFileName)
-                                       .ToList ();
+         fxFiles = [.. System.IO.Directory.GetFiles (dir, "*.fx").Select (System.IO.Path.GetFileName)];
       }
 
       // Get IGES and IGS files
@@ -98,9 +96,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnProcessPropertyChanged (object sender, PropertyChangedEventArgs e) {
-      if (e.PropertyName == nameof (ProcessSimulator.SimulationStatus)) {
+      if (e.PropertyName == nameof (ProcessSimulator.SimulationStatus))
          OnPropertyChanged (nameof (SimulationStatus));
-      }
    }
 
    void OnMenuFileOpen (object sender, RoutedEventArgs e) {
@@ -197,6 +194,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       mSetDlg = new (MCSettings.It);
       mSetDlg.OnOkAction += SaveSettings;
       mSetDlg.ShowDialog ();
+   }
+
+   void OnAboutClick (object sender, RoutedEventArgs e) {
+      About aboutWindow = new () {
+         Owner = this 
+      };
+      aboutWindow.ShowDialog ();
    }
 
    void OnWindowLoaded (object sender, RoutedEventArgs e) {

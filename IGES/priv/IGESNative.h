@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <string>
 #include <vector>
+#include <exception>
 
 // Declare CleanupTCL() as an external function
 extern "C" void CleanupTCL(); 
@@ -11,6 +12,40 @@ class TCollection_AsciiString;
 class IGESShapePimpl;
 class gp_Pnt;
 class gp_Dir;
+
+// Specialized Exceptions
+class NoPartLoadedException : public std::exception {
+   private:
+   int _pNo;
+   std::string _message;
+
+   public:
+   NoPartLoadedException(int pno) noexcept : _pNo(pno+1) {
+      if (_pNo ==1 || _pNo == 2 )
+         _message = "No Part " + std::to_string(_pNo) + " is loaded";
+      else if ( _pNo == 3 )
+         _message = "No Parts loaded";
+   }
+
+   const char* what() const noexcept override {
+      return _message.c_str();
+   }
+};
+
+class InputIGESFileCorruptException : public std::exception {
+   private:
+   std::string _filename;
+   std::string _message;
+
+   public:
+   InputIGESFileCorruptException(std::string filename) noexcept : _filename(filename) {
+      _message = "File " + _filename  + " is corrupt";
+   }
+
+   const char* what() const noexcept override {
+      return _message.c_str();
+   }
+};
 
 class IGESStatus {
    public:
@@ -34,6 +69,10 @@ class IGESStatus {
    /// -------------------------------------------
    int errorNo = 0;
    std::string error;
+   void ClearError() {
+      errorNo = NoError;
+      error = "";
+   }
 };
 
 static IGESStatus g_Status;
