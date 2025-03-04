@@ -492,11 +492,11 @@ public class CutScope {
             mToolingScopesIntersectReverse.Add (ii);
       }
       var csc = this;
-      mHolesWithin = mToolingScopesWithin.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsHole ()).ToList ();
-      mNotchesWithin = mToolingScopesWithin.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsNotch ()).ToList ();
-      mHolesIntersect = mToolingScopesIntersect.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsHole ()).ToList ();
-      mNotchesIntersect = mToolingScopesIntersect.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsNotch ()).ToList ();
-      mHolesIntersectFwd = mToolingScopesIntersectForward.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsHole ()).ToList ();
+      mHolesWithin = [.. mToolingScopesWithin.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsHole())];
+      mNotchesWithin = [.. mToolingScopesWithin.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsNotch())];
+      mHolesIntersect = [.. mToolingScopesIntersect.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsHole())];
+      mNotchesIntersect = [.. mToolingScopesIntersect.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsNotch())];
+      mHolesIntersectFwd = [.. mToolingScopesIntersectForward.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsHole())];
    }
 
    public List<int> NotchesIntersectIndices () => mNotchesIntersect;
@@ -797,7 +797,7 @@ public class MultiPassCuts {
          featsWithInIxs = [.. cs.mToolingScopesWithin.OrderBy (tsix => tss[tsix].StartX)];
       else
          featsWithInIxs = [.. cs.mToolingScopesWithin.OrderByDescending (tsix => tss[tsix].StartX)];
-      featsWithInIxs = featsWithInIxs.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)).ToList ();
+      featsWithInIxs = [.. featsWithInIxs.Where(index => !cs.DeadBandScopeToolingIndices.Contains(index))];
       var featsWithIn = featsWithInIxs
           .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
                                                             //.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)) // Exclude deadband indices
@@ -982,11 +982,10 @@ public class MultiPassCuts {
 
             // Check if any notches are intersecting
             // Get the ixn notches
-            ixnNotchesIndxs = cs.mToolingScopesIntersectForward.Where (tsix => tss[tsix].IsNotch () && !tss[tsix].IsProcessed).ToList ();
-            List<ToolingScope> ixnNotches = ixnNotchesIndxs
+            ixnNotchesIndxs = [.. cs.mToolingScopesIntersectForward.Where(tsix => tss[tsix].IsNotch() && !tss[tsix].IsProcessed)];
+            List<ToolingScope> ixnNotches = [.. ixnNotchesIndxs
                .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
-               .Select (index => tss[index])
-               .ToList ();
+               .Select (index => tss[index])];
             if (ixnNotches.Count > 0) {
 
                // Split the Notch(es) that intersect the dead band area. This is a mandatory one and does
@@ -1187,10 +1186,10 @@ public class MultiPassCuts {
          // Get the list of tooling scopes which needs to be machined and set it to the CutScope
          List<int> tscWithinIdxs = [];
          if (mpc.mGC.Heads == MCSettings.EHeads.Both)
-            tscWithinIdxs = cs.mToolingScopesWithin.Where (tsix => tss[tsix].IsProcessed == false &&
-            !cs.DeadBandScopeToolingIndices.Contains (tsix)).ToList ();
+            tscWithinIdxs = [.. cs.mToolingScopesWithin.Where (tsix => tss[tsix].IsProcessed == false &&
+            !cs.DeadBandScopeToolingIndices.Contains (tsix))];
          else if (mpc.mGC.Heads == MCSettings.EHeads.Left || mpc.mGC.Heads == MCSettings.EHeads.Right)
-            tscWithinIdxs = cs.mToolingScopesWithin.Where (tsix => tss[tsix].IsProcessed == false).ToList ();
+            tscWithinIdxs = [.. cs.mToolingScopesWithin.Where(tsix => tss[tsix].IsProcessed == false)];
 
          if (tscWithinIdxs.Count > 0) {
             var toolingScopesToBeMachined = tscWithinIdxs
@@ -1226,10 +1225,10 @@ public class MultiPassCuts {
             // that has the lowest startX for left to right pass
             List<int> ixnFeatIdxs = [];
             if (mpc.mGC.Heads == MCSettings.EHeads.Both)
-               ixnFeatIdxs = cs.mToolingScopesIntersectForward.Where (tsix => !tss[tsix].IsProcessed &&
-               !cs.DeadBandScopeToolingIndices.Contains (tsix)).ToList ();
+               ixnFeatIdxs = [.. cs.mToolingScopesIntersectForward.Where (tsix => !tss[tsix].IsProcessed &&
+               !cs.DeadBandScopeToolingIndices.Contains (tsix))];
             else if (mpc.mGC.Heads == MCSettings.EHeads.Left || mpc.mGC.Heads == MCSettings.EHeads.Right)
-               ixnFeatIdxs = cs.mToolingScopesIntersectForward.Where (tsix => !tss[tsix].IsProcessed).ToList ();
+               ixnFeatIdxs = [.. cs.mToolingScopesIntersectForward.Where(tsix => !tss[tsix].IsProcessed)];
 
             if (ixnFeatIdxs.Count > 0) {
                var ixnFeats = ixnFeatIdxs

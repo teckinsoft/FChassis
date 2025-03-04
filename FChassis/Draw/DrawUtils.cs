@@ -46,7 +46,6 @@ public class ProcessSimulator (GenesysHub gHub, Dispatcher dsp) : INotifyPropert
    private int mCutScopeIndex = 0;
    private readonly object mCutScopeLockObject = new ();
    bool mIsZoomedToCutScope = false;
-   //List<List<GCodeSeg>> GenesysHub.Traces = [[], []];
    List<Tuple<Point3, Vector3>>[] mWayPoints = new List<Tuple<Point3, Vector3>>[2];
    #endregion
 
@@ -147,23 +146,7 @@ public class ProcessSimulator (GenesysHub gHub, Dispatcher dsp) : INotifyPropert
          GenesysHub.Traces[1] = GenesysHub.CutScopeTraces[0][1];
       }
    }
-   //public void SetCutScopeIndex (int value) {
-   //   lock (mCutScopeLockObject) {
-   //      mCutScopeIndex = value;
-   //   }
-   //}
-
-   //public int GetCutScopeIndex () {
-   //   lock (mCutScopeLockObject) {
-   //      return mCutScopeIndex;
-   //   }
-   //}
-   //public void IncrementCutScopeIndex () {
-   //   lock (mCutScopeLockObject) {
-   //      mCutScopeIndex++;
-   //   }
-   //}
-
+   
    void DrawToolSim (int head) {
       var mcCss = GenesysHub.GCodeGen.MachinableCutScopes;
       Bound3 bound = new ();

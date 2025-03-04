@@ -745,10 +745,8 @@ public class Geom {
             .Where ((p, index) => interPointsList.Take (index).All (p2 => p2.EQ (p) != true))
             .ToList ();
       distinctInterPoints.RemoveAll (p => p.EQ (curve.Start) == true || p.EQ (curve.End) == true);
-      if (curve is Arc3) return SplitArc (curve as Arc3, distinctInterPoints, deltaBetween, fpn, tolerance)
-            .Select (cr => (cr as Curve3)).ToList ();
-      else return SplitLine (curve as Line3, distinctInterPoints, deltaBetween)
-            .Select (cr => (cr as Curve3)).ToList ();
+      if (curve is Arc3) return [.. SplitArc (curve as Arc3, distinctInterPoints, deltaBetween, fpn, tolerance).Select (cr => (cr as Curve3))];
+      else return [.. SplitLine (curve as Line3, distinctInterPoints, deltaBetween).Select (cr => (cr as Curve3))];
    }
 
    /// <summary>
@@ -779,9 +777,8 @@ public class Geom {
             .Where ((p, index) => interPointsList.Take (index).All (p2 => p2.EQ (p) != true))
             .ToList ();
       distinctInterPoints.RemoveAll (p => p.EQ (curve.Start) == true || p.EQ (curve.End) == true);
-      if (curve is Arc3) return SplitArc (curve as Arc3, distinctInterPoints, deltaBetween, fpn)
-            .Select (cr => (cr as Curve3)).ToList ();
-      else return SplitLine (curve as Line3, distinctInterPoints, deltaBetween).Select (cr => (cr as Curve3)).ToList ();
+      if (curve is Arc3) return [.. SplitArc (curve as Arc3, distinctInterPoints, deltaBetween, fpn).Select (cr => (cr as Curve3))];
+      else return [.. SplitLine(curve as Line3, distinctInterPoints, deltaBetween).Select(cr => (cr as Curve3))];
    }
 
    /// <summary>
