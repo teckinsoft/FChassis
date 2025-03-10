@@ -13,9 +13,18 @@
 #include <BRep_Builder.hxx>
 #include <BRep_Tool.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <BRepClass3d_SolidClassifier.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_Sewing.hxx>
+#include <BRepBuilderAPI_Copy.hxx>
+
+#include <BOPAlgo_BOP.hxx>
+#include <BOPAlgo_Alerts.hxx>
+#include <Message_Report.hxx>
+#include <Message_Alert.hxx>
+#include <Message_Msg.hxx>
 
 #include <IGESControl_Reader.hxx>
 #include <IGESControl_Writer.hxx>
@@ -34,11 +43,9 @@
 #include <Bnd_Box.hxx>
 #include <V3d_Viewer.hxx>
 #include <V3d_View.hxx>
-#include <V3d_Viewer.hxx>
 
 #include <AIS_Shape.hxx>
 #include <AIS_InteractiveContext.hxx>
-#include <AIS_Shape.hxx>
 
 #include <Aspect_DisplayConnection.hxx>
 #include <Aspect_NeutralWindow.hxx>

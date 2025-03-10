@@ -7,7 +7,7 @@
 #include "./../OcctHeaders.h"
 
 #include "IGESNative.h"
-extern "C" void CleanupTCL() {
+extern "C" void CleanupOCCT() {
    try {
       // Properly unload Tcl/Tk resources before exiting
       Tcl_Finalize();
@@ -15,6 +15,150 @@ extern "C" void CleanupTCL() {
    catch (const std::exception) {}
    catch (...) {}
 }
+
+struct SurfaceInfo {
+   TopoDS_Face face;
+   double length; // Longest dimension (Xmax - Xmin)
+   double width;  // Shortest dimension
+};
+
+static class OCCTUtils {
+   public:
+
+   static TopoDS_Shape CopyShape(const TopoDS_Shape& originalShape) {
+      BRepBuilderAPI_Copy copier(originalShape);
+      return copier.Shape();
+   }
+
+   static TopoDS_Shape FixShape(const TopoDS_Shape& shape) {
+      Handle(ShapeFix_Shape) fixer = new ShapeFix_Shape(shape);
+      fixer->Perform();
+      return fixer->Shape();
+   }
+
+   static bool IsShapeValid(const TopoDS_Shape& shape) {
+      BRepCheck_Analyzer analyzer(shape);
+      return analyzer.IsValid();
+   }
+
+   static void PrintErrors(const Handle(Message_Report)& report) {
+      for (const Handle(Message_Alert)& alert : report->GetAlerts(Message_Gravity::Message_Fail))
+      {
+         if (!alert.IsNull())
+         {
+            Message_Msg msg = alert->GetMessageKey();
+            std::cout << "Error: " << msg.Get() << std::endl;
+         }
+      }
+   }
+
+   // Function to translate a shape along the X-axis
+   static TopoDS_Shape TranslateAlongX(const TopoDS_Shape& shape, double translation) {
+      gp_Trsf transform;
+      transform.SetTranslation(gp_Vec(translation, 0, 0));
+      BRepBuilderAPI_Transform transformer(shape, transform, true);
+      return transformer.Shape();
+   }
+
+   // Function to perform Boolean union using BOPAlgo_Builder
+   static TopoDS_Shape BooleanUnion(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) {
+      // Validate and repair the input shapes
+      TopoDS_Shape fixedShape1 = IsShapeValid(shape1) ? shape1 : FixShape(shape1);
+      TopoDS_Shape fixedShape2 = IsShapeValid(shape2) ? shape2 : FixShape(shape2);
+
+      // Perform the Boolean union
+      BOPAlgo_Builder bopBuilder;
+      bopBuilder.AddArgument(fixedShape1);
+      bopBuilder.AddArgument(fixedShape2);
+      bopBuilder.SetRunParallel(Standard_True);
+      bopBuilder.SetFuzzyValue(1e-5);
+      bopBuilder.Perform();
+
+      if (bopBuilder.HasErrors()) {
+         // Print error messages
+         std::cerr << "Boolean operation errors:" << std::endl;
+         bopBuilder.DumpErrors(std::cerr);
+
+         // Attempt to repair the shapes and retry the operation
+         TopoDS_Shape repairedShape1 = FixShape(fixedShape1);
+         TopoDS_Shape repairedShape2 = FixShape(fixedShape2);
+
+         BRep_Builder builder;
+         TopoDS_Compound compound;
+         builder.MakeCompound(compound);
+         builder.Add(compound, repairedShape1);
+         builder.Add(compound, repairedShape2);
+
+         BOPAlgo_Builder retryBuilder;
+         retryBuilder.AddArgument(compound);
+         retryBuilder.SetRunParallel(Standard_True);
+         retryBuilder.SetFuzzyValue(1e-5);
+         retryBuilder.Perform();
+
+         if (retryBuilder.HasErrors()) {
+            std::cerr << "Boolean union failed even after repair:" << std::endl;
+            retryBuilder.DumpErrors(std::cerr);
+            throw std::runtime_error("Boolean union failed even after repair.");
+         }
+
+         return retryBuilder.Shape();
+      }
+
+      return bopBuilder.Shape();
+   }
+
+   static double ShortestDistanceX(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) {
+      BRepExtrema_DistShapeShape distAlgo(shape1, shape2);
+      distAlgo.Perform();
+
+      if (!distAlgo.IsDone() || distAlgo.NbSolution() == 0)
+         throw std::runtime_error("Distance computation failed.");
+
+      double minXDist = std::numeric_limits<double>::max();
+
+      // Loop through all possible solutions and find the minimum distance along the X-axis
+      for (int i = 1; i <= distAlgo.NbSolution(); ++i) {
+         gp_Pnt p1 = distAlgo.PointOnShape1(i);
+         gp_Pnt p2 = distAlgo.PointOnShape2(i);
+
+         double dx = std::abs(p1.X() - p2.X()); // Compute X-axis distance
+
+         if (dx < minXDist) {
+            minXDist = dx;
+         }
+      }
+
+      return minXDist; // Returns the shortest distance along X-axis
+   }
+
+
+   // Function to merge two shapes along the X-axis
+   static TopoDS_Shape MergeShapesAlongX(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) {
+      // Check if the shapes are valid
+      if (shape1.IsNull() || shape2.IsNull()) {
+         throw std::runtime_error("One or both input shapes are null.");
+      }
+
+      // Try the Boolean union operation
+      TopoDS_Shape fusedShape = BooleanUnion(shape1, shape2);
+
+      if (!fusedShape.IsNull()) {
+         // If the union fails, translate shape2 and retry
+         double d = OCCTUtils::ShortestDistanceX(shape1, shape2);
+         TopoDS_Shape translatedShape2 = TranslateAlongX(shape2, -2.0 * d); // Translate by -1.0 mm along X-axis
+         fusedShape = BooleanUnion(shape1, translatedShape2);
+
+         if (fusedShape.IsNull()) {
+            throw std::runtime_error("Fusing input parts failed even after translation.");
+         }
+      }
+
+      // Fix the resulting shape
+      fusedShape = FixShape(fusedShape);
+
+      return fusedShape;
+   }
+};
 
 // Private implementation class ( forward declared in header )
 class IGESShapePimpl {
@@ -155,7 +299,7 @@ IGESNative::~IGESNative() {
    }
 
    //Ensure Tcl/Tk cleanup before exiting
-   CleanupTCL();
+   CleanupOCCT();
 }
 
 void IGESNative::Cleanup() {
@@ -321,7 +465,7 @@ int IGESNative::AlignToXYPlane(int pNo /*= 0*/) {
       std::tie(xmin, ymin, zmin, xmax, ymax, zmax) = this->pShape->GetBBoxComp(part1Shape);
 
       // Calculate the translation value
-      double translationX = (xmax - xmin) - 0.5;
+      double translationX = (xmax - xmin) - 1.0;
 
       // Create a translation transformation
       gp_Trsf translation;
@@ -332,28 +476,11 @@ int IGESNative::AlignToXYPlane(int pNo /*= 0*/) {
       part2Shape = shapeTransformer.Shape(); // Update the shape with the transformed shape
       this->pShape->SetShape((IGESShapePimpl::ShapeType::Right), part2Shape);
    }
-   return g_Status.errorNo;
+   return 0;
 }
 
 int IGESNative::RotatePartBy180AboutZAxis(int shapeType) {
-   TopoDS_Shape shape;
-   this->getShape(shape, shapeType);
-   if (shape.IsNull()) {
-      throw NoPartLoadedException(shapeType);
-   }
-
-   // Compute the bounding box of the shape
-   auto [xmin, ymin, zmin, xmax, ymax, zmax] = this->pShape->GetBBoxComp(shape);
-
-   // Calculate the midpoint of the bounding box in X and Y
-   double xMid = (xmax + xmin) / 2.0;
-   double yMid = (ymax + ymin) / 2.0;
-
-   auto pt = gp_Pnt(xMid, yMid, 0);
-   auto parallelaxis = gp_Dir(0, 0, 1);
-
-   screwRotationAboutMidPart(shape, pt, parallelaxis, 180);
-   this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
+   YawBy180(shapeType);
    return 0;
 }
 
@@ -376,14 +503,24 @@ int IGESNative::UnionShapes() {
    BRepAlgoAPI_Fuse fuser(leftShape, rightShape);
    fuser.Build();
 
-   // Validate the fuse operation
-   if (!fuser.IsDone())
-      return g_Status.SetError(IGESStatus::FuseError, "Initial Boolean union operation failed");
+   TopoDS_Shape fusedShape;
 
    // Retrieve the initial fused shape
-   TopoDS_Shape fusedShape = fuser.Shape();
-   if (fusedShape.IsNull())
-      return g_Status.SetError(IGESStatus::FuseError, "Fused shape is null after the initial union operation");
+   fusedShape = fuser.Shape();
+
+   // Validate the fuse operation
+   if (!fuser.IsDone() || fusedShape.IsNull())
+   {
+      // Try once again
+      fusedShape = OCCTUtils::MergeShapesAlongX(leftShape, rightShape);
+      if (fusedShape.IsNull())
+         throw FuseFailureException("Fusing input parts failed");
+      fusedShape = OCCTUtils::FixShape(fusedShape);
+      if (fusedShape.IsNull())
+         throw FuseFailureException("Fusing input parts failed");
+      pShape->SetShape(IGESShapePimpl::ShapeType::Fused, fusedShape);
+   }
+
 
    // Call the function to handle intersecting bounding curves
    double tolerance = 1e-1; // Adjust the tolerance as needed
@@ -571,25 +708,29 @@ bool IGESNative::doesVectorIntersectShape(const TopoDS_Shape& shape, const gp_Pn
    return false;
 }
 
-void IGESNative::handleIntersectingBoundingCurves(TopoDS_Shape& fusedShape, double tolerance) {
+void IGESNative::handleIntersectingBoundingCurves(TopoDS_Shape& shape, double tolerance) {
+   auto cpShape = OCCTUtils::CopyShape(shape);
+
    // Step 1: Sew gaps between surfaces
    BRepBuilderAPI_Sewing sewing(tolerance);
-   sewing.Add(fusedShape);
+   sewing.Add(cpShape);
    sewing.Perform();
    TopoDS_Shape sewedShape = sewing.SewedShape();
 
    // Step 2: Fuse surfaces to create a single solid
    BRepAlgoAPI_Fuse fuse(sewedShape, sewedShape); // Self-fuse
    fuse.Build();
-   fusedShape = fuse.Shape();
+   cpShape = fuse.Shape();
 
    // Step 3: Refine the shape to remove small edges
-   ShapeUpgrade_UnifySameDomain unify(fusedShape, Standard_True, Standard_True, Standard_False);
+   ShapeUpgrade_UnifySameDomain unify(cpShape, Standard_True, Standard_True, Standard_False);
    unify.Build();
-   fusedShape = unify.Shape();
+   cpShape = unify.Shape();
+   if (!OCCTUtils::IsShapeValid(cpShape))
+      return;
 
    // Step 1: Heal the shape to fix gaps and ensure continuity
-   Handle(ShapeFix_Shape) shapeFix = new ShapeFix_Shape(fusedShape);
+   Handle(ShapeFix_Shape) shapeFix = new ShapeFix_Shape(cpShape);
    shapeFix->SetPrecision(1e-3); // Set tolerance for fixing gaps
    shapeFix->Perform(); // Perform the healing operation
    TopoDS_Shape healedShape = shapeFix->Shape();
@@ -598,26 +739,7 @@ void IGESNative::handleIntersectingBoundingCurves(TopoDS_Shape& fusedShape, doub
    unify = ShapeUpgrade_UnifySameDomain(healedShape, Standard_True, Standard_True, Standard_False);
    unify.Build();
 
-   fusedShape = unify.Shape();
-}
-
-// ----------------------------------------------------------------------------------------
-struct SurfaceInfo {
-   TopoDS_Face face;
-   double length; // Longest dimension (Xmax - Xmin)
-   double width;  // Shortest dimension
-};
-
-// ----------------------------------------------------------------------------------------
-// Function to check if a face is a surface of revolution
-static bool isSurfaceOfRevolution(const TopoDS_Face& face) {
-   Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
-   if (surface.IsNull())
-      return false;
-
-   // Check if the surface is a surface of revolution
-   Handle(Geom_SurfaceOfRevolution) revSurface = Handle(Geom_SurfaceOfRevolution)::DownCast(surface);
-   return !revSurface.IsNull();
+   shape = unify.Shape();
 }
 
 // Function to compute the bounding box dimensions of a face
@@ -645,93 +767,6 @@ static int computeShortestDistance(const TopoDS_Face& face1, const TopoDS_Face& 
       return g_Status.SetError(IGESStatus::CalculationError, "Distance calculation failed");
 
    rShortestDistance = distCalc.Value(); // Returns the shortest distance
-   return g_Status.errorNo;
-}
-
-// Function to find two surface of revolutions with the longest lengths
-static int findClosestRevolutions(const TopoDS_Shape& shape, std::pair<SurfaceInfo, SurfaceInfo> rClosedRev, double tolerance = 1e-6) {
-   std::vector<SurfaceInfo> revolutions;
-
-   // Extract all faces from the shape
-   for (TopExp_Explorer explorer(shape, TopAbs_FACE); explorer.More(); explorer.Next()) {
-      TopoDS_Face face = TopoDS::Face(explorer.Current());
-
-      // Check if the face is a surface of revolution
-      if (isSurfaceOfRevolution(face)) {
-         // Compute bounding box dimensions
-         SurfaceInfo info = computeBoundingBox(face);
-         revolutions.push_back(info);
-      }
-   }
-
-   // Sort surfaces by their longest dimension (length)
-   std::sort(revolutions.begin(), revolutions.end(), [](const SurfaceInfo& a, const SurfaceInfo& b) {
-      return a.length > b.length;
-      });
-
-   // Ensure there are enough revolutions to process
-   if (revolutions.size() < 2)
-      return g_Status.SetError(IGESStatus::CalculationError,
-         "Not enough surfaces of revolution found");
-
-   // Find the first pair with a shortest distance of zero (within tolerance)
-   for (size_t i = 0; i < revolutions.size() - 1; ++i) {
-      for (size_t j = i + 1; j < revolutions.size(); ++j) {
-         const auto& rev1 = revolutions[i];
-         const auto& rev2 = revolutions[j];
-
-         // Compute the shortest distance between the two surfaces
-         double distance;
-         if (0 != computeShortestDistance(rev1.face, rev2.face, distance))
-            return g_Status.errorNo;
-
-         // Check if the distance is within the tolerance
-         if (distance <= tolerance) {
-            rClosedRev = { rev1, rev2 }; // First matching pair
-            return g_Status.errorNo;
-         }
-      }
-   }
-
-   return g_Status.SetError(IGESStatus::CalculationError,
-      "No matching surfaces of revolution found within the given tolerance");
-}
-
-// Function to sew two faces
-static TopoDS_Shape sewFaces(const TopoDS_Face& face1, const TopoDS_Face& face2, double tolerance) {
-   BRepBuilderAPI_Sewing sewing(tolerance);
-
-   // Add the faces to the sewing operation
-   sewing.Add(face1);
-   sewing.Add(face2);
-
-   // Perform sewing
-   sewing.Perform();
-
-   return sewing.SewedShape();
-}
-
-// Main function to process and stitch two revolutions
-static int processRevolutions(TopoDS_Shape& unionShape, const TopoDS_Shape& shape, double tolerance = 1e-6) {
-   // Step 1: Find the two longest surface of revolutions
-   std::pair<SurfaceInfo, SurfaceInfo> closedRev;
-   if (0 != findClosestRevolutions(shape, closedRev))
-      return g_Status.errorNo;
-
-   auto& [surf1, surf2] = closedRev;
-
-   // Step 2: Check if they are aligned along their width
-   if (std::abs(surf1.width - surf2.width) > tolerance)
-      return g_Status.SetError(IGESStatus::FileWriteFailed, "The two surfaces are not aligned along their width");
-
-   // Step 3: Sew the two surfaces together
-   TopoDS_Shape sewnShape = sewFaces(surf1.face, surf2.face, tolerance);
-
-   // Step 4: Unify the result (optional, to remove redundant edges)
-   ShapeUpgrade_UnifySameDomain unify(sewnShape, Standard_True, Standard_True, Standard_False);
-   unify.Build();
-
-   unionShape = unify.Shape();
    return g_Status.errorNo;
 }
 
@@ -913,4 +948,50 @@ int IGESNative::GetShape(std::vector<unsigned char>& rData, int pNo,
          std::remove(filename.ToCString());
    }
    return g_Status.errorNo;
+}
+
+// Rotate part about Z axis passing through center - Yaw 180
+int IGESNative::YawBy180(int shapeType) {
+   TopoDS_Shape shape;
+   this->getShape(shape, shapeType);
+   if (shape.IsNull()) {
+      throw NoPartLoadedException(shapeType);
+   }
+   RotatePartByAxis(shape, 180, EAxis::Z);
+   this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
+   return 0;
+}
+
+int IGESNative::RollBy180(int shapeType) {
+   TopoDS_Shape shape;
+   this->getShape(shape, shapeType);
+   if (shape.IsNull()) {
+      throw NoPartLoadedException(shapeType);
+   }
+   RotatePartByAxis(shape, 180, EAxis::X);
+   this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
+   return 0;
+}
+
+void IGESNative::RotatePartByAxis(TopoDS_Shape& shape, double deg, EAxis axis) {
+   // Compute the bounding box of the shape
+   auto [xmin, ymin, zmin, xmax, ymax, zmax] = this->pShape->GetBBoxComp(shape);
+
+   // Calculate the midpoint of the bounding box in X and Y
+   double xMid = (xmax + xmin) / 2.0;
+   double yMid = (ymax + ymin) / 2.0;
+   double zMid = (zmax + zmin) / 2.0;
+
+   gp_Pnt pt;
+   gp_Dir gpAxis;
+   if (axis == EAxis::Z) {
+      pt = gp_Pnt(xMid, yMid, 0);
+      gpAxis = gp_Dir(0, 0, 1);
+      screwRotationAboutMidPart(shape, pt, gpAxis, 180);
+   }
+   else if (axis == EAxis::X) {
+      pt = gp_Pnt(xMid, yMid, zMid);
+      gpAxis = gp_Dir(1, 0, 0);
+      screwRotationAboutMidPart(shape, pt, gpAxis, 180);
+   }
 }

@@ -7,8 +7,10 @@
 #include "IGES.CLI.h"
 
 using namespace System;
+using namespace System::Runtime::InteropServices;
+
 // Declare CleanupTCL() as an external function
-extern "C" void CleanupTCL(); //Allows C++/CLI to call it
+extern "C" void CleanupOCCT(); //Allows C++/CLI to call it
 
 namespace FChassis::IGES {
 
@@ -28,8 +30,8 @@ namespace FChassis::IGES {
          delete pPriv;
          pPriv = nullptr;
       }
-      //Call CleanupTCL() from native C++ layer
-      CleanupTCL();
+      //Call CleanupOCCT() from native C++ layer
+      CleanupOCCT();
    }
 
    void IGES::Initialize() {
@@ -38,7 +40,13 @@ namespace FChassis::IGES {
    }
 
    void IGES::Uninitialize() {
-      this->!IGES();
+      if (!pPriv) return;
+
+      pPriv->Cleanup();
+      delete pPriv;
+      pPriv = nullptr;
+
+      CleanupOCCT();
    }
 
    void IGES::GetErrorMessage([System::Runtime::InteropServices::Out] System::String^% message) {
@@ -56,20 +64,18 @@ namespace FChassis::IGES {
    }
 
    int IGES::LoadIGES(System::String^ filePath, int order) {
-      assert(this->pPriv);
+      if (!pPriv)
+         throw gcnew System::Exception("IGES engine not initialized.");
 
       std::string stdFilePath = msclr::interop::marshal_as<std::string>(filePath);
       try {
          this->pPriv->LoadIGES(stdFilePath, order);
       }
-      catch (const InputIGESFileCorruptException& ex) {
-         throw gcnew System::Exception(gcnew System::String(ex.what()));
-      }
-      catch (const std::exception& ex) { // Catch other standard exceptions
+      catch (const std::exception& ex) {
          throw gcnew System::Exception(gcnew System::String(ex.what()));
       }
       catch (...) {
-         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+         throw gcnew System::Exception("An unknown error occurred while loading the part.");
       }
       return 0;
    }
@@ -96,6 +102,9 @@ namespace FChassis::IGES {
       catch (const NoPartLoadedException& ex) {
          throw gcnew System::Exception(gcnew System::String(ex.what()));
       }
+      catch (const FuseFailureException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
       catch (const std::exception& ex) { // Catch other standard exceptions
          throw gcnew System::Exception(gcnew System::String(ex.what()));
       }
@@ -115,11 +124,32 @@ namespace FChassis::IGES {
       this->pPriv->Redraw();
    }
 
-   int IGES::RotatePartBy180AboutZAxis(int pno) {
+   int IGES::YawPartBy180(int pno) {
       assert(this->pPriv);
 
       try {
-         int errorNo = this->pPriv->RotatePartBy180AboutZAxis(pno);
+         int errorNo = this->pPriv->YawBy180(pno);
+         if (0 == errorNo)
+            this->Redraw();
+
+         return errorNo;
+      }
+      catch (const NoPartLoadedException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const std::exception& ex) { // Catch other standard exceptions
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+      }
+   }
+
+   int IGES::RollPartBy180(int pno) {
+      assert(this->pPriv);
+
+      try {
+         int errorNo = this->pPriv->RollBy180(pno);
          if (0 == errorNo)
             this->Redraw();
 
@@ -148,11 +178,14 @@ namespace FChassis::IGES {
       std::vector<unsigned char> pngData;
       int errorNo = this->pPriv->GetShape(pngData, shapeType, width, height);
 
-      // Marshal native data to managed array
+      if (errorNo != 0 || pngData.empty()) return errorNo;  // Handle errors
+
+      // Allocate managed array to hold the image data
       rData = gcnew array<unsigned char>(pngData.size());
-      for (int i = 0; i < pngData.size(); ++i)
-         rData[i] = pngData[i];
+
+      // Use Marshal::Copy to transfer data from native to managed memory
+      Marshal::Copy((IntPtr)pngData.data(), rData, 0, pngData.size());
 
       return errorNo;
    }
-} 
+}

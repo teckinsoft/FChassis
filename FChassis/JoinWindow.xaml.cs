@@ -3,9 +3,8 @@
 namespace FChassis;
 public partial class JoinWindow : Window, IDisposable {
    public VM.JoinWindowVM joinWndVM = new ();
-
    public JoinWindow () {
-      InitializeComponent (); // No need to call this manually in OnMirrorAndJoin()
+      InitializeComponent ();
 
       joinWndVM.Initialize ();
       this.DataContext = joinWndVM;
@@ -15,7 +14,7 @@ public partial class JoinWindow : Window, IDisposable {
    }
 
    void JoinWindow_Closing (object sender, System.ComponentModel.CancelEventArgs e) {
-      this.DialogResult = true; // Only useful if the window was shown as a dialog
+      this.DialogResult = true;
       Dispose (); // Ensure cleanup on window close
    }
 
@@ -25,13 +24,6 @@ public partial class JoinWindow : Window, IDisposable {
          joinWndVM.Uninitialize ();
          joinWndVM = null;
       }
-
-      // Unsubscribe from events
-      this.Closing -= JoinWindow_Closing;
-      if (joinWndVM != null) {
-         joinWndVM.EvRequestCloseWindow -= () => this.Close ();
-      }
-
       GC.SuppressFinalize (this);
    }
 

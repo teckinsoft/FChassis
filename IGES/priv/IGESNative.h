@@ -3,8 +3,8 @@
 #include <vector>
 #include <exception>
 
-// Declare CleanupTCL() as an external function
-extern "C" void CleanupTCL(); 
+// Declare CleanupOCCT() as an external function
+extern "C" void CleanupOCCT();
 
 // Forward declarations
 class TopoDS_Shape;
@@ -47,6 +47,24 @@ class InputIGESFileCorruptException : public std::exception {
    }
 };
 
+class FuseFailureException : public std::exception {
+   private:
+   std::string _message;
+
+   public:
+   FuseFailureException() noexcept {
+      _message = "Joining of the parts failed";
+   }
+
+   FuseFailureException(std::string str) noexcept :_message(str) {
+      _message = _message + " Joining of the parts failed";
+   }
+
+   const char* what() const noexcept override {
+      return _message.c_str();
+   }
+};
+
 class IGESStatus {
    public:
    enum Error {
@@ -79,6 +97,11 @@ static IGESStatus g_Status;
 
 class IGESNative {
    public:
+   public:
+   enum EAxis
+   {
+      X, Y, Z, None
+   };
    IGESNative();
    ~IGESNative();
    void Cleanup();
@@ -92,6 +115,9 @@ class IGESNative {
    int UnionShapes();
    int AlignToXYPlane(int shapeType = 0);
    int RotatePartBy180AboutZAxis(int shapeType);
+   int YawBy180(int shapeType);
+   int RollBy180(int shapeType);
+   void RotatePartByAxis(TopoDS_Shape& shape, double deg, EAxis axis);
    int UndoJoin();
    void PerformZoomAndRender(bool zoomIn);
 

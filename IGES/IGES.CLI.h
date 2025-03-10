@@ -20,9 +20,13 @@ namespace FChassis::IGES {
       int AlignToXYPlane(int shapeType);
 
       int GetShape(int shapeType, int width, int height, array<unsigned char>^% rData);
-      int RotatePartBy180AboutZAxis(int order);
+
+      int YawPartBy180(int order);
+      int RollPartBy180(int order);
+      
       void Redraw();
       int SaveAsIGS(System::String^ filePath);
+
       int UnionShapes();
       int UndoJoin();
 

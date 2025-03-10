@@ -61,10 +61,16 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    [RelayCommand]
-   private void FlipPart1By180 () => Action (() => Flip180Internal (0)).GetAwaiter ();
+   private void YawPart1By180 () => Action (() => YawBy180Internal (0)).GetAwaiter ();
 
    [RelayCommand]
-   private void FlipPart2By180 () => Action (() => Flip180Internal (1)).GetAwaiter ();
+   private void YawPart2By180 () => Action (() => YawBy180Internal (1)).GetAwaiter ();
+
+   [RelayCommand]
+   private void RollPart1By180 () => Action (() => RollBy180Internal (0)).GetAwaiter ();
+
+   [RelayCommand]
+   private void RollPart2By180 () => Action (() => RollBy180Internal (1)).GetAwaiter ();
 
    [RelayCommand]
    private async Task Join (object parameter) {
@@ -89,6 +95,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
          _iges.Uninitialize ();
          _iges.Dispose ();
          _iges = null;
+         GC.Collect ();  // Force garbage collection
+         GC.WaitForPendingFinalizers ();
       }
       return true;
    }
@@ -133,11 +141,25 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return errorNo;
    }
 
-   private int Flip180Internal (int pno) {
+   private int YawBy180Internal (int pno) {
       if (_iges == null) return -1;
       int errorNo;
       try {
-         errorNo = _iges.RotatePartBy180AboutZAxis (pno);
+         errorNo = _iges.YawPartBy180 (pno);
+      } catch (Exception ex) {
+         MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         return 1;
+      }
+      if (errorNo == 0)
+         ConvertCadToImage (false);
+      return errorNo;
+   }
+
+   private int RollBy180Internal (int pno) {
+      if (_iges == null) return -1;
+      int errorNo;
+      try {
+         errorNo = _iges.RollPartBy180 (pno);
       } catch (Exception ex) {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
