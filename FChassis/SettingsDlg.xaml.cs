@@ -20,7 +20,6 @@ public partial class SettingsDlg : Window {
 
    public SettingsDlg (MCSettings set) {
       InitializeComponent ();
-      SettingServices.It.LoadSettings (set);
       Bind (set);
       tbNotchWireJointDistance.TextChanged += TbNotchWireJointDistanceValueChanged;
    }

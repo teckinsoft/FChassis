@@ -193,13 +193,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void OnSettings (object sender, RoutedEventArgs e) {
       mSetDlg = new (MCSettings.It);
-      mSetDlg.OnOkAction += SaveSettings;
+      mSetDlg.OnOkAction += () => { if (mSetDlg.IsModified) SaveSettings(); };
       mSetDlg.ShowDialog ();
    }
 
    void OnAboutClick (object sender, RoutedEventArgs e) {
       AboutWindow aboutWindow = new () {
-         Owner = this 
+         Owner = this
       };
       aboutWindow.InitializeComponent ();
       aboutWindow.ShowDialog ();
