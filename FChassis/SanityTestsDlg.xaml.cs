@@ -1,18 +1,18 @@
-﻿using Microsoft.Win32;
-using System.Text.Json.Serialization;
+﻿using FChassis.Core;
+using FChassis.Core.Processes;
+using Microsoft.Win32;
+using System.ComponentModel;
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
-using System.IO;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
-using FChassis.Core.Processes;
-using FChassis.Core;
-
-namespace FChassis; 
+namespace FChassis;
 public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
    #region Constructor
    public SanityTestsDlg (GenesysHub genHub) {
@@ -48,11 +48,11 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       }
    }
 
-   public string FxFilePath { get; set; } = mDefaultFxFileDir;
+   public string FilePath { get; set; } = mDefaultFxFileDir;
    public string BaselineDir { get; set; } = mDefaultBaselineDir;
    public GenesysHub GenesysHub { get; set; }
    public SanityCheck SanityCheck { get; set; }
-   
+
    public List<SanityTestData> SanityTests { get; set; } = [];
    public List<bool> SanityTestResult { get; set; } = [];
    public string TestSuiteDir {
@@ -72,92 +72,25 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       SanityCheck = new (GenesysHub);
    }
 
-   void OnPropertyChanged ([CallerMemberName] string propertyName = null) 
+   void OnPropertyChanged ([CallerMemberName] string propertyName = null)
       => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
 
    void OnAddTestButtonClick (object sender, RoutedEventArgs e) {
       // Open file dialog to select a JSON file
       OpenFileDialog openFileDialog = new () {
-         Filter = "FX files (*.fx)|*.fx|All files (*.*)|*.*",
-         InitialDirectory = FxFilePath
+         Filter = "STEP Files (*.stp;*.step)|*.stp;*.step|IGS Files (*.igs;*.iges)|*.igs;*.iges|All files (*.*)|*.*",
+         InitialDirectory = FilePath
       };
 
       if (openFileDialog.ShowDialog () == true) {
          // Create Sanity test data object 
-         var sanityTestData = new SanityTestData ();
-         FxFilePath = System.IO.Path.GetDirectoryName (openFileDialog.FileName);
-
-         // Create a new row in the grid
-         int newRowIdx = MainGrid.RowDefinitions.Count;
-         MainGrid.RowDefinitions.Add (new RowDefinition { Height = GridLength.Auto });
-
-         // Add a CheckBox to the new row
-         CheckBox newCheckBox = new () {
-            Margin = new Thickness (5), IsChecked = true,
-            HorizontalAlignment = HorizontalAlignment.Center
+         var sanityTestData = new SanityTestData {
+            FxFileName = openFileDialog.FileName,
+            ToRun = true
          };
-
-         // If "Select All" is checked, check this new checkbox too
-         if (SelectAllCheckBox.IsChecked == true) {
-            newCheckBox.IsChecked = true;
-         }
-
-         Grid.SetRow (newCheckBox, newRowIdx);
-         newCheckBox.Checked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
-         newCheckBox.Unchecked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
-         Grid.SetColumn (newCheckBox, 0);
-         MainGrid.Children.Add (newCheckBox);
-         sanityTestData.ToRun = newCheckBox.IsChecked.Value;
-
-         // Add a TextBox to the new row to display the JSON file path
-         TextBox filePathTextBox = new () {
-            Margin = new Thickness (5),
-            Text = openFileDialog.FileName,
-            Width = 220
-         };
-
-         Grid.SetRow (filePathTextBox, newRowIdx);
-         Grid.SetColumn (filePathTextBox, 1);
-         MainGrid.Children.Add (filePathTextBox);
-         sanityTestData.FxFileName = openFileDialog.FileName;
-
-         // Add a "Browse" Button to the new row
-         Button browseButton = new () { Content = "Browse", Margin = new Thickness (5) };
-         browseButton.Click += (s, args) => OnSelectFxFileButtonClick (newRowIdx);
-         Grid.SetRow (browseButton, newRowIdx);
-         Grid.SetColumn (browseButton, 2);
-         MainGrid.Children.Add (browseButton);
-
-         // Add a "Settings" Button to the new row
-         Button settingsButton = new () { Content = "Settings", Margin = new Thickness (5) };
-         settingsButton.Click += (s, args) => OnClickSettingsButton (newRowIdx, sanityTestData);
-         Grid.SetRow (settingsButton, newRowIdx);
-         Grid.SetColumn (settingsButton, 3);
-         MainGrid.Children.Add (settingsButton);
-
-         // Add a "GCode" Button to the new row
-         Button gCodeButton = new () { Content = "Run", Margin = new Thickness (5) };
-         gCodeButton.Click += (s, args) => OnRunSingleTestClick (newRowIdx);
-         Grid.SetRow (gCodeButton, newRowIdx);
-         Grid.SetColumn (gCodeButton, 4);
-         MainGrid.Children.Add (gCodeButton);
-
-         // Add a "Diff" Button to the new row
-         Button diffButton = new () { Content = "Diff", Margin = new Thickness (5) };
-         diffButton.Click += (s, args) => OnDiffButtonClick (newRowIdx);
-         Grid.SetRow (diffButton, newRowIdx);
-         Grid.SetColumn (diffButton, 5);
-         MainGrid.Children.Add (diffButton);
-
-         var statusEllipse = CreateEllipseWidget (newRowIdx, 6);
-         MainGrid.Children.Add (statusEllipse);
-
-         // Cache the created controls
-         cachedControls.Add ((newCheckBox, filePathTextBox, browseButton, 
-                              settingsButton, gCodeButton, diffButton, 
-                              statusEllipse));
+         FilePath = System.IO.Path.GetDirectoryName (openFileDialog.FileName);
          SanityTests.Add (sanityTestData);
-
+         AddSanityTestRow (sanityTestData);
          // Mark as dirty since changes were made
          isDirty = true;
       }
@@ -173,18 +106,18 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
    void OnDeleteButtonClick (object sender, RoutedEventArgs e)
       => RemoveSanityTestRows ();
 
-   void OnSelectFxFileButtonClick (int rowIndex) {
+   void OnBrowseFileButtonClick (int rowIndex) {
       // Handle Browse button click for the given row index
       OpenFileDialog openFileDialog = new () {
-         Filter = "FX files (*.fx)|*.fx|All files (*.*)|*.*",
-         InitialDirectory = FxFilePath
+         Filter = "STEP Files (*.stp;*.step)|*.stp;*.step|FX Files (*.fx)|*.fx|IGS Files (*.igs;*.iges)|*.igs;*.iges|All files (*.*)|*.*",
+         InitialDirectory = FilePath
       };
 
       if (openFileDialog.ShowDialog () == true) {
-         FxFilePath = openFileDialog.FileName;
-         cachedControls[rowIndex - mNFixedTopRows].textBox.Text = FxFilePath;
+         FilePath = openFileDialog.FileName;
+         cachedControls[rowIndex - mNFixedTopRows].textBox.Text = FilePath;
          var sanityTst = SanityTests[rowIndex - mNFixedTopRows];
-         sanityTst.FxFileName = FxFilePath;
+         sanityTst.FxFileName = FilePath;
          SanityTests[rowIndex - mNFixedTopRows] = sanityTst;
       }
    }
@@ -197,7 +130,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
 
       SanityTests[controlIndex] = testData;
       bool anyNoRuns = cachedControls.Any (cc => cc.checkBox.IsChecked == false);
-      if (!anyNoRuns) 
+      if (!anyNoRuns)
          SelectAllCheckBox.IsChecked = true;
 
       isDirty = true;
@@ -215,67 +148,58 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          // Handle the OK action and update the SanityTestData with the updated settings
          sData.MCSettings = settingsDialog.Settings;
 
-         // Update the cached control if needed
-         cachedControls[rowIndex - mNFixedTopRows] = (cachedControls[rowIndex - mNFixedTopRows].checkBox,
-                                                      cachedControls[rowIndex - mNFixedTopRows].textBox,
-                                                      cachedControls[rowIndex - mNFixedTopRows].browseButton,
-                                                      cachedControls[rowIndex - mNFixedTopRows].settingsButton,
-                                                      cachedControls[rowIndex - mNFixedTopRows].gCodeButton,
-                                                      cachedControls[rowIndex - mNFixedTopRows].diffButton,
-                                                      cachedControls[rowIndex - mNFixedTopRows].statEllipse);
-         if (settingsDialog.IsModified && !string.IsNullOrEmpty (TestFileName))
-            //SaveToJson (TestFileName);
-            SanityTests[rowIndex - mNFixedTopRows] = sData;
+         if (settingsDialog.IsModified)
+            // Update the cached control if needed
+            cachedControls[rowIndex - mNFixedTopRows] = (cachedControls[rowIndex - mNFixedTopRows].checkBox,
+                                                         cachedControls[rowIndex - mNFixedTopRows].textBox,
+                                                         cachedControls[rowIndex - mNFixedTopRows].browseButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].settingsButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].gCodeButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].diffButton,
+                                                         cachedControls[rowIndex - mNFixedTopRows].statEllipse);
+         //SaveToJson (TestFileName);
+         SanityTests[rowIndex - mNFixedTopRows] = sData;
       };
 
       // Show the settings dialog
       settingsDialog.ShowDialog ();
    }
 
-   void OnCloseTSuiteButtonClick (object sender, RoutedEventArgs e) {
-      //SaveIfDirty ();
+   void OnCloseButtonClick (object sender, RoutedEventArgs e) {
+      SaveIfDirty ();
       RemoveSanityTestRows (onlySelected: false);
       this.Close ();
    }
 
-   void OnSaveTSuiteAsButtonClick (object sender, RoutedEventArgs e) {
-      if (SanityTests.Count == 0) 
-         return;
-
-      SaveFileDialog saveFileDialog = new () {
-         Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
-         InitialDirectory = TestSuiteDir
-      };
-
-      if (saveFileDialog.ShowDialog () == true) {
-         SaveToJson (saveFileDialog.FileName);
-         TestFileName = saveFileDialog.FileName;
-         this.Title = "Sanity Check " + TestFileName;
-         isDirty = false; // Reset the dirty flag after saving
-      }
-   }
-
    void OnRunSelectedTestsButtonClick (object sender, RoutedEventArgs e) {
+      Mouse.OverrideCursor = Cursors.Wait;
       mSelectedTestIndices.Clear ();
       List<SanityTestData> testDataList = [];
       for (int ii = 0; ii < SanityTests.Count; ii++) {
-         if (cachedControls[ii].checkBox.IsChecked == false) 
+         if (cachedControls[ii].checkBox.IsChecked == false)
             continue;
 
          testDataList.Add (SanityTests[ii]);
          mSelectedTestIndices.Add (ii);
       }
-
+      if (testDataList.Count == 0) {
+         MessageBox.Show ("Please select tests to run", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         Mouse.OverrideCursor = null;
+         return;
+      }
       var stats = RunTests (testDataList);
       UpdateRunStatus (mSelectedTestIndices, stats);
+      Mouse.OverrideCursor = null;
    }
 
    void OnRunSingleTestClick (int rowIndex) {
+      Mouse.OverrideCursor = Cursors.Wait;
       var testIndex = rowIndex - mNFixedTopRows;
       List<SanityTestData> testData = [SanityTests[testIndex]];
       mSelectedTestIndices = [testIndex];
       var stats = RunTests (testData, true);
       UpdateRunStatus (mSelectedTestIndices, stats);
+      Mouse.OverrideCursor = null;
    }
 
    void OnDiffButtonClick (int rowIndex) {
@@ -288,30 +212,8 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
    }
 
    void OnNewTSuiteButtonClick (object sender, RoutedEventArgs e) {
-      if (isDirty) {
-         MessageBoxResult result = MessageBox.Show ("Do you want to save before creating a new item?", "Save Confirmation",
-                                                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-
-         if (result == MessageBoxResult.Yes) {
-            // Show Save File Dialog
-            SaveFileDialog saveFileDialog = new () {
-               Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
-               InitialDirectory = TestSuiteDir
-            };
-
-            if (saveFileDialog.ShowDialog () == true) {
-               // Save logic here (not implemented)
-               // Assume successful save, proceed with removing rows
-               RemoveSanityTestRows (onlySelected: false);
-               SaveToJson (saveFileDialog.FileName);
-            }
-         } else if (result == MessageBoxResult.No) 
-            RemoveSanityTestRows (); // Proceed without saving
-
-         isDirty = false;
-      } else 
-         RemoveSanityTestRows ();
-
+      SaveIfDirty ();
+      RemoveSanityTestRows (onlySelected: false); // Proceed without saving
       ClearZombies ();
    }
 
@@ -341,7 +243,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnSaveTSuiteButtonClick (object sender, RoutedEventArgs e) {
+   void OnSaveButtonClick (object sender, RoutedEventArgs e) {
       if (!string.IsNullOrEmpty (TestFileName)) {
          SaveToJson (TestFileName);
          isDirty = false; // Reset the dirty flag after saving
@@ -353,8 +255,14 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
 
          if (saveFileDialog.ShowDialog () == true) {
             SaveToJson (saveFileDialog.FileName);
+            TestFileName = saveFileDialog.FileName;
+            this.Title = "Sanity Check " + TestFileName;
             isDirty = false; // Reset the dirty flag after saving
          }
+      }
+
+      if (SanityTests.Count == 0) {
+         MessageBox.Show ("No tests to save", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
       }
    }
    #endregion
@@ -408,8 +316,8 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
 
    void SaveIfDirty () {
       // If the test pres is modified and if the test was loaded (not cewly created)
-      if (isDirty && !string.IsNullOrEmpty (TestFileName)) {
-         MessageBoxResult result = MessageBox.Show ("Do you want to save before closing?", "Save Confirmation", 
+      if (isDirty) {
+         MessageBoxResult result = MessageBox.Show ("Do you want to save ?", "Save Confirmation",
                                                     MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
          if (result == MessageBoxResult.Yes) {
             // Show Save File Dialog
@@ -419,15 +327,11 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
             };
 
             if (saveFileDialog.ShowDialog () == true) {
-               // Save logic here (not implemented)
-               // Assume successful save, proceed with closing
                SaveToJson (saveFileDialog.FileName);
-               TestFileName = saveFileDialog.FileName;
-               this.Close ();
             }
-         } else if (result == MessageBoxResult.No) 
-            this.Close ();
+         }
       }
+      isDirty = false;
    }
 
    List<bool> RunTests (List<SanityTestData> testDataLst, bool forceRun = false) {
@@ -493,7 +397,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       File.WriteAllText (filePath, json);
    }
 
-   void LoadFromJson (string filePath) {
+   void LoadFromJson (string filePath, bool isTestBatch = false) {
       mJSONReadOptions ??= new JsonSerializerOptions {
          Converters = { new JsonStringEnumConverter () } // Converts Enums from their string representation
       };
@@ -502,10 +406,12 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          var json = File.ReadAllText (filePath);
          var jsonObject = JsonSerializer.Deserialize<JsonElement> (json, mJSONReadOptions);
 
-         if (jsonObject.TryGetProperty ("Tests", out JsonElement testsElement) 
+         if (jsonObject.TryGetProperty ("Tests", out JsonElement testsElement)
              && testsElement.ValueKind == JsonValueKind.Array) {
-            SanityTests.Clear ();
-            cachedControls.Clear ();
+            if (!isTestBatch) {
+               SanityTests.Clear ();
+               cachedControls.Clear ();
+            }
             foreach (var element in testsElement.EnumerateArray ()) {
                var sanityTestData = new SanityTestData ().LoadFromJsonElement (element);
                SanityTests.Add (sanityTestData);
@@ -519,7 +425,41 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       }
    }
 
+   void OnLoadTestBatchButtonClick (object sender, RoutedEventArgs e) {
+      SaveIfDirty ();
+      FileDialog fileDialog = new OpenFileDialog {
+         Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+         InitialDirectory = TestSuiteDir
+      };
+      if (fileDialog.ShowDialog () == true) {
+         RemoveSanityTestRows (onlySelected: false);
+         LoadFromJson (fileDialog.FileName);
+         TestFileName = fileDialog.FileName;
+         this.Title = "Sanity Checks Test Batch : " + TestFileName;
+      }
+   }
+
+   void OnCreateTestBatchButtonClick (object sender, RoutedEventArgs e) {
+      SaveIfDirty ();
+      FileDialog fileDialog = new OpenFileDialog {
+         Multiselect = true,
+         Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+         InitialDirectory = TestSuiteDir
+      };
+      if (fileDialog.ShowDialog () == true) {
+         RemoveSanityTestRows (onlySelected: false);
+         foreach (var file in fileDialog.FileNames) {
+            LoadFromJson (fileDialog.FileName, true);
+         }
+      }
+
+      if (fileDialog.FileNames.Length == 0) {
+         MessageBox.Show ("No files selected", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+      }
+   }
+
    void AddSanityTestRow (SanityTestData sanityTestData) {
+      // Create a new row in the grid
       int newRowIdx = MainGrid.RowDefinitions.Count;
       MainGrid.RowDefinitions.Add (new RowDefinition { Height = GridLength.Auto });
 
@@ -532,42 +472,43 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       if (!sanityTestData.ToRun && SelectAllCheckBox.IsChecked == true)
          SelectAllCheckBox.IsChecked = false;
 
-      newCheckBox.Checked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
-      newCheckBox.Unchecked += (s, args) => OnRunCheckBoxChangeStatus (newRowIdx - mNFixedTopRows);
       Grid.SetRow (newCheckBox, newRowIdx);
+      newCheckBox.Checked += (s, args) => OnRunCheckBoxChangeStatus (Grid.GetRow (newCheckBox) - mNFixedTopRows);
+      newCheckBox.Unchecked += (s, args) => OnRunCheckBoxChangeStatus (Grid.GetRow (newCheckBox) - mNFixedTopRows);
       Grid.SetColumn (newCheckBox, 0);
       MainGrid.Children.Add (newCheckBox);
 
       // Add a TextBox to the new row to display the JSON file path
-      var filePathTextBox = CreateTextBox (sanityTestData.FxFileName, 220);
+      TextBox filePathTextBox = CreateTextBox (sanityTestData.FxFileName, 220);
+
       Grid.SetRow (filePathTextBox, newRowIdx);
       Grid.SetColumn (filePathTextBox, 1);
       MainGrid.Children.Add (filePathTextBox);
 
       // Add a "Browse" Button to the new row
-      Button browseButton = new () { Content = "Browse", Margin = new Thickness (5, 5, 5, 5), Width = 60 };
-      browseButton.Click += (s, args) => OnSelectFxFileButtonClick (newRowIdx);
+      Button browseButton = new () { Content = "Browse", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      browseButton.Click += (s, args) => OnBrowseFileButtonClick (Grid.GetRow (browseButton));
       Grid.SetRow (browseButton, newRowIdx);
       Grid.SetColumn (browseButton, 2);
       MainGrid.Children.Add (browseButton);
 
       // Add a "Settings" Button to the new row
-      Button settingsButton = new () { Content = "Settings", Margin = new Thickness (5, 5, 5, 5), Width = 60 };
-      settingsButton.Click += (s, args) => OnClickSettingsButton (newRowIdx, sanityTestData);
+      Button settingsButton = new () { Content = "Settings", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      settingsButton.Click += (s, args) => OnClickSettingsButton (Grid.GetRow (settingsButton), sanityTestData);
       Grid.SetRow (settingsButton, newRowIdx);
       Grid.SetColumn (settingsButton, 3);
       MainGrid.Children.Add (settingsButton);
 
       // Add a "GCode" Button to the new row
-      Button gCodeButton = new () { Content = "Run", Margin = new Thickness (5, 5, 5, 5), Width = 60 };
-      gCodeButton.Click += (s, args) => OnRunSingleTestClick (newRowIdx);
+      Button gCodeButton = new () { Content = "Run", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      gCodeButton.Click += (s, args) => OnRunSingleTestClick (Grid.GetRow (gCodeButton));
       Grid.SetRow (gCodeButton, newRowIdx);
       Grid.SetColumn (gCodeButton, 4);
       MainGrid.Children.Add (gCodeButton);
 
       // Add a "Diff" Button to the new row
-      Button diffButton = new () { Content = "Diff", Margin = new Thickness (5, 5, 5, 5), Width = 60 };
-      diffButton.Click += (s, args) => OnDiffButtonClick (newRowIdx);
+      Button diffButton = new () { Content = "Diff", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      diffButton.Click += (s, args) => OnDiffButtonClick (Grid.GetRow (diffButton));
       Grid.SetRow (diffButton, newRowIdx);
       Grid.SetColumn (diffButton, 5);
       MainGrid.Children.Add (diffButton);
@@ -576,8 +517,9 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       MainGrid.Children.Add (statusEllipse);
 
       // Cache the created controls
-      cachedControls.Add ((newCheckBox, filePathTextBox, browseButton, 
-                           settingsButton, gCodeButton, diffButton, statusEllipse));
+      cachedControls.Add ((newCheckBox, filePathTextBox, browseButton,
+                           settingsButton, gCodeButton, diffButton,
+                           statusEllipse));
    }
    #endregion
 }
