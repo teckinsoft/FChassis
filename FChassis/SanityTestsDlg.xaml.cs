@@ -148,17 +148,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          // Handle the OK action and update the SanityTestData with the updated settings
          sData.MCSettings = settingsDialog.Settings;
 
-         if (settingsDialog.IsModified)
-            // Update the cached control if needed
-            cachedControls[rowIndex - mNFixedTopRows] = (cachedControls[rowIndex - mNFixedTopRows].checkBox,
-                                                         cachedControls[rowIndex - mNFixedTopRows].textBox,
-                                                         cachedControls[rowIndex - mNFixedTopRows].browseButton,
-                                                         cachedControls[rowIndex - mNFixedTopRows].settingsButton,
-                                                         cachedControls[rowIndex - mNFixedTopRows].gCodeButton,
-                                                         cachedControls[rowIndex - mNFixedTopRows].diffButton,
-                                                         cachedControls[rowIndex - mNFixedTopRows].statEllipse);
-         //SaveToJson (TestFileName);
-         SanityTests[rowIndex - mNFixedTopRows] = sData;
+         if (settingsDialog.IsModified) SanityTests[rowIndex - mNFixedTopRows] = sData;
       };
 
       // Show the settings dialog
@@ -208,6 +198,8 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          bool anyDiff = SanityCheck.Diff (BaselineDir, dataIndex, launchWinmerge: true);
          if (!anyDiff)
             MessageBox.Show ("There are no differences!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+      } else {
+         MessageBox.Show ("Please run the test before diff", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
       }
    }
 

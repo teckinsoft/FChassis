@@ -199,7 +199,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void OnAboutClick (object sender, RoutedEventArgs e) {
       AboutWindow aboutWindow = new () {
-         Owner = this 
+         Owner = this
       };
       aboutWindow.InitializeComponent ();
       aboutWindow.ShowDialog ();
