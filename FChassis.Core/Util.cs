@@ -800,9 +800,12 @@ public static class Utils {
       // in which the material removal side exists.
       var biNormal = Geom.Cross (toolingDir, toolingPlaneNormal).Normalized ();
       Vector3 scrapSideDirection = biNormal.Normalized ();
+
+      // The profile is clockwise
       if (profileKind == ECutKind.Top2YNeg && Geom.Cross (toolingDir, biNormal).IsSameSense (toolingPlaneNormal))
          scrapSideDirection = -biNormal;
-      else if (profileKind == ECutKind.Top2YPos && Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
+      // The profile is counter-clockwise
+      else if ((profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top) && Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
          scrapSideDirection = -biNormal;
 
       return scrapSideDirection;
