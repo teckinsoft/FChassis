@@ -148,8 +148,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          // Handle the OK action and update the SanityTestData with the updated settings
          sData.MCSettings = settingsDialog.Settings;
 
-         if (settingsDialog.IsModified)
-         SanityTests[rowIndex - mNFixedTopRows] = sData;
+         if (settingsDialog.IsModified) SanityTests[rowIndex - mNFixedTopRows] = sData;
       };
 
       // Show the settings dialog
