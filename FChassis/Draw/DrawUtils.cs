@@ -56,7 +56,7 @@ public class ProcessSimulator (GenesysHub gHub, Dispatcher dsp) : INotifyPropert
    public event TriggerRedrawDelegate TriggerRedraw;
    public event Action SimulationFinished;
    public event SetSimulationStatusDelegate SetSimulationStatus;
-   public event ZoomExtentsWithBound3Delegate zoomExtentsWithBound3Delegate;
+   public event ZoomExtentsWithBound3Delegate zoomExtentsWithBound3Delegate = null;
    public event PropertyChangedEventHandler PropertyChanged;
    protected void OnPropertyChanged (string propertyName) {
       PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));

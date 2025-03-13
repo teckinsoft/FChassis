@@ -100,7 +100,7 @@ public class Tooling {
 
       set { mSegs = value; }
    }
-
+   public Tooling RefTooling { get; set; } = null;
    Bound3? mBound3 = null;
    public double XMin { get => mBound3.Value.XMin; }
    public double XMax { get => mBound3.Value.XMax; }
