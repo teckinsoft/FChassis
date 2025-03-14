@@ -156,13 +156,22 @@ public class SanityCheck {
                    string baselineDINFileHead2, string testDINFileHead2,
                    bool launchWinmerge = false) {
       if (!System.IO.File.Exists (baselineDINFileHead1)
-            && System.IO.File.Exists (testDINFileHead1))
+            && System.IO.File.Exists (testDINFileHead1)) {
+         string directoryPath = Path.GetDirectoryName (baselineDINFileHead1);
+         if (!System.IO.Directory.Exists (directoryPath)) {
+            System.IO.Directory.CreateDirectory (directoryPath);
+         }
          System.IO.File.Copy (testDINFileHead1, baselineDINFileHead1);
+      }
 
       if (!System.IO.File.Exists (baselineDINFileHead2)
-          && System.IO.File.Exists (testDINFileHead2))
+            && System.IO.File.Exists (testDINFileHead2)) {
+         string directoryPath = Path.GetDirectoryName (baselineDINFileHead2);
+         if (!System.IO.Directory.Exists (directoryPath)) {
+            System.IO.Directory.CreateDirectory (directoryPath);
+         }
          System.IO.File.Copy (testDINFileHead2, baselineDINFileHead2);
-
+      }
       string reftextH1 = System.IO.File.ReadAllText (baselineDINFileHead1),
              testtextH1 = System.IO.File.ReadAllText (testDINFileHead1),
              reftextH2 = System.IO.File.ReadAllText (baselineDINFileHead2),
@@ -190,63 +199,45 @@ public class SanityCheck {
    bool DoDINCompare (string reference1, string testfile1, bool isHead1Changed, string reference2, string testfile2, bool isHead2Changed) {
       bool res = false;
       string winmergePath = IsFileComparerInstalled ();
-      
+
       if (!string.IsNullOrEmpty (winmergePath)) {
-         
+
          if (!System.IO.File.Exists (winmergePath))
             throw new Exception ("WINMERGE_NOT_INSTALLED");
          if (isHead1Changed) {
-            ProcessStartInfo startInfo = new () {
-               FileName = winmergePath,
-               Arguments = $"/e /u /dl \"Reference\" /dr \"Test\" \"{reference1}\" \"{testfile1}\"",
-               UseShellExecute = false,
-               RedirectStandardOutput = true,
-               CreateNoWindow = true
-            };
-
-            try {
-               using (Process process = Process.Start (startInfo)) {
-                  process.WaitForExit ();
-
-                  // WinMerge exit codes:
-                  // 0 = files are identical
-                  // 1 = files are different
-                  // 2 = files are identical, but binary is different (only if using a binary comparison)
-                  // -1 = error occurred
-                  int exitCode = process.ExitCode;
-                  res = exitCode == 1 || exitCode == 2 || exitCode == -1; // True if files differ
-               }
-            } catch (Exception) {
-               throw new Exception ("WINMERGE_LAUNCH_FAILED");
-            }
+            res |= LaunchWinMerge (winmergePath, reference1, testfile1);
          }
-
          if (isHead2Changed) {
-            ProcessStartInfo startInfo = new () {
-               FileName = winmergePath,
-               Arguments = $"/e /u /dl \"Reference\" /dr \"Test\" \"{reference2}\" \"{testfile2}\"",
-               UseShellExecute = false,
-               RedirectStandardOutput = true,
-               CreateNoWindow = true
-            };
-
-            try {
-               using (Process process = Process.Start (startInfo)) {
-                  process.WaitForExit ();
-                  // WinMerge exit codes:
-                  // 0 = files are identical
-                  // 1 = files are different
-                  // 2 = files are identical, but binary is different (only if using a binary comparison)
-                  // -1 = error occurred
-                  int exitCode = process.ExitCode;
-                  res = exitCode == 1 || exitCode == 2 || exitCode == -1; // True if files differ
-               }
-            } catch (Exception) {
-               throw new Exception ("WINMERGE_LAUNCH_FAILED");
-            }
+            res |= LaunchWinMerge (winmergePath, reference2, testfile2);
          }
       }
       return res;
+   }
+
+   /// <summary>
+   /// This method launches the WinMerge application to compare the files.
+   /// </summary>
+   /// <param name="path">winmerge exe path</param>
+   /// <param name="referenceFile">Base file to compare against</param>
+   /// <param name="testFile">File to compare</param>
+   /// <returns>A status boolean</returns>
+   /// <exception cref="Exception">throws exception When launching fails</exception>
+   static bool LaunchWinMerge (string path, string referenceFile, string testFile) {
+      ProcessStartInfo startInfo = new () {
+         FileName = path,
+         Arguments = $"/e /u /dl \"Reference\" /dr \"Test\" \"{referenceFile}\" \"{testFile}\"",
+         UseShellExecute = false,
+         RedirectStandardOutput = true,
+         CreateNoWindow = true
+      };
+      try {
+         using (Process process = Process.Start (startInfo)) {
+            process.WaitForExit ();
+            return process.ExitCode == 1 || process.ExitCode == 2 || process.ExitCode == -1;
+         }
+      } catch (Exception) {
+         throw new Exception ("WINMERGE_LAUNCH_FAILED");
+      }
    }
 
    /// <summary>
