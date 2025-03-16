@@ -2,10 +2,12 @@
 using MathNet.Numerics.LinearAlgebra.Double;
 using Flux.API;
 using static FChassis.Utils;
+using System.CodeDom;
+using System.Net;
 
-namespace FChassis;
+namespace FChassis.Core;
 
-public static class IntExtension {
+public static class IntExtensions {
    public static int Clamp (this int a, int min, int max) {
       if (a < min) return min;
       if (a > max) return max;
@@ -37,6 +39,52 @@ public static class DoubleExtensions {
    public static bool SGT (this float a, float b) => !(a - b).EQ (0) && a > b;
    public static bool SLT (this float a, float b, float tol) => !a.EQ (b, tol) && a < b;
    public static bool SLT (this float a, float b) => !(a - b).EQ (0) && a < b;
+
+   /// <summary>
+   /// Rounds the double to the specified number of decimal places.
+   /// </summary>
+   /// <param name="value">The double value to round.</param>
+   /// <param name="decimalPlaces">The number of decimal places to round to.</param>
+   /// <param name="rounding">Optional: The rounding mode to use. Defaults to MidpointRounding.ToEven.</param>
+   /// <returns>The rounded double value.</returns>
+   public static double Round (this double value, int decimalPlaces,
+      MidpointRounding rounding = MidpointRounding.ToEven)
+      => Math.Round (value, decimalPlaces, rounding);
+
+}
+
+public static class Vector3Extensions {
+   /// <summary>
+   /// Checks if two vectors are equal within a specified tolerance.
+   /// </summary>
+   /// <param name="v1">The first vector.</param>
+   /// <param name="v2">The second vector to compare.</param>
+   /// <param name="tolerance">The tolerance for comparison (default is 1e-6).</param>
+   /// <returns>True if the vectors are equal within the tolerance; otherwise, false.</returns>
+   public static bool EQ (this Vector3 v1, Vector3 v2, double tolerance = 1e-6) {
+
+      // Example equality check logic (adjust based on your `Vector` implementation)
+      v1 = v1.Normalized (); v2 = v2.Normalized ();
+      return v1.X.EQ (v2.X, tolerance) && v1.Y.EQ (v2.Y, tolerance) && v1.Z.EQ (v2.Z, tolerance);
+   }
+   public static bool Aligned (this Vector3 l, Vector3 r, double tolerance = 1e-6) {
+      l = l.Normalized ();
+      r = r.Normalized ();
+      if (l.Opposing (r)) return false;
+      return true;
+   }
+
+   public static Vector3 Cross(this Vector3 v1, Vector3 v2) {
+      return Geom.Cross (v1, v2);
+   }
+
+}
+
+public static class Vector2Extensions {
+   public static Vector2 Round (this Vector2 vec, int decimalPlaces,
+      MidpointRounding rounding = MidpointRounding.ToEven) {
+      return new Vector2 (Math.Round (vec.X, decimalPlaces, rounding), Math.Round (vec.Y, decimalPlaces, rounding));
+   }
 }
 public class Geom {
    #region Enums
@@ -63,6 +111,10 @@ public class Geom {
       public int A { get; set; } = a;
       public int B { get; set; } = b;
       public int C { get; set; } = c;
+   }
+   public struct Line3D (int a, int b) {
+      public int A { get; set; } = a;
+      public int B { get; set; } = b;
    }
    #endregion
 
@@ -160,8 +212,20 @@ public class Geom {
    }
 
    public static Tuple<double, EArcSense> GetArcAngleAndSense (Arc3 arc, Point3 start, Point3 end, Vector3 normal) {
-      if (Utils.IsCircle (arc))
-         return new Tuple<double, EArcSense> (2 * Math.PI, EArcSense.CCW);
+      if (Utils.IsCircle (arc)) {
+         if (arc.Start.EQ (start) && arc.End.EQ (end))
+            return new Tuple<double, EArcSense> (Math.PI * 2, EArcSense.CCW);
+         var (cen, _) = EvaluateCenterAndRadius (arc);
+         if (!IsPointOnCurve (arc as Curve3, start, normal))
+            throw new Exception ("In GetArcAngleAndSense: For the circle, the start point is not on the circle");
+         if (!IsPointOnCurve (arc as Curve3, end, normal))
+            throw new Exception ("In GetArcAngleAndSense: For the circle, the end point is not on the circle");
+         var cenToStart = start - cen; var cenToEnd = end - cen;
+         var crossP = Geom.Cross (cenToStart, cenToEnd).Normalized ();
+         var angBet = Math.Acos (cenToStart.Normalized ().Dot (cenToEnd.Normalized ()));
+         if (crossP.Opposing (normal)) angBet = 2 * Math.PI - angBet;
+         return new Tuple<double, EArcSense> (angBet, EArcSense.CCW);
+      }
 
       // Compute the vectors from center to start and center to end
       normal = normal.Normalized ();
@@ -182,7 +246,7 @@ public class Geom {
          // the length being exactly PI*radius, in many cases, it is little lesser. In those cases,
          // we directly conclude that the arc is counter-clockwise if the apn is directed towards us
          //if (arc.Length < 2 * Math.PI*radius) return new (Math.Abs (angleUptoPt), EArcSense.CCW);
-         if (!Geom.Cross (arcDirFromStartPt, scVec).Normalized ().Opposing (normal))
+         if (Geom.Cross (arcDirFromStartPt, scVec).Normalized ().Aligned (normal))
             return new (Math.Abs (angle), EArcSense.CCW);
          else return new (-Math.Abs (angle), EArcSense.CW);
       }
@@ -230,7 +294,7 @@ public class Geom {
             angle = 2 * Math.PI - theta;
             sense = EArcSense.CCW;
          }
-      } else throw new Exception ("Semicircular arc case not properly handled");
+      } else throw new Exception ("In GetArcAngleAndSense: Semicircular arc case not properly handled");
       return new Tuple<double, EArcSense> (angle, sense);
    }
 
@@ -271,6 +335,12 @@ public class Geom {
       var angDataFromPt = GetArcAngleAtPoint (arc, fromPt, planeNormal, tolerance);
       var angDataToPt = GetArcAngleAtPoint (arc, toPoint, planeNormal, tolerance);
       var deltaAngle = angDataToPt.Item1 - angDataFromPt.Item1;
+      if (Utils.IsCircle (arc)) {
+         //By default all circles are CCW in sense. If angleDataToPt is less than
+         // PI radians, the major arc angle is compiuted
+         if (deltaAngle.SLT (Math.PI))
+            deltaAngle = Math.PI * 2.0 - deltaAngle;
+      }
       List<Point3> points = [];
       points.Add (GetArcPointAtAngle (arc, angDataFromPt.Item1 + deltaAngle / 4.0, planeNormal));
       points.Add (GetArcPointAtAngle (arc, angDataFromPt.Item1 + deltaAngle * (3.0 / 4.0), planeNormal));
@@ -332,7 +402,7 @@ public class Geom {
    /// This method computes the center and radius of the arc in 3d.
    /// </summary>
    /// <param name="arc"></param>
-   /// <returns>Tuple<Center(Point3),Radius(double)></Center></returns>
+   /// <returns>Tuple of Center (type Point3),Radius( type double)</returns>
    /// <exception cref="InvalidCastException"></exception>
    public static Tuple<Point3, double> EvaluateCenterAndRadius (Arc3 arc) {
       Tuple<Point3, double> res;
@@ -373,6 +443,16 @@ public class Geom {
          Point3 newIncrStPt = points[0];
          for (int ii = 0; ii < points.Count - 1; ii++) {
             List<Point3> twoIntermediatePoints = GetTwoIntermediatePoints (arc, newIncrStPt, points[ii + 1], apn, tolerance);
+
+            // Nidge intermediate points
+            var (cen, rad) = EvaluateCenterAndRadius (arc);
+            for (int jj = 0; jj < 2; jj++) {
+               var p = twoIntermediatePoints[jj];
+               var np = NudgePointToArc (cen, rad, p, apn);
+               if (!Geom.IsPointOnCurve (arc as Curve3, np, apn))
+                  throw new Exception ("In SplitArc: nudged point is not on the arc with in 1e-6");
+               twoIntermediatePoints[jj] = np;
+            }
             var arc1 = new Arc3 (newIncrStPt, twoIntermediatePoints[0], twoIntermediatePoints[1], points[ii + 1]);
             splitArcs.Add (arc1);
             newIncrStPt = GetNewEndPointOnArcAtIncrement (splitArcs[^1], deltaBetweenArcs, apn);
@@ -450,7 +530,7 @@ public class Geom {
    }
 
    /// <summary>
-   /// This method returns the parameter ( 0 to 1 ) at a point on the curve 
+   /// This method returns the arc length parameter ( 0 to 1 ) at a point on the curve 
    /// between start and end.
    /// </summary>
    /// <param name="crv">The input curve, which shall be Line3 or Arc3</param>
@@ -523,7 +603,19 @@ public class Geom {
          var ptToCenVec = center - pt;
          var ptToCenDir = ptToCenVec.Normalized ();
          var dotp = apn.Value.Dot (ptToCenDir);
+
+         // Check for planarity
          if (!(ptToCenVec.Length - radius).EQ (0.0, tolerance) || !Math.Abs (dotp).EQ (0.0, tolerance)) return false;
+
+         // Check for circle
+         if (Utils.IsCircle (curve as Arc3)) {
+            var x = pt.X; var y = pt.Y; var z = pt.Z;
+            var xc = center.X; var yc = center.Y; var zc = center.Z;
+            if (((x - xc) * (x - xc) + (y - yc) * (y - yc) + (z - zc) * (z - zc)).EQ (radius * radius, tolerance)) return true;
+            else return false;
+         }
+
+         // Check for arc
          if (constrainedWithinSegment) {
             var arcAngle = GetArcAngleAndSense (arc, apn.Value);
             var arcAngleFromStToPt = GetArcAngleAtPoint (arc, pt, apn.Value, tolerance);
@@ -534,14 +626,100 @@ public class Geom {
          return true;
       } else {
          var line = curve as Line3;
-         var stToEndVec = line.End - line.Start; var stToPtVec = pt - line.Start;
-         if (!Geom.Cross (stToPtVec, stToEndVec).Length.EQ (0.0, tolerance)) return false;
-         var param = stToPtVec.Dot (stToEndVec) / (stToEndVec.Dot (stToEndVec));
-         if (constrainedWithinSegment) {
-            if (param.LieWithin (0, 1)) return true;
-         } else return true;
+         var startPoint = line.Start; var endPoint = line.End;
+         // Calculate direction vector of the line
+         var direction = endPoint - startPoint;
+
+         // Vector from startPoint to pt
+         var toPoint = pt - startPoint;
+
+         // Check for coplanarity (using the cross product)
+         var crossProduct = Geom.Cross (direction, toPoint);
+
+         // Magnitude squared of the cross product (to avoid expensive sqrt)
+         double crossProductLengthSquared =
+             crossProduct.X * crossProduct.X +
+             crossProduct.Y * crossProduct.Y +
+             crossProduct.Z * crossProduct.Z;
+
+         var epsilon = 1e-6;
+         // If cross product is close to zero, the points are collinear
+         if (crossProductLengthSquared > epsilon * epsilon) {
+            return false; // Not coplanar (or collinear in 3D)
+         }
+
+         // Check for degenerate line
+         var lengthSquared = direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z;
+         if (lengthSquared < epsilon) {
+            // Line segment is effectively a point; check if pt matches startPoint
+            //return Math.Abs (pt.X - startPoint.X) < epsilon &&
+            //       Math.Abs (pt.Y - startPoint.Y) < epsilon &&
+            //       Math.Abs (pt.Z - startPoint.Z) < epsilon;
+            throw new Exception ("Degenerate line");
+
+         }
+
+         // Calculate the parameter t
+         double t = ((pt.X - startPoint.X) * direction.X +
+                     (pt.Y - startPoint.Y) * direction.Y +
+                     (pt.Z - startPoint.Z) * direction.Z) / lengthSquared;
+
+         // Check if t is within the extended range [-epsilon, 1+epsilon]
+         if (t < -epsilon || t > 1 + epsilon) {
+            return false;
+         }
+
+         // Calculate the closest point on the line
+         var closestPoint = new Point3 (
+             startPoint.X + t * direction.X,
+             startPoint.Y + t * direction.Y,
+             startPoint.Z + t * direction.Z
+         );
+
+         // Check if pt is close enough to the closestPoint
+         return Math.Abs (pt.X - closestPoint.X) < epsilon &&
+                Math.Abs (pt.Y - closestPoint.Y) < epsilon &&
+                Math.Abs (pt.Z - closestPoint.Z) < epsilon;
       }
-      return false;
+      //var stToEndVec = line.End - line.Start; var stToPtVec = pt - line.Start;
+      //var cp = Geom.Cross (stToPtVec.Normalized (), stToEndVec.Normalized ());
+      //var cpv = cp.Normalized ();
+      //if (!cp.Length.EQ (0.0, tolerance))
+      //   return false;
+      //var param = stToPtVec.Dot (stToEndVec) / (stToEndVec.Dot (stToEndVec));
+      //if (constrainedWithinSegment) {
+      //   if (param.LieWithin (0, 1)) return true;
+      //} else return true;
+
+      //return false;
+   }
+
+   public static Point3 NudgePointToArc (Point3 center, double radius, Point3 point, Vector3 normal) {
+      // Compute the vector from the center to the point
+      var nudgedPt = point;
+      Vector3 centerToPoint = (nudgedPt - center).Normalized ();
+      normal = normal.Normalized ();
+      int cnt = 0;
+      double origCosTheta, costheta;
+      origCosTheta = costheta = centerToPoint.Dot (normal);
+
+      while (Math.Abs (costheta) > 1e-6) {
+         // Compute the projection of the point onto the arc plane
+         nudgedPt = Geom.V2P (nudgedPt - Geom.V2P (normal) * costheta);
+
+         centerToPoint = (nudgedPt - center).Normalized ();
+         costheta = centerToPoint.Dot (normal);
+         cnt++;
+         if (cnt > 10000) break;
+      }
+      nudgedPt = center + centerToPoint * radius;
+
+      // Check
+      var c2p = (nudgedPt - center).Normalized ();
+      var newCTheta = c2p.Dot (normal);
+      if (Math.Abs (newCTheta).SGT (Math.Abs (origCosTheta))) throw new Exception ("Nudging the point on the arc failed");
+
+      return nudgedPt;
    }
 
    /// <summary>
@@ -658,7 +836,7 @@ public class Geom {
       if (Math.Abs (curve.Length - length).LieWithin (-1e-6, 1e-6)) return curve.End;
       if (curve is Arc3) {
          Arc3 arc = curve as Arc3;
-         (_, var radius) = Geom.EvaluateCenterAndRadius (arc);
+         (var cen, var radius) = Geom.EvaluateCenterAndRadius (arc);
          double thetaAtPoint;
          double arcAngle;
 
@@ -668,6 +846,8 @@ public class Geom {
          double lengthRatio = (length) / arc.Length;
          thetaAtPoint = arcAngle * lengthRatio;
          pointAtLengthFromStart = Geom.V2P (transform * new Point3 (radius * Math.Cos (thetaAtPoint), radius * Math.Sin (thetaAtPoint), 0.0));
+         if (!Geom.IsPointOnCurve (arc as Curve3, pointAtLengthFromStart, planeNormal))
+            pointAtLengthFromStart = Geom.NudgePointToArc (cen, radius, pointAtLengthFromStart, planeNormal);
       } else {
          double t = length / curve.Length;
          pointAtLengthFromStart = curve.Start * (1 - t) + curve.End * t;
@@ -675,8 +855,11 @@ public class Geom {
       return pointAtLengthFromStart;
    }
 
-   public static double GetLengthAtPoint (Curve3 curve, Point3 pt, Vector3 planeNormal) =>
-       GetLengthBetween (curve, curve.Start, pt, planeNormal);
+   public static double GetLengthAtPoint (Curve3 curve, Point3 pt, Vector3 planeNormal) {
+      //GetLengthBetween (curve, curve.Start, pt, planeNormal);
+      var t = Geom.GetParamAtPoint (curve, pt, planeNormal);
+      return t * curve.Length;
+   }
 
    /// <summary>
    /// This method returns the length of the curve between two points on the curve
@@ -696,9 +879,11 @@ public class Geom {
          return curve.Length;
       if (!Geom.IsPointOnCurve (curve, start, planeNormal) || !Geom.IsPointOnCurve (curve, end, planeNormal))
          throw new Exception ("The point is not on the curve");
-      var t1 = Geom.GetParamAtPoint (curve, start, planeNormal); var t2 = Geom.GetParamAtPoint (curve, end, planeNormal);
-      if (t1 > t2) (t1, t2) = (t2, t1);
-      return (t2 - t1) * curve.Length;
+      //var t1 = Geom.GetParamAtPoint (curve, start, planeNormal); var t2 = Geom.GetParamAtPoint (curve, end, planeNormal);
+      var l1 = Geom.GetLengthAtPoint (curve, start, planeNormal); var l2 = Geom.GetLengthAtPoint (curve, end, planeNormal);
+      return Math.Abs (l1 - l2);
+      //if (t1 > t2) (t1, t2) = (t2, t1);
+      //return (t2 - t1) * curve.Length;
    }
 
    /// <summary>
@@ -960,22 +1145,55 @@ public class Geom {
    }
 
    /// <summary>
-   /// This method is used to find the segments' winding sense if it is Clockwise or Counter-ClockWise WRT
-   /// the normal emanating towards the observer.
-   /// Algorithm: The start point of the segment is projected onto the plane define by the normal and point
-   /// of the plane. The point (q) is guaranteed outside. The normal is either chosen to be (0,sqrt(1/2),sqrt(1/2))
-   /// if one of the normals of the segment's normal is yPos or (0,-sqrt(1/2),sqrt(1/2)) if one of the segment's 
-   /// normal is yNeg. A farthest point from the start point of the segments is evaluated. The farthest point should 
-   /// be on the convex part of the polygon on the plane.The cross product between 
-   /// (Start->One-Point-before-Farthest-Point) and (Start->Farthest-Point) is evaluated. If this cross product 
-   /// bears the same sense with plane normal, the windings are counter-clockwise, otherwise clockwise
+   /// This method is used to determine the winding sense of segments, 
+   /// whether they are Clockwise (CW) or Counter-Clockwise (CCW), 
+   /// with respect to the plane's normal emanating toward the observer.
    /// </summary>
-   /// <param name="planeNormal">The normal of the plane on which the segments are to be projected. The normal is 
-   /// either chosen to be (0,sqrt(1/2),sqrt(1/2)) if one of the normals of the segment's normal is yPos or 
-   /// (0,-sqrt(1/2),sqrt(1/2)) if one of the segment's normal is yNeg</param>
-   /// <param name="pointOnPlane">A reference point on the plane to be projected that defines the plane</param>
-   /// <param name="cutSegs">Segments of lines/arcs [ ValueTuple<Point3,Vector3,Vector3>]</param>
-   /// <returns>ToolingWinding, which is either Clockwise(CW) or counter-clockwise(CCW)</returns>
+   /// <remarks>
+   /// <para>
+   /// <b>Algorithm:</b>
+   /// <list type="number">
+   /// <item>The start point of the segment is projected onto the plane defined by the plane normal and a reference point.</item>
+   /// <item>A point (q) is chosen that is guaranteed to lie outside the polygon formed by the segments.</item>
+   /// <item>
+   /// The plane normal is selected based on the segment's orientation:
+   /// <list type="bullet">
+   /// <item>(0, sqrt(1/2), sqrt(1/2)) if one of the segment normals aligns with the positive Y direction (yPos).</item>
+   /// <item>(0, -sqrt(1/2), sqrt(1/2)) if one of the segment normals aligns with the negative Y direction (yNeg).</item>
+   /// </list>
+   /// </item>
+   /// <item>
+   /// A farthest point from the start point of the segments is evaluated.
+   /// This point must lie on the convex part of the polygon projected onto the plane.
+   /// </item>
+   /// <item>The cross product of two vectors is calculated:
+   /// <list type="bullet">
+   /// <item>(Start → One-Point-before-Farthest-Point)</item>
+   /// <item>(Start → Farthest-Point)</item>
+   /// </list>
+   /// </item>
+   /// <item>
+   /// If the cross product aligns with the plane's normal, the windings are counter-clockwise (CCW).
+   /// Otherwise, they are clockwise (CW).
+   /// </item>
+   /// </list>
+   /// </para>
+   /// </remarks>
+   /// <param name="planeNormal">
+   /// The normal vector of the plane on which the segments are projected.
+   /// It is chosen to be either (0, sqrt(1/2), sqrt(1/2)) for yPos alignment or
+   /// (0, -sqrt(1/2), sqrt(1/2)) for yNeg alignment.
+   /// </param>
+   /// <param name="pointOnPlane">A reference point on the plane that defines the projection plane.</param>
+   /// <param name="cutSegs">
+   /// Segments of lines or arcs represented as tuples: 
+   /// <c>(Point3 StartPoint, Vector3 Direction, Vector3 Additional)</c>.
+   /// </param>
+   /// <returns>
+   /// The winding direction of the segments relative to the plane's normal, 
+   /// which is either Clockwise (CW) or Counter-Clockwise (CCW).
+   /// </returns>
+
    public static ToolingWinding GetToolingWinding (Vector3 planeNormal, Point3 pointOnPlane,
       List<ToolingSegment> cutSegs) {
       List<Point3> pointsOnPLane = [];
@@ -1084,20 +1302,23 @@ public class Geom {
       double cumLength = 0;
       int idx = -1;
       bool ptOnOneSeg = false;
-      foreach (var segm in segs) {
+      for (int ii = 0; ii < segs.Count; ii++) {
+         var segm = segs[ii];
          if (IsPointOnCurve (segm.Curve, pt, segm.Vec0)) {
+            cumLength += GetLengthAtPoint (segm.Curve, pt, segm.Vec0);
             ptOnOneSeg = true;
+            idx = ii;
             break;
-         }
+         } else cumLength += segm.Curve.Length;
       }
       if (!ptOnOneSeg) throw new Exception ("Geom:GetLengthAtPoint: The given point pt does not exist on any segments");
-      foreach (var seg in segs) {
-         idx++;
-         if (IsPointOnCurve (seg.Curve, pt, seg.Vec0)) {
-            cumLength += GetLengthAtPoint (seg.Curve, pt, seg.Vec0);
-            break;
-         } else cumLength += seg.Curve.Length;
-      }
+      //foreach (var seg in segs) {
+      //   idx++;
+      //   if (IsPointOnCurve (seg.Curve, pt, seg.Vec0)) {
+      //      cumLength += GetLengthAtPoint (seg.Curve, pt, seg.Vec0);
+      //      break;
+      //   } else cumLength += seg.Curve.Length;
+      //}
       return new Tuple<double, int> (cumLength, idx);
    }
 
@@ -1110,30 +1331,33 @@ public class Geom {
    /// <returns>A tuple of Point and the index in the segment</returns>
    public static Tuple<Point3, int> GetPointAtLength (List<ToolingSegment> segs, double inLength) {
       Point3 pt;
-      (pt, int index) = GetToolingPointAndIndexAtLength (segs, -1, inLength);
+      (pt, int index) = EvaluatePointAndIndexAtLength (segs, -1, inLength);
       return new Tuple<Point3, int> (pt, index);
    }
 
    /// <summary>
-   /// This method creates a list of tooling segments from the given input tooling segments, after segIndex-th item.
-   /// upto the currIndex and upto a point in the currIndex-th item in input tooling segments, at which the sum of the 
-   /// lengths ( from end of segIndex-th item to the point on the currIndex-th item) is "uptoLength".
+   /// This method creates a list of tooling segments from the given input tooling segments, starting after the
+   /// <paramref name="segStartIndex"/>-th item, and up to a length of <paramref name="uptoLength"/> from the 
+   /// end point of the tooling segment at <paramref name="segStartIndex"/> th index
    /// </summary>
-   /// <param name="toolingItem">The parent tooling item</param>
-   /// <param name="wireJointDistance">The distance by which the new tooling segment's start point should start</param>
-   /// <param name="segIndex">The index of the segments of the tooling item, after which the new tooling segment is sought</param>
-   /// <param name="segs">The segments of the tooling item. Note: This segs might not be the original segs of the tooling item,
-   /// as a provision to consider the modified segments is provided
+   /// <param name="segs">
+   /// The segments of the tooling item. 
+   /// Note: This <paramref name="segs"/> parameter may not represent the original segments of the tooling item,
+   /// as it allows for considering modified segments.
    /// </param>
-   /// <param name="reverseTrace">Boolean flag if the curves are sought in the reverse treading</param>
-   /// <returns>List<ToolingSegment>, which are the intermediate sequential tooling segments from the end of the segIndex-th
-   /// tooling segment to (forward or reverse order) the split tooling segments. The split tooling segments can be either 1 or 2
-   /// based on the point at which the split is made on the "currIndex"-th item, where the total lengths of all the tooling segments
-   /// excluding the last segment is "uptoLength". The last tooling segment after the split is also added. 
-   /// In case the last split element is the initial segment itself, (when the split point is at the end of the initial element)
-   /// the segment at next to currIndex ( +1 if not reversed, -1 if reversed), is added. 
+   /// <param name="reverseTrace">
+   /// A boolean flag indicating whether the curves are sought in reverse order.
+   /// </param>
+   /// <returns>
+   /// A list of <c>ToolingSegment</c> objects, which are the intermediate sequential tooling segments from the end 
+   /// of the <paramref name="segStartIndex"/>-th tooling segment to (forward or reverse order) the split tooling segments. 
+   /// <para>
+   /// The split tooling segments can be either 1 or 2, depending on the point at which the split is made on the 
+   /// the tooling segment at a distance of <paramref name="uptoLength"/>. 
+   /// </para>
    /// </returns>
-   public static Tuple<Point3, int> GetToolingPointAndIndexAtLength (List<ToolingSegment> segs, int segStartIndex,
+
+   public static Tuple<Point3, int> EvaluatePointAndIndexAtLength (List<ToolingSegment> segs, int segStartIndex,
       double uptoLength, /*Vector3 fpn,*/ bool reverseTrace = false, double minimumCurveLength = 0.5) {
       Tuple<Point3, int> res;// = new (new Point3 (), -1);
       double crvLengths = 0.0;
@@ -1181,12 +1405,277 @@ public class Geom {
          }
          if (reverseTrace) t = 1 - t;
          var pt = Geom.Evaluate (segs[currIndex].Curve, t, segs[currIndex].Vec0.Normalized ());
+         if (true) {
+            var chk = Geom.IsPointOnCurve (segs[currIndex].Curve, pt, segs[currIndex].Vec0.Normalized ());
+            if (!chk)
+               throw new Exception ("What the heck!");
+         }
          res = new (pt, currIndex);
 
       }
       return res;
    }
+
+   public static Tuple<Point3, int> GetPointAtLengthFrom (Point3 iPoint, double iLength, List<ToolingSegment> segs,
+      bool reverseTrace = false, double minimumCurveLength = 0.5, double tolerance = 1e-6) {
+      Tuple<Point3, int> res;
+      if (segs.Count == 2 || segs.Count == 1) {
+         Curve3 crv;
+         Vector3 normal;
+         int index;
+         if (segs.Count == 2) {
+            crv = segs[1].Curve;
+            normal = segs[1].Vec0.Normalized ();
+            index = 1;
+         } else {
+            crv = segs[0].Curve;
+            normal = segs[0].Vec0.Normalized ();
+            index = 0;
+         }
+         if (Utils.IsCircle (crv)) {
+            var evalPt = Geom.Evaluate (crv, iLength / crv.Length, normal);
+            res = new Tuple<Point3, int> (evalPt, index);
+            // DEBUG_DEBUG 
+            if (!Geom.IsPointOnCurve (crv, evalPt, normal))
+               throw new Exception ("In GetPointAtLengthFrom: evalPt is not on the curve!");
+            return res;
+         }
+      }
+
+      var (len, _) = GetLengthAtPoint (segs, iPoint);
+      var tLen = len + iLength;
+      res = EvaluatePointAndIndexAtLength (segs, -1, tLen);
+      return res;
+   }
+
+   /// <summary>
+   /// This method is used to find that segment on which a given tooling length occurs. 
+   /// </summary>
+   /// <param name="segments">The input tooling segments</param>
+   /// <param name="toolingLength">The tooling length from start of the segment</param>
+   /// <returns>A tuple of the index of the segment on which the input tooling length happens and the
+   /// incremental length of the index-th segment from its own start</returns>
+   public static Tuple<int, double> GetSegmentLengthAndIndexForToolingLength (List<ToolingSegment> segments, double toolingLength) {
+      double segmentLengthAtNotch = 0;
+      int jj = 0;
+      while (segmentLengthAtNotch < toolingLength) {
+         segmentLengthAtNotch += segments[jj].Curve.Length;
+         jj++;
+      }
+
+      var lengthInLastSegment = toolingLength;
+      int occuranceIndex = jj - 1;
+      double previousCurveLengths = 0.0;
+      for (int kk = occuranceIndex - 1; kk >= 0; kk--)
+         previousCurveLengths += segments[kk].Curve.Length;
+
+      lengthInLastSegment -= previousCurveLengths;
+      return new Tuple<int, double> (occuranceIndex, lengthInLastSegment);
+   }
+
+   /// <summary>
+   /// This method is used to find the length of the tooling segments from start index to end index 
+   /// of the list of tooling segments, INCLUDING the start and the end segment
+   /// </summary>
+   /// <param name="segments">The input tooling segments</param>
+   /// <param name="fromIdx">The index of the start segment</param>
+   /// <param name="toIdx">The index of the end segment</param>
+   /// <returns>The length of the tooling segments from start to end index including the start and 
+   /// end the segments</returns>
+   public static double GetLengthBetween (List<ToolingSegment> segments, int fromIdx, int toIdx) {
+      if (segments.Count == 2) {
+         if (Utils.IsCircle (segments[1].Curve))
+            return segments[1].Curve.Length;
+      }
+      if (segments.Count == 1) {
+         if (Utils.IsCircle (segments[0].Curve))
+            return segments[0].Curve.Length;
+      }
+      // Ensure fromIdx <= toIdx
+      if (fromIdx > toIdx)
+         (fromIdx, toIdx) = (toIdx, fromIdx);
+
+      // Sum lengths from 'fromIdx' up to 'toIdx' (inclusive)
+      double lengthBetween = segments
+          .Skip (fromIdx)
+          .Take (toIdx - fromIdx + 1)
+          .Sum (segment => segment.Curve.Length);
+
+      return lengthBetween;
+   }
+
+
+   /// <summary>
+   /// This method is used to find the length of the tooling segments from start point and the 
+   /// end point on list of tooling segments. 
+   /// </summary>
+   /// <param name="segments">The input tooling segments</param>
+   /// <param name="fromIdx">The from point on one of the segments</param>
+   /// <param name="toIdx">The to point on one of the segments</param>
+   /// <returns>The length of the tooling segments from start to end points 
+   /// which is the sum of the start point to end of the start segment, 
+   /// the lengths of all the tooling segments inbetween the start and end segments
+   /// and the length of the last segment from start point of that segment To the given
+   /// To Point</returns>
+   public static double GetLengthBetween (List<ToolingSegment> segments, Point3 fromPt, Point3 toPt, bool inSameOrder = false) {
+      if (segments.Count == 2 || segments.Count == 1) {
+         Curve3 crv;
+         Vector3 normal;
+         //int index = -1;
+         if (segments.Count == 2) {
+            crv = segments[1].Curve;
+            normal = segments[1].Vec0.Normalized ();
+            //index = 1;
+         } else {
+            crv = segments[0].Curve;
+            normal = segments[0].Vec0.Normalized ();
+            //index = 0;
+         }
+         if (Utils.IsCircle (crv)) {
+            //if (index == 1) {
+            //   fromPt = crv.Start;
+            //   toPt = crv.End;
+            //}
+            var t1 = Geom.GetParamAtPoint (crv, fromPt, normal);
+            var t2 = Geom.GetParamAtPoint (crv, toPt, normal);
+            if (t1 > t2) throw new Exception ("In Geom.GetLengthBetween() the param for fromPt is greater than param for to point");
+            double distBetween = (t2 - t1) * crv.Length;
+            return distBetween;
+         }
+      }
+
+      //var fromPtOnSegment = segments.Select ((segment, index) => new { Segment = segment, Index = index })
+      //                                    .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, fromPt,
+      //                                                                               x.Segment.Vec0.Normalized ()));
+      var fromPtIdxOnSegment = GetIndexOfPointOnToolingSegments (segments, fromPt);
+      if (fromPtIdxOnSegment == -1)
+         throw new Exception ("GetLengthBetween: From pt is not on segment");
+
+
+      //var toPtOnSegment = segments.Select ((segment, index) => new { Segment = segment, Index = index })
+      //                                 .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, toPt,
+      //                                                                              x.Segment.Vec0.Normalized ()));
+      var toPtIdxOnSegment = GetIndexOfPointOnToolingSegments (segments, toPt, inSameOrder ? fromPtIdxOnSegment : -1);
+      if (toPtIdxOnSegment == -1)
+         throw new Exception ("GetLengthBetween: To pt is not on segment");
+
+      // Swap the objects if from index is > to Index
+      if (fromPtIdxOnSegment > toPtIdxOnSegment) {
+         (fromPtIdxOnSegment, toPtIdxOnSegment) = (toPtIdxOnSegment, fromPtIdxOnSegment);
+         (fromPt, toPt) = (toPt, fromPt);
+      }
+
+      double fromPtSegLength;
+      double toPtSegLength = 0;
+      if (fromPtIdxOnSegment == toPtIdxOnSegment)
+         fromPtSegLength = Geom.GetLengthBetween (segments[fromPtIdxOnSegment].Curve, fromPt, toPt, segments[fromPtIdxOnSegment].Vec0);
+      else {
+         fromPtSegLength = Geom.GetLengthBetween (segments[fromPtIdxOnSegment].Curve,
+                                                         fromPt, segments[fromPtIdxOnSegment].Curve.End,
+                                                         segments[fromPtIdxOnSegment].Vec0.Normalized ());
+         toPtSegLength = Geom.GetLengthBetween (segments[toPtIdxOnSegment].Curve, toPt,
+                                                       segments[toPtIdxOnSegment].Curve.Start,
+                                                       segments[toPtIdxOnSegment].Vec0.Normalized ());
+      }
+      double intermediateLength = 0;
+      //if (fromPtIdxOnSegment != toPtIdxOnSegment &&
+      //   fromPtIdxOnSegment + 1 < segments.Count
+      //    && toPtIdxOnSegment - 1 >= 0)
+      //if (fromPtIdxOnSegment + 1 != toPtIdxOnSegment && toPtIdxOnSegment - 1 != fromPtIdxOnSegment)
+      if (toPtIdxOnSegment - fromPtIdxOnSegment - 1 != 0 && toPtIdxOnSegment != fromPtIdxOnSegment)
+         intermediateLength = GetLengthBetween (segments, fromPtIdxOnSegment + 1,
+                                                       toPtIdxOnSegment - 1);
+
+      double length = intermediateLength + (fromPtSegLength + toPtSegLength);
+      return length;
+   }
+
+   /// <summary>
+   /// This method is used to find the length of the segments between the given point
+   /// occuring on a tooling segment AND the lengths of all segments upto the last segment
+   /// </summary>
+   /// <param name="segments">The input segments list</param>
+   /// <param name="pt">The given point</param>
+   /// <returns>the length of the segments between the given point occuring on a tooling segment 
+   /// AND the lengths of all segments upto the last segment</returns>
+   /// <exception cref="Exception">An exception is thrown if the given point is not on any of the 
+   /// input list of tooling segments</exception>
+   public static double GetLengthFromEndToolingToPosition (List<ToolingSegment> segments, Point3 pt) {
+      //var result = segments.Select ((segment, index) => new { Segment = segment, Index = index })
+      //                     .FirstOrDefault (x => Geom.IsPointOnCurve (x.Segment.Curve, pt,
+      //                                                                x.Segment.Vec0.Normalized ()));
+      int idx = GetIndexOfPointOnToolingSegments (segments, pt);
+      if (idx == -1)
+         throw new Exception ("GetLengthFromEndToolingToPosition: Given pt is not on any segment");
+
+      double length = segments.Skip (idx + 1).Sum (segment => segment.Curve.Length);
+      double idxthSegLengthFromPt = Geom.GetLengthBetween (segments[idx].Curve, pt,
+                                                           segments[idx].Curve.End,
+                                                           segments[idx].Vec0.Normalized ());
+      length += idxthSegLengthFromPt;
+      return length;
+   }
+
+   public static int GetIndexOfPointOnToolingSegments (List<ToolingSegment> segs, Point3 pt, int fromIndex = -1) {
+      //{ ToolingSegment Segment, int Index} result;
+
+      var result = segs
+                  .Select ((segment, index) => new { Segment = segment, Index = index })
+                  .FirstOrDefault (x =>
+                  x.Index > fromIndex &&
+                  Geom.IsPointOnCurve (x.Segment.Curve, pt, x.Segment.Vec0.Normalized ()));
+
+      // DEBUG: Fallback logic using an anonymous type
+      for (int ii = 0; ii < segs.Count; ii++) {
+         if (Geom.IsPointOnCurve (segs[ii].Curve, pt, segs[ii].Vec0.Normalized ()) && ii >= fromIndex) {
+            result = new { Segment = segs[ii], Index = ii }; // Anonymous type
+            break; // Stop after finding the first match
+         }
+      }
+
+      bool ptOnSegment = result != null;
+      int idx = ptOnSegment ? result.Index : -1;
+      return idx;
+   }
+
+   /// <summary>
+   /// This method is used to find the length of the segments between the given point
+   /// occuring on a tooling segment AND the lengths of all segments upto the first segment
+   /// </summary>
+   /// <param name="segments">The input segments list</param>
+   /// <param name="pt">The given point</param>
+   /// <returns>the length of the segments between the given point occuring on a tooling segment 
+   /// AND the lengths of all segments upto the first segment</returns>
+   /// <exception cref="Exception">An exception is thrown if the given point is not on any of the 
+   /// input list of tooling segments</exception>
+   public static double GetLengthFromStartToolingToPosition (List<ToolingSegment> segments, Point3 pt) {
+      double length = 0.0;
+      int idx = GetIndexOfPointOnToolingSegments (segments, pt);
+
+      if (idx == -1)
+         throw new Exception ("GetLengthFromStartToolingToPosition: Given pt is not on any segment");
+
+      length = segments.Take (idx - 1).Sum (segment => segment.Curve.Length);
+      length += Geom.GetLengthBetween (segments[idx].Curve, segments[idx].Curve.Start, pt,
+                                       segments[idx].Vec0.Normalized ());
+      return length;
+   }
    #endregion
+
+   //public static bool IsSameDir (Vector3 l, Vector3 r) {
+   //   l = l.Normalized (); r = r.Normalized ();
+   //   if (l.X.EQ (r.X) && l.Y.EQ (r.Y) && l.Z.EQ (r.Z)) return true;
+   //   return false;
+   //}
+
+   public static Vector3 GetInterpolatedNormal (Vector3 start, Vector3 end, double t) {
+      var vec = (end * t + start * (1 - t));
+      return vec;
+   }
+   //public static bool IsEqual (Vector3 lhs, Vector3 rhs, double tol = 1e-6) {
+   //   if (lhs.X.EQ (rhs.X, tol) && lhs.Y.EQ (rhs.Y, tol) && lhs.Z.EQ (rhs.Z, tol)) return true;
+   //   return false;
+   //}
 }
 
 /// <summary>
@@ -1201,6 +1690,9 @@ public class XForm4 {
    public static readonly Vector3 mZAxis = new (0, 0, 1);
    public static readonly Vector3 mYAxis = new (0, 1, 0);
    public static readonly Vector3 mXAxis = new (1, 0, 0);
+   public static readonly Vector3 mNegZAxis = new (0, 0, -1);
+   public static readonly Vector3 mNegYAxis = new (0, -1, 0);
+   public static readonly Vector3 mNegXAxis = new (-1, 0, 0);
    public static readonly XForm4 IdentityXfm = new ();
    #endregion
 
@@ -1378,6 +1870,12 @@ public class XForm4 {
       XForm4 rotateXForm = GetRotationXForm (ax, angle);
       this.matrix = (this * rotateXForm).matrix;
       return this;
+   }
+   public XForm4 RotateNew (EAxis ax, double angle /*Degrees*/) {
+      XForm4 rotMat;
+      XForm4 rotateXForm = GetRotationXForm (ax, angle);
+      rotMat = (this * rotateXForm);
+      return rotMat;
    }
    #endregion
 

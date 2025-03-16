@@ -1,12 +1,19 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
-using FChassis.GCodeGen;
-using FChassis.Processes;
-using Flux.API;
+using System.Windows.Controls;
 using Microsoft.Win32;
-using static FChassis.Processes.Processor;
+
+using Flux.API;
+using FChassis.Draw;
+using FChassis.Core;
+using FChassis.Core.GCodeGen;
+using FChassis.Core.Processes;
+
+
 using SPath = System.IO.Path;
+using System.Diagnostics;
+using static FChassis.Core.MCSettings;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
@@ -18,9 +25,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    Workpiece mWork;
    List<Part> mSubParts = [];
    SettingsDlg mSetDlg;
-   Processor mProcess;
-   Processor.ESimulationStatus mSimulationStatus = ESimulationStatus.NotRunning;
-   readonly string mSrcDir = "W:/FChassis/Sample";
+   GenesysHub mGHub;
+   ProcessSimulator mProcessSimulator;
+   ProcessSimulator.ESimulationStatus mSimulationStatus = ProcessSimulator.ESimulationStatus.NotRunning;
+   string mSrcDir = "W:/FChassis/Sample";
 
    public event PropertyChangedEventHandler PropertyChanged;
    #endregion
@@ -31,14 +39,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       this.DataContext = this;
       Library.Init ("W:/FChassis/Data", "C:/FluxSDK/Bin", this);
+      Flux.API.Settings.IGESviaHOOPS = false;
 
       Area.Child = (UIElement)Lux.CreatePanel ();
+      PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
 
-      Files.ItemsSource = System.IO.Directory.GetFiles (mSrcDir, "*.fx").Select (SPath.GetFileName);
       Sys.SelectionChanged += OnSelectionChanged;
 #if DEBUG
       SanityCheckMenuItem.Visibility = Visibility.Visible;
 #endif
+   }
+
+   void UpdateInputFilesList (List<string> files) => Dispatcher.Invoke (() => Files.ItemsSource = files);
+
+   void PopulateFilesFromDir (string dir) {
+      string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
+      var fxFiles = new List<string> ();
+      if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals ("FX")) {
+         // Get FX files if the environment variable is set to "FX"
+         fxFiles = [.. System.IO.Directory.GetFiles (dir, "*.fx").Select (System.IO.Path.GetFileName)];
+      }
+
+      // Get IGES and IGS files
+      var allowedExtensions = new[] { ".iges", ".igs", ".step", ".stp", ".dxf", ".step" };
+      var igesFiles = System.IO.Directory.GetFiles (dir)
+                                          .Where (file => allowedExtensions.Contains (System.IO.Path.GetExtension (file).ToLower ()))
+                                          .Select (System.IO.Path.GetFileName)
+                                          .ToList ();
+
+      // Combine the two collections
+      var allFiles = igesFiles.Concat (fxFiles).ToList ();
+
+      // Assign the combined collection to ItemsSource
+      UpdateInputFilesList (allFiles);
    }
    #endregion
 
@@ -46,8 +79,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    void TriggerRedraw ()
       => Dispatcher.Invoke (() => mOverlay?.Redraw ());
    void ZoomWithExtents (Bound3 bound) => Dispatcher.Invoke (() => mScene.Bound3 = bound);
-   void OnSimulationFinished () 
-      => Process.SimulationStatus = Processor.ESimulationStatus.NotRunning;
+   void OnSimulationFinished ()
+      => mProcessSimulator.SimulationStatus = ProcessSimulator.ESimulationStatus.NotRunning;
 
    protected virtual void OnPropertyChanged (string propertyName)
       => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
@@ -63,9 +96,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnProcessPropertyChanged (object sender, PropertyChangedEventArgs e) {
-      if (e.PropertyName == nameof (Processor.SimulationStatus)) {
+      if (e.PropertyName == nameof (ProcessSimulator.SimulationStatus))
          OnPropertyChanged (nameof (SimulationStatus));
-      }
    }
 
    void OnMenuFileOpen (object sender, RoutedEventArgs e) {
@@ -78,6 +110,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          // Handle file opening, e.g., load the file into your application
          if (!string.IsNullOrEmpty (openFileDialog.FileName))
             LoadPart (openFileDialog.FileName);
+      }
+   }
+
+   void OnMenuDirOpen (object sender, RoutedEventArgs e) {
+      var dlg = new FolderPicker {
+         InputPath = PathUtils.ConvertToWindowsPath (mSrcDir),
+      };
+      if (dlg.ShowDialog () == true) {
+         mSrcDir = dlg.ResultPath;
+         PopulateFilesFromDir (mSrcDir);
       }
    }
 
@@ -97,77 +139,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnUnbendExportDXF (object sender, RoutedEventArgs e) {
-      SaveFileDialog saveFileDialog = new () {
-         Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
-         DefaultExt = "dxf",
-      };
+   void OnMirrorAndJoin (object sender, RoutedEventArgs e) {
+      JoinWindow joinWindow = new ();
 
-      // Show save file dialog box
-      bool? result = saveFileDialog.ShowDialog ();
+      // Subscribe to the FileSaved event
+      joinWindow.joinWndVM.EvMirrorAndJoinedFileSaved += OnMirrorAndJoinedFileSaved;
+      joinWindow.joinWndVM.EvLoadPart += LoadPart;
 
-      // Process save file dialog box results
-      if (result == true) {
-         string filePath = saveFileDialog.FileName;
-         try {
-            mPart.UnfoldTo2D ();
-            var dwg = mPart.Dwg;
-            dwg.SaveDXF (filePath);
-         } catch (Exception ex) {
-            MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
-         }
-      }
+      joinWindow.ShowDialog ();
+      joinWindow.Dispose ();
    }
 
-   void OnUnbendExport2D (object sender, RoutedEventArgs e) {
-      if (mPart == null)
-         return;
-
-      // Get the original file name (assuming mPart.FileName gives you the file name with extension)
-      string originalFileName = System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName);
-      string originalFileDir = System.IO.Path.GetDirectoryName (mPart.Info.FileName);
-      string originalExtension = System.IO.Path.GetExtension (mPart.Info.FileName); // Get the original extension (like .dxf, .geo, etc.)
-
-      // Prepare SaveFileDialog
-      SaveFileDialog saveFileDialog = new () {
-         Filter = "DXF files (*.dxf)|*.dxf|GEO files (*.geo)|*.geo|All files (*.*)|*.*",
-         DefaultExt = "dxf", // Set default file type as DXF
-         FileName = originalFileName + ".dxf" // Set default file name as the original file name + .dxf initially
-      };
-
-      // Subscribe to the FileOk event to update the file name based on the selected file type
-      saveFileDialog.FileOk += (s, args) => {
-         // Determine which file type is selected based on the filter index
-         if (saveFileDialog.FilterIndex == 1) // DXF selected
-            saveFileDialog.FileName = originalFileName + ".dxf";
-         else if (saveFileDialog.FilterIndex == 2) // GEO selected
-            saveFileDialog.FileName = originalFileName + ".geo";
-      };
-
-      // Show save file dialog box
-      bool? result = saveFileDialog.ShowDialog ();
-
-      // Process save file dialog box results
-      if (result == true) {
-         string filePath = System.IO.Path.Combine (originalFileDir, saveFileDialog.FileName);
-         string extension = System.IO.Path.GetExtension (filePath)?.ToLower ();
-
-         try {
-            // Perform unfolding operation
-            mPart.UnfoldTo2D ();
-            var dwg = mPart.Dwg;
-
-            // Determine the file type by checking the extension
-            if (extension == ".dxf") {
-               dwg.SaveDXF (filePath);
-            } else if (extension == ".geo") {
-               dwg.SaveGEO (filePath); // Assuming you have a method to save GEO files
-            } else {
-               MessageBox.Show ("Unsupported file type. Please choose either DXF or GEO.");
-            }
-         } catch (Exception ex) {
-            MessageBox.Show ("Error: Could not unfold the part. Original error: " + ex.Message);
-         }
+   void OnMirrorAndJoinedFileSaved (string savedDirectory) {
+      // Check if the saved file's directory matches MainWindow's mSrcDir
+      if (string.Equals (Path.GetFullPath (savedDirectory), Path.GetFullPath (mSrcDir), StringComparison.OrdinalIgnoreCase)) {
+         // Refresh file list
+         PopulateFilesFromDir (mSrcDir);
       }
    }
 
@@ -191,9 +178,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void OnFileClose (object sender, RoutedEventArgs e) {
       if (Work != null) {
-         if (Process != null) {
-            if (Process.SimulationStatus == ESimulationStatus.Running ||
-            Process.SimulationStatus == ESimulationStatus.Paused) Process.Stop ();
+         if (mProcessSimulator != null) {
+            if (mProcessSimulator.SimulationStatus == ProcessSimulator.ESimulationStatus.Running ||
+            mProcessSimulator.SimulationStatus == ProcessSimulator.ESimulationStatus.Paused) mProcessSimulator.Stop ();
          }
 
          Work = null;
@@ -205,25 +192,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnSettings (object sender, RoutedEventArgs e) {
-      mSetDlg = new SettingsDlg (MCSettings.It);
-      mSetDlg.OnOkAction += SaveSettings;
+      mSetDlg = new (MCSettings.It);
+      mSetDlg.OnOkAction += () => { if (mSetDlg.IsModified) SaveSettings(); };
       mSetDlg.ShowDialog ();
    }
 
+   void OnAboutClick (object sender, RoutedEventArgs e) {
+      AboutWindow aboutWindow = new () {
+         Owner = this
+      };
+      aboutWindow.InitializeComponent ();
+      aboutWindow.ShowDialog ();
+   }
+
    void OnWindowLoaded (object sender, RoutedEventArgs e) {
-      mProcess = new Processor (this.Dispatcher);
-      mProcess.TriggerRedraw += TriggerRedraw;
-      mProcess.SetSimulationStatus += status => SimulationStatus = status;
-      mProcess.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
+      GenesysHub = new ();
+      mProcessSimulator = new (mGHub, this.Dispatcher);
+      mProcessSimulator.TriggerRedraw += TriggerRedraw;
+      mProcessSimulator.SetSimulationStatus += status => SimulationStatus = status;
+      mProcessSimulator.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
 
       SettingServices.It.LoadSettings (MCSettings.It);
       if (String.IsNullOrEmpty (MCSettings.It.NCFilePath))
-         MCSettings.It.NCFilePath = Process?.Workpiece?.NCFilePath ?? "";
+         MCSettings.It.NCFilePath = mGHub?.Workpiece?.NCFilePath ?? "";
    }
 
    void OnSanityCheck (object sender, RoutedEventArgs e) {
-      mProcess.ResetGCodeGenForTesting ();
-      SanityTestsDlg sanityTestsDlg = new (mProcess);
+      mGHub.ResetGCodeGenForTesting ();
+      SanityTestsDlg sanityTestsDlg = new (mGHub);
       sanityTestsDlg.ShowDialog ();
    }
 
@@ -249,7 +245,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Properties
-   public Processor.ESimulationStatus SimulationStatus {
+   public ProcessSimulator.ESimulationStatus SimulationStatus {
       get => mSimulationStatus;
       set {
          if (mSimulationStatus != value) {
@@ -263,26 +259,46 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       get => mWork;
       set {
          mWork = value;
-         mProcess.Workpiece = mWork;
+         mGHub.Workpiece = mWork;
          OnPropertyChanged (nameof (Work));
       }
    }
 
-   public Processor Process {
-      get => mProcess;
+   public GenesysHub GenesysHub {
+      get => mGHub;
       set {
-         if (mProcess != value) {
-            if (mProcess != null) {
-               mProcess.PropertyChanged -= OnProcessPropertyChanged;
-               mProcess = value;
-               if (mProcess != null) {
-                  mProcess.PropertyChanged += OnProcessPropertyChanged;
-               }
-
-               OnPropertyChanged (nameof (Process));
-               OnPropertyChanged (nameof (SimulationStatus));
+         if (mGHub != value)  // Check if value is different
+         {
+            if (mGHub != null) {
+               mGHub.PropertyChanged -= OnProcessPropertyChanged;
             }
 
+            mGHub = value;  // Ensure the new value is assigned
+
+            if (mGHub != null) {
+               mGHub.PropertyChanged += OnProcessPropertyChanged;
+            }
+
+            OnPropertyChanged (nameof (GenesysHub));
+            OnPropertyChanged (nameof (SimulationStatus));
+         }
+      }
+   }
+
+   public ProcessSimulator ProcessSimulator {
+      get => mProcessSimulator;
+      set {
+         if (mProcessSimulator != value) {
+            if (mProcessSimulator != null) {
+               mProcessSimulator.PropertyChanged -= OnProcessPropertyChanged;
+               mProcessSimulator = value;
+               if (mProcessSimulator != null) {
+                  mProcessSimulator.PropertyChanged += OnProcessPropertyChanged;
+               }
+
+               OnPropertyChanged (nameof (mProcessSimulator));
+               OnPropertyChanged (nameof (SimulationStatus));
+            }
          }
       }
    }
@@ -291,18 +307,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #region Draw Related Methods
    void DrawOverlay () {
       DrawTooling ();
-      if (Process.SimulationStatus == ESimulationStatus.Running
-         || Process.SimulationStatus == ESimulationStatus.Paused)
-         Process.DrawGCodeForCutScope ();
+      if (mProcessSimulator.SimulationStatus == ProcessSimulator.ESimulationStatus.Running
+         || mProcessSimulator.SimulationStatus == ProcessSimulator.ESimulationStatus.Paused)
+         mProcessSimulator.DrawGCodeForCutScope ();
       else
-         Process.DrawGCode ();
-
-      Process.DrawToolInstance ();
+         mProcessSimulator.DrawGCode ();
+      mProcessSimulator.DrawToolInstance ();
    }
 
    void DrawTooling () {
-      if (Process.SimulationStatus == Processor.ESimulationStatus.NotRunning
-         || Process.SimulationStatus == Processor.ESimulationStatus.Paused) {
+      if (mProcessSimulator.SimulationStatus == ProcessSimulator.ESimulationStatus.NotRunning
+         || mProcessSimulator.SimulationStatus == ProcessSimulator.ESimulationStatus.Paused) {
          Lux.HLR = false;
          Lux.Color = new Color32 (255, 255, 0);
          switch (Sys.Selection) {
@@ -370,45 +385,50 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          }
       } catch (Exception) { }
 
-      //if (mSubParts.Count > 0) {
-      //   mPart = mSubParts[1];
-      //   Mechanism lmc = Mechanism.LoadFrom ("C:\\Users\\Parthasarathy.LAP-TK01\\Downloads\\Unnamed-A4003110814_FP002_FINAL_PART.step");
-      //} else 
-      {
-         if (mPart.Model == null) {
+      if (mPart.Model == null) {
+         try {
             if (mPart.Dwg != null)
                mPart.FoldTo3D ();
             else if (mPart.SurfaceModel != null)
                mPart.SheetMetalize ();
             else
                throw new Exception ("Invalid part");
+         } catch (NullReferenceException) {
+            MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
+            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+         } catch (Exception) {
+            MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
+            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
          }
       }
 
       mOverlay = new SimpleVM (DrawOverlay);
       Lux.UIScene = mScene = new Scene (new GroupVModel (VModel.For (mPart.Model),
                                         mOverlay), mPart.Model.Bound);
-
       Work = new Workpiece (mPart.Model, mPart);
-      GCodeGenerator.EvaluateToolConfigXForms (null, Work.Bound);
 
       // Clear the zombies if any
-      mProcess?.ClearZombies ();
+      GenesysHub?.ClearZombies ();
    }
 
    void DoAlign (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          Work.Align ();
          mScene.Bound3 = Work.Model.Bound;
-         mProcess?.ClearZombies ();
+         GenesysHub?.ClearZombies ();
+         if (MCSettings.It.RotateX180)
+            Work.DeleteCuts ();
          mOverlay.Redraw ();
+         GCodeGenerator.EvaluateToolConfigXForms (Work);
       }
    }
 
    void DoAddHoles (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          if (Work.DoAddHoles ())
-            mProcess?.ClearZombies ();
+            GenesysHub?.ClearZombies ();
          mOverlay.Redraw ();
       }
    }
@@ -416,8 +436,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    void DoTextMarking (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          if (Work.DoTextMarking (MCSettings.It))
-            mProcess?.ClearZombies ();
-
+            GenesysHub?.ClearZombies ();
          mOverlay.Redraw ();
       }
    }
@@ -425,8 +444,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    void DoCutNotches (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          if (Work.DoCutNotchesAndCutouts ())
-            mProcess?.ClearZombies ();
-
+            GenesysHub?.ClearZombies ();
          mOverlay.Redraw ();
       }
    }
@@ -441,10 +459,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
 #if DEBUG
-         mProcess.ComputeGCode ();
+         GenesysHub.ComputeGCode ();
 #else
          try {
-            mProcess.ComputeGCode ();
+            GenesysHub.ComputeGCode ();
          } catch (Exception ex) {
             if (ex is NegZException) 
                MessageBox.Show ("Part might not be aligned", "Error", 
@@ -465,19 +483,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #region Simulation Related Methods
    void Simulate (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
-         Process.SimulationFinished += OnSimulationFinished;
-         Task.Run (Process.Run);
+         ProcessSimulator.SimulationFinished += OnSimulationFinished;
+         Task.Run (ProcessSimulator.Run);
       }
    }
 
    void PauseSimulation (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ())
-         Process.Pause ();
+         ProcessSimulator.Pause ();
    }
 
    void StopSimulation (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ())
-         Process.Stop ();
+         ProcessSimulator.Stop ();
    }
    #endregion
 
@@ -488,15 +506,53 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                            MessageBoxButton.OK, MessageBoxImage.Error);
          return true;
       }
-
       return false;
    }
 
    void SaveSettings ()
      => SettingServices.It.SaveSettings (MCSettings.It);
 
-   void LoadGCode (string filename)
-      => mProcess.LoadGCode (filename);
+   void LoadGCode (string filename) {
+      try {
+         GenesysHub.LoadGCode (filename);
+      } catch (Exception ex) {
+         MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+      }
+   }
+
+   void OpenDINsClick (object sender, RoutedEventArgs e) {
+      if (Files.SelectedItem is string selectedFile) {
+         string dinFileNameH1 = "", dinFileNameH2 = "";
+         try {
+            string[] paths = Environment.GetEnvironmentVariable ("PATH")?.Split (';');
+            string notepadPlusPlus = paths?.Select (p => Path.Combine (p, "notepad++.exe")).FirstOrDefault (File.Exists);
+            string notepad = paths?.Select (p => Path.Combine (p, "notepad.exe")).FirstOrDefault (File.Exists);
+            string editor = notepadPlusPlus ?? notepad; // Prioritize Notepad++, fallback to Notepad
+
+            if (editor == null) {
+               MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error", 
+                  MessageBoxButton.OK, MessageBoxImage.Error);
+               return;
+            }
+
+            // Construct the DIN file paths using the selected file name
+            string dinFileSuffix = string.IsNullOrEmpty (MCSettings.It.DINFilenameSuffix) ? "" : $"-{MCSettings.It.DINFilenameSuffix}-";
+            dinFileNameH1 = $@"{Utils.RemoveLastExtension (selectedFile)}-{1}{dinFileSuffix}({(MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+            dinFileNameH1 = Path.Combine (MCSettings.It.NCFilePath, "Head1", dinFileNameH1);
+            dinFileNameH2 = $@"{Utils.RemoveLastExtension (selectedFile)}-{2}{dinFileSuffix}({(MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
+            dinFileNameH2 = Path.Combine (MCSettings.It.NCFilePath, "Head2", dinFileNameH2);
+
+            if (!File.Exists (dinFileNameH1)) throw new Exception ($"\nFile: {dinFileNameH1} does not exist.\nGenerate G Code first");
+            if (!File.Exists (dinFileNameH2)) throw new Exception ($"\nFile: {dinFileNameH2} does not exist.\nGenerate G Code first");
+
+            // Open the files
+            Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH1}\"") { UseShellExecute = true });
+            Process.Start (new ProcessStartInfo (editor, $"\"{dinFileNameH2}\"") { UseShellExecute = true });
+         } catch (Exception ex) {
+            MessageBox.Show ($"Error opening DIN files: {ex.Message}.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         }
+      }
+   }
    #endregion
 }
 

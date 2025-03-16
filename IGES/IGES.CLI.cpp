@@ -1,0 +1,191 @@
+﻿#include <assert.h>
+#include <memory>
+
+#include <msclr/marshal_cppstd.h>
+
+#include "priv/IGESNative.h"
+#include "IGES.CLI.h"
+
+using namespace System;
+using namespace System::Runtime::InteropServices;
+
+// Declare CleanupTCL() as an external function
+extern "C" void CleanupOCCT(); //Allows C++/CLI to call it
+
+namespace FChassis::IGES {
+
+   IGES::IGES() : pPriv(nullptr) {
+      _putenv("CSF_TclLib=C:\\FluxSDK\\bin\\tcl86.dll");
+      _putenv("CSF_TkLib=C:\\FluxSDK\\bin\\tk86.dll");
+      _putenv("CSF_GraphicShr=C:\\FluxSDK\\bin\\TKOpenGl.dll");
+   }
+
+   IGES::~IGES() {
+      this->!IGES();
+   }
+
+   IGES::!IGES() { // Finalizer
+      if (pPriv) {
+         pPriv->Cleanup();  // Ensure cleanup before deleting
+         delete pPriv;
+         pPriv = nullptr;
+      }
+      //Call CleanupOCCT() from native C++ layer
+      CleanupOCCT();
+   }
+
+   void IGES::Initialize() {
+      if (!pPriv)
+         pPriv = new IGESNative();
+   }
+
+   void IGES::Uninitialize() {
+      if (!pPriv) return;
+
+      pPriv->Cleanup();
+      delete pPriv;
+      pPriv = nullptr;
+
+      CleanupOCCT();
+   }
+
+   void IGES::GetErrorMessage([System::Runtime::InteropServices::Out] System::String^% message) {
+      message = gcnew String(g_Status.error.data());
+   }
+
+   void IGES::ZoomIn() {
+      assert(this->pPriv);
+      this->pPriv->PerformZoomAndRender(true);
+   }
+
+   void IGES::ZoomOut() {
+      assert(this->pPriv);
+      this->pPriv->PerformZoomAndRender(false);
+   }
+
+   int IGES::LoadIGES(System::String^ filePath, int order) {
+      if (!pPriv)
+         throw gcnew System::Exception("IGES engine not initialized.");
+
+      std::string stdFilePath = msclr::interop::marshal_as<std::string>(filePath);
+      try {
+         this->pPriv->LoadIGES(stdFilePath, order);
+      }
+      catch (const std::exception& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while loading the part.");
+      }
+      return 0;
+   }
+
+   int IGES::SaveIGES(System::String^ filePath, int order) {
+      assert(this->pPriv);
+
+      std::string stdFilePath = msclr::interop::marshal_as<std::string>(filePath);
+      return this->pPriv->SaveIGES(stdFilePath, order);
+   }
+
+   int IGES::SaveAsIGS(System::String^ filePath) {
+      assert(this->pPriv);
+
+      std::string stdFilePath = msclr::interop::marshal_as<std::string>(filePath);
+      return pPriv->SaveAsIGS(stdFilePath);
+   }
+
+   int IGES::UnionShapes() {
+      assert(this->pPriv);
+      try {
+         pPriv->UnionShapes();
+      }
+      catch (const NoPartLoadedException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const FuseFailureException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const std::exception& ex) { // Catch other standard exceptions
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+      }
+      return 0;
+   }
+
+   int IGES::AlignToXYPlane(int order) {
+      assert(this->pPriv);
+      return this->pPriv->AlignToXYPlane(order);
+   }
+
+   void IGES::Redraw() {
+      assert(this->pPriv);
+      this->pPriv->Redraw();
+   }
+
+   int IGES::YawPartBy180(int pno) {
+      assert(this->pPriv);
+
+      try {
+         int errorNo = this->pPriv->YawBy180(pno);
+         if (0 == errorNo)
+            this->Redraw();
+
+         return errorNo;
+      }
+      catch (const NoPartLoadedException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const std::exception& ex) { // Catch other standard exceptions
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+      }
+   }
+
+   int IGES::RollPartBy180(int pno) {
+      assert(this->pPriv);
+
+      try {
+         int errorNo = this->pPriv->RollBy180(pno);
+         if (0 == errorNo)
+            this->Redraw();
+
+         return errorNo;
+      }
+      catch (const NoPartLoadedException& ex) {
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (const std::exception& ex) { // Catch other standard exceptions
+         throw gcnew System::Exception(gcnew System::String(ex.what()));
+      }
+      catch (...) {
+         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+      }
+   }
+
+   int IGES::UndoJoin() {
+      assert(this->pPriv);
+      int errorNo = this->pPriv->UndoJoin();
+      if (0 == errorNo)
+         this->Redraw();
+      return errorNo;
+   }
+
+   int IGES::GetShape(int shapeType, int width, int height, array<unsigned char>^% rData) {
+      std::vector<unsigned char> pngData;
+      int errorNo = this->pPriv->GetShape(pngData, shapeType, width, height);
+
+      if (errorNo != 0 || pngData.empty()) return errorNo;  // Handle errors
+
+      // Allocate managed array to hold the image data
+      rData = gcnew array<unsigned char>(pngData.size());
+
+      // Use Marshal::Copy to transfer data from native to managed memory
+      Marshal::Copy((IntPtr)pngData.data(), rData, 0, pngData.size());
+
+      return errorNo;
+   }
+}

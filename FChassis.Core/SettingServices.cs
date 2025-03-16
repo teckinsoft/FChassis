@@ -1,14 +1,11 @@
 ﻿using System.IO;
 
-namespace FChassis;
+namespace FChassis.Core;
 public class SettingServices {
-   private readonly string settingsFilePath;
-   //public static string Multipass2HMc = "LCMMultipass2H";
-   //public static string LegacyMc = "LCMLegacy";
-   
+   readonly string settingsFilePath;
    public static SettingServices It => sIt ??= new ();
    static SettingServices sIt;
-   
+
    public bool LeftToRightMachining { get; set; }
    SettingServices () {
       string fChassisDrive = "W:\\";
@@ -26,14 +23,13 @@ public class SettingServices {
       if (!Directory.Exists (fChassisFolderPath)) {
          Directory.CreateDirectory (fChassisFolderPath);
       }
-
       LeftToRightMachining = true;
    }
 
    public void SaveSettings (MCSettings settings, bool backupNew = false) {
-      if (backupNew) 
-         settings.SaveToJson (settingsFilePath+".bckup");
-      else 
+      if (backupNew)
+         settings.SaveToJson (settingsFilePath + ".bckup");
+      else
          settings.SaveToJson (settingsFilePath);
    }
 
@@ -41,7 +37,7 @@ public class SettingServices {
       if (File.Exists (settingsFilePath)) {
          try {
             settings.LoadFromJson (settingsFilePath);
-         } catch (Exception) {}
+         } catch (Exception) { }
       }
    }
 }

@@ -1,7 +1,10 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
+using FChassis.Core;
+using FChassis.VM;
 namespace FChassis;
+
 
 public partial class App : Application {
    bool AbnormalTermination { get; set; } = false;
@@ -27,7 +30,7 @@ public partial class App : Application {
       OnExitHandler ();
 
       // Mark the exception as handled
-      e.SetObserved (); 
+      e.SetObserved ();
    }
 
    private void CurrentDomain_UnhandledException (object sender, UnhandledExceptionEventArgs e) {
@@ -38,16 +41,16 @@ public partial class App : Application {
    void Current_DispatcherUnhandledException (object sender, DispatcherUnhandledExceptionEventArgs e) {
       AbnormalTermination = true;
       OnExitHandler ();
-      e.Handled = true; 
+      e.Handled = true;
    }
-   void OnExitHandler () =>BeforeExit (); 
+   void OnExitHandler () => BeforeExit ();
    protected override void OnExit (ExitEventArgs e) {
       OnExitHandler ();
       base.OnExit (e);
    }
 
    public void BeforeExit () {
-      if (AbnormalTermination) 
+      if (AbnormalTermination)
          SettingServices.It.SaveSettings (MCSettings.It, backupNew: true);
    }
 

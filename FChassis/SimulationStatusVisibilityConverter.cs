@@ -1,22 +1,25 @@
-﻿using FChassis.Processes;
+﻿using FChassis.Core.Processes;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
+using FChassis.Draw;
+
 namespace FChassis;
+
 public class SimulationStatusToVisibilityConverter : IValueConverter {
    public object Convert (object value, Type targetType, object parameter, CultureInfo culture) {
-      if (value is Processor.ESimulationStatus status) {
+      if (value is ProcessSimulator.ESimulationStatus status) {
          switch (status) {
-            case Processor.ESimulationStatus.Running:
+            case ProcessSimulator.ESimulationStatus.Running:
                if ((string)parameter == "Pause" || (string)parameter == "Stop")
                   return Visibility.Visible;
                break;
-            case Processor.ESimulationStatus.Paused:
+            case ProcessSimulator.ESimulationStatus.Paused:
                if ((string)parameter == "Stop" || (string)parameter == "Simulate")  
                   return Visibility.Visible;
                break;
-            case Processor.ESimulationStatus.NotRunning:
+            case ProcessSimulator.ESimulationStatus.NotRunning:
                if ((string)parameter == "Simulate")
                   return Visibility.Visible;
                break;

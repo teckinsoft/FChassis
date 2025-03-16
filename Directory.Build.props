@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="IBM437"?>
 <Project DefaultTargets="Build">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>	
-    <Nullable>enable</Nullable>
-	
-    <Company>TeckinSoft</Company> 
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
 
-	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
-	<BaseOutputPath>C:\FluxSDK\Bin</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(SolutionDir)\output\obj\$(MSBuildProjectName)\$(Configuration)</BaseIntermediateOutputPath>
-	<PackageOutputPath>$(SolutionDir)\output\$(OutputPath)</PackageOutputPath>      
-  </PropertyGroup>
+		<Company>TeckinSoft</Company>
 
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-  </ItemGroup>
-  
- </Project>
+		<OutDir>C:\FluxSDK\Bin</OutDir>
+		<IntermediateOutputPath>$(SolutionDir)output/intermediate/$(MSBuildProjectName)/</IntermediateOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+	</ItemGroup>
+
+</Project>

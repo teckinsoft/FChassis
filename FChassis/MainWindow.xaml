@@ -6,24 +6,43 @@
         xmlns:local="clr-namespace:FChassis"
         mc:Ignorable="d"
         WindowState="Maximized"
-        Title="MainWindow" Height="450" Width="800" 
+        Title="FChassis" Height="450" Width="800" 
         Loaded="OnWindowLoaded">
     <Window.Resources>
         <local:SimulationStatusToVisibilityConverter x:Key="SimulationStatusToVisibilityConverter" />
+
+        <Style x:Key="FilesListBoxItemContextMenuStyle" TargetType="ListBoxItem">
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu Width="150">
+                        <MenuItem Name="FilenameMenuItem" Header="Open DINs">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <EventSetter Event="Click" Handler="OpenDINsClick"/>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <DockPanel LastChildFill="True">
         <!-- Menu at the top of the window -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="Files">
-                <MenuItem Header="Open" Click="OnMenuFileOpen"/>
-                <MenuItem Header="Import" Click="OnMenuImportFile"/>
-                <MenuItem Header="Unbend Export 2D" Click="OnUnbendExport2D"/>
+                <MenuItem Header="Open File" Click="OnMenuFileOpen"/>
+                <MenuItem Header="Open Folder" Click="OnMenuDirOpen"/>
+                <MenuItem Header="Join" Click="OnMirrorAndJoin"/>
                 <MenuItem Header="Save" Click= "OnMenuFileSave"/>
                 <MenuItem Header="Close" Click="OnFileClose"/>
             </MenuItem>
             <MenuItem Header="Options">
                 <MenuItem Header="Settings" Click="OnSettings"/>
                 <MenuItem x:Name="SanityCheckMenuItem" Header="Sanity Check" Click="OnSanityCheck" Visibility="Collapsed"/>
+            </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem Header="About" Click="OnAboutClick"/>
             </MenuItem>
         </Menu>
         <DockPanel DockPanel.Dock="Left">
@@ -43,7 +62,8 @@
             <Button DockPanel.Dock="Bottom" Click="DoTextMarking" Margin="4,4,4,0">Text Marking</Button>
             <Button DockPanel.Dock="Bottom" Click="DoAddHoles" Margin="4,4,4,0">Cut Holes</Button>
             <Button DockPanel.Dock="Bottom" Click="DoAlign" Margin="4,4,4,0">Align</Button>
-            <ListBox Name="Files" MinWidth="150" SelectionChanged="OnFileSelected" />
+            <ListBox x:Name="Files" SelectionMode="Single" SelectionChanged="OnFileSelected" 
+                ItemContainerStyle="{StaticResource FilesListBoxItemContextMenuStyle}"/>
         </DockPanel>
         <Border Name="Area" />
     </DockPanel>

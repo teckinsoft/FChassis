@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace FChassis;
+namespace FChassis.Core;
 
 /// <summary>
 /// This structure holds the information for each sanity test.
@@ -16,7 +13,7 @@ public struct SanityTestData {
    public MCSettings MCSettings { get; set; } = new MCSettings ();
 
    #region Data Members
-   JsonSerializerOptions mJSONWriteOptions, mJSONReadOptions;
+   JsonSerializerOptions /*mJSONWriteOptions, */mJSONReadOptions;
    #endregion
 
    #region JSON read/write utilities
@@ -32,9 +29,9 @@ public struct SanityTestData {
       };
 
       return new SanityTestData {
-         FxFileName = element.GetProperty (nameof(FxFileName)).GetString (),
-         ToRun = element.GetProperty (nameof(ToRun)).GetBoolean (),
-         MCSettings = JsonSerializer.Deserialize<MCSettings> (element.GetProperty (nameof(MCSettings)).GetRawText (), mJSONReadOptions)
+         FxFileName = element.GetProperty (nameof (FxFileName)).GetString (),
+         ToRun = element.GetProperty (nameof (ToRun)).GetBoolean (),
+         MCSettings = JsonSerializer.Deserialize<MCSettings> (element.GetProperty (nameof (MCSettings)).GetRawText (), mJSONReadOptions)
       };
    }
    #endregion

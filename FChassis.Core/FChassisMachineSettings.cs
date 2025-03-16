@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.IO;
 
-namespace FChassis;
+namespace FChassis.Core;
 /// <summary>All fields that can be set through the Options/Settings dialog</summary>
 public class MCSettings : INotifyPropertyChanged {
    #region Constructors
@@ -19,6 +19,7 @@ public class MCSettings : INotifyPropertyChanged {
    public MCSettings () {
       mToolingPriority = [EKind.Hole, EKind.Notch, EKind.Cutout, EKind.Mark];
       mStandoff = 0.0;
+      mFlexCuttingGap = 0.0;
       mMarkText = "Deluxe";
       mPartitionRatio = 0.5;
       mHeads = EHeads.Both;
@@ -43,7 +44,10 @@ public class MCSettings : INotifyPropertyChanged {
 
       MinThresholdForPartition = 585.0;
       MinNotchLengthThreshold = 210;
+      MinCutOutLengthThreshold = 210;
       DINFilenameSuffix = "";
+      NotchCutStartToken = "NCutStart";
+      NotchCutEndToken = "NCutEnd";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 600.0;
    }
@@ -77,6 +81,7 @@ public class MCSettings : INotifyPropertyChanged {
    private void UpdateFields (MCSettings other) {
       Heads = other.Heads;
       Standoff = other.Standoff;
+      FlexCuttingGap = other.FlexCuttingGap;
       ToolingPriority = other.ToolingPriority;
       MarkTextPosX = other.MarkTextPosX;
       MarkTextPosY = other.MarkTextPosY;
@@ -112,7 +117,10 @@ public class MCSettings : INotifyPropertyChanged {
       CutMarks = other.CutMarks;
       MinThresholdForPartition = other.MinThresholdForPartition;
       MinNotchLengthThreshold = other.MinNotchLengthThreshold;
+      MinCutOutLengthThreshold = other.MinCutOutLengthThreshold;
       DINFilenameSuffix = other.DINFilenameSuffix;
+      NotchCutStartToken = other.NotchCutStartToken;
+      NotchCutEndToken = other.NotchCutEndToken;
       Machine = other.Machine;
       WorkpieceOptionsFilename = other.WorkpieceOptionsFilename;
       ShowToolingNames = other.ShowToolingNames;
@@ -140,6 +148,9 @@ public class MCSettings : INotifyPropertyChanged {
    /// <summary>Stand-off distance between laser nozzle tip and workpiece</summary>
    public double Standoff { get => mStandoff; set => SetProperty (ref mStandoff, value); }
    double mStandoff;
+
+   public double FlexCuttingGap { get => mFlexCuttingGap; set => SetProperty (ref mFlexCuttingGap, value); }
+   double mFlexCuttingGap;
 
    public EKind[] ToolingPriority { 
       get => mToolingPriority; 
@@ -329,11 +340,29 @@ public class MCSettings : INotifyPropertyChanged {
       set => SetProperty (ref mMinNotchLengthThreshold, value); }
    double mMinNotchLengthThreshold;
 
+   public double MinCutOutLengthThreshold {
+      get => mMinCutOutLengthThreshold;
+      set => SetProperty (ref mMinCutOutLengthThreshold, value);
+   }
+   double mMinCutOutLengthThreshold;
+
    public string DINFilenameSuffix { 
       get => mDINFilenameSuffix; 
       set => SetProperty (ref mDINFilenameSuffix, value); }
    string mDINFilenameSuffix;
-   
+
+   public string NotchCutStartToken {
+      get => mNotchCutStartToken;
+      set => SetProperty (ref mNotchCutStartToken, value);
+   }
+   string mNotchCutStartToken;
+
+   public string NotchCutEndToken {
+      get => mNotchCutEndToken;
+      set => SetProperty (ref mNotchCutEndToken, value);
+   }
+   string mNotchCutEndToken;
+
    public string WorkpieceOptionsFilename { 
       get => mWorkpieceOptionsFilename; 
       set => SetProperty (ref mWorkpieceOptionsFilename, value); }
