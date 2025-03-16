@@ -22,7 +22,7 @@ struct SurfaceInfo {
    double width;  // Shortest dimension
 };
 
-static class OCCTUtils {
+class OCCTUtils {
    public:
 
    static TopoDS_Shape CopyShape(const TopoDS_Shape& originalShape) {
@@ -848,7 +848,7 @@ static void _addShape(Handle(AIS_InteractiveContext) context,
 }
 
 int IGESNative::GetShape(std::vector<unsigned char>& rData, int pNo,
-   int width, const int height,
+   int width, int height,
    bool save /*= false*/)
 {
    g_Status.errorNo = 0;

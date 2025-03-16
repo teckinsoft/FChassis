@@ -248,7 +248,7 @@ public class Notch : ToolingFeature {
       mGCodeGen = gcodeGen;
       mPrevPlane = prevPlaneType;
 
-      mSegments = new List<ToolingSegment> (mToolingItem.Segs);
+      mSegments = [.. mToolingItem.Segs];
       mTotalToolingsCutLength = totalToolingsCutLength;
       mCutLengthTillPrevTooling = totalPrevCutToolingsLength;
 
@@ -286,7 +286,9 @@ public class Notch : ToolingFeature {
           !notchWireJointDistance.EQ (0)
       );
 
-      if (Notch.IsEdgeNotch (mGCodeGen.Process.Workpiece.Bound, toolingItem, percentlength, notchApproachLength, curveLeastLength, mIsWireJointsNeeded)) {
+      if (!mTwoFlangeNotchStartAndEndOnSameSideFlange &&
+         Notch.IsEdgeNotch (mGCodeGen.Process.Workpiece.Bound, toolingItem, percentlength,
+         curveLeastLength, mIsWireJointsNeeded)) {
          EdgeNotch = true;
       } else if (mToolingPerimeter < MinNotchLengthThreshold && mToolingItem.Segs[0].Vec0.Normalized ().EQ (mToolingItem.Segs[^1].Vec1.Normalized ())) {
          mShortPerimeterNotch = true;
@@ -1675,7 +1677,6 @@ public class Notch : ToolingFeature {
          }
       }
 
-
       // The point on the segment at the end of the approachIndex-th segment
       Point3 notchPointAtApproachpc = notchAttrs[approachIndex].Curve.End;
 
@@ -1696,8 +1697,18 @@ public class Notch : ToolingFeature {
       if (Utils.GetPlaneType (planeNormal, XForm4.IdentityXfm) == EPlane.Top) {
 
          // Two flange notch ending on the same side is a notch that is not at
-         // the ends of the part. n1 and n2 are always on the +/- X-axis
-         n12Axis = twoFlangeNotchStartAndEndOnSameSideFlange ? XForm4.mXAxis : XForm4.mYAxis;
+         // the ends of the part. n1 and n2 have to be computed as the binormal direction
+         // to the cross product of approach tooling direction and the plane normal
+         // which is in same sense to the scrap side normal.
+         if (twoFlangeNotchStartAndEndOnSameSideFlange) {
+            var scrapSideDir = notchAttrs[approachIndex].ScrapSideDir;
+            var pNormal = notchAttrs[approachIndex].EndNormal.Normalized ();
+            var inwardDir = -outwardVecDir;
+            var biNormal = inwardDir.Cross (pNormal).Normalized ();
+            if (biNormal.IsSameSense (scrapSideDir)) n12Axis = biNormal;
+            else n12Axis = -biNormal;
+         } else n12Axis = XForm4.mYAxis;
+
          n1 = nMid1 + n12Axis * gap;
          if ((n1 - nMid1).Opposing (outwardVecDir)) n1 = nMid1 - n12Axis * gap;
          n2 = nMid2 + n12Axis * gap;
@@ -2036,7 +2047,8 @@ public class Notch : ToolingFeature {
 
                string comment = GCodeGenerator.GetGCodeComment ("** Notch: Wire Joint Jump Trace Forward Direction ** ");
                var wjtTS = mSegments[notchSequence.StartIndex];
-               if (notchSequence.SectionType == NotchSectionType.WireJointTraceJumpReverse) {
+               if (notchSequence.SectionType == NotchSectionType.WireJointTraceJumpReverse ||
+                  notchSequence.SectionType == NotchSectionType.WireJointTraceJumpReverseOnFlex) {
                   wjtTS = Geom.GetReversedToolingSegment (wjtTS);
                   comment = GCodeGenerator.GetGCodeComment ("** Notch: Wire Joint Jump Trace Reverse Direction ** ");
                }
@@ -2203,13 +2215,7 @@ public class Notch : ToolingFeature {
             case NotchSectionType.MachineFlexToolingReverse: {
                   if (notchSequence.StartIndex < notchSequence.EndIndex)
                      throw new Exception ("In WriteNotchGCode: MachineFlexToolingReverse : startIndex < endIndex");
-                  bool isPrevSeqWJTTrace4Flex = false;
-                  if (ii - 1 >= 0) {
-                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex ||
-                        mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpReverseOnFlex) {
-                        isPrevSeqWJTTrace4Flex = true;
-                     }
-                  }
+
                   if (!continueMachining) {
                      mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments,
                         mSegments[notchSequence.StartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut: true,
@@ -2253,13 +2259,7 @@ public class Notch : ToolingFeature {
             case NotchSectionType.MachineFlexToolingForward: {
                   if (notchSequence.StartIndex > notchSequence.EndIndex)
                      throw new Exception ("In WriteNotch: MachineFlexToolingForward : startIndex > endIndex");
-                  bool isPrevSeqWJTTrace4Flex = false;
-                  if (ii - 1 >= 0) {
-                     if (mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex ||
-                        mNotchSequences[ii - 1].SectionType == NotchSectionType.WireJointTraceJumpReverseOnFlex) {
-                        isPrevSeqWJTTrace4Flex = true;
-                     }
-                  }
+
                   if (!continueMachining) {
                      mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, mSegments,
                         mSegments[notchSequence.StartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut: true,
@@ -2412,8 +2412,10 @@ public class Notch : ToolingFeature {
    /// <returns>True if the notch happens on one of the boundary edges, false otherwise</returns>
    /// </param>
    public static bool IsEdgeNotch (Bound3 bound, Tooling toolingItem,
-      double[] percentPos, double notchApproachLength, double leastCurveLength, bool isWireJointCutsNeeded) {
-      var attrs = GetNotchApproachParams (bound, toolingItem, percentPos, notchApproachLength, leastCurveLength, isWireJointCutsNeeded);
+      double[] percentPos,
+      double leastCurveLength, bool isWireJointCutsNeeded) {
+      var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
+         leastCurveLength, isWireJointCutsNeeded);
       if (toolingItem.IsNotch () && attrs.Count == 0) return true;
       //if (toolingItem.ProfileKind == ECutKind.YNegFlex || toolingItem.ProfileKind == ECutKind.YPosFlex)
       //   return true;
@@ -2503,7 +2505,8 @@ public class Notch : ToolingFeature {
    /// <returns>The overall length of the cut (this includes tooling and other cutting strokes for approach etc.)</returns>
    public static double GetTotalNotchToolingLength (Bound3 bound, Tooling toolingItem,
       double[] percentPos, double notchWireJointDistance, double notchApproachLength, double leastCurveLength, bool isWireJointCutsNeeded) {
-      var attrs = GetNotchApproachParams (bound, toolingItem, percentPos, notchApproachLength, leastCurveLength, isWireJointCutsNeeded);
+      var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
+         leastCurveLength, isWireJointCutsNeeded);
 
       double totalMachiningLength = 0;
       if (attrs.Count == 0) {
@@ -2699,7 +2702,7 @@ public class Notch : ToolingFeature {
    /// <returns>A list of tuples that contain the notch point, normal at the point
    /// and the direction to the nearest boundary</returns>
    public static List<Tuple<Point3, Vector3, Vector3>> GetNotchApproachParams (Bound3 bound, Tooling toolingItem,
-      double[] percentPos, double notchApproachDistance, double curveLeastLength, bool isWireJointCutsNeeded) {
+      double[] percentPos, double curveLeastLength, bool isWireJointCutsNeeded) {
       List<Tuple<Point3, Vector3, Vector3>> attrs = [];
       var segs = toolingItem.Segs.ToList ();
       if (!toolingItem.IsNotch ()) return attrs;

@@ -10,7 +10,16 @@
 		<DocumentationFile>$(OutDir)FChassis.Core.xml</DocumentationFile>
 
 		<DefineConstants>DEBUG_ROUND3</DefineConstants>
+
+		<Configurations>Debug;Release;TestRelease</Configurations>
+
+		<PlatformTarget>x64</PlatformTarget>
 		<!--<UseWPF>true</UseWPF>-->
+
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+		<Platforms>AnyCPU;x64</Platforms>
+
 	</PropertyGroup>
 
 	<!--<ItemGroup>
@@ -29,6 +38,12 @@
 			<HintPath>$(OutDir)iges.dll</HintPath>
 		</Reference>
 	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='TestRelease'">
+	  <Reference Include="iges">
+	    <HintPath>$(OutDir)iges.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
 		<Reference Include="igesd">
 			<HintPath>$(OutDir)igesd.dll</HintPath>
@@ -41,6 +56,11 @@
 		<Reference Include="Flux.Base">
 			<HintPath>..\..\..\..\..\..\..\FluxSDK\Bin\Flux.Base.dll</HintPath>
 		</Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <None Update="App.config">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 </Project>
 

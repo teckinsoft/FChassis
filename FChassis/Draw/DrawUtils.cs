@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Threading;
-using System.Reflection.Emit;
+﻿using System.Windows.Threading;
 using System.ComponentModel;
-using System.Diagnostics;
 
 using Flux.API;
 
@@ -39,7 +32,7 @@ public class ProcessSimulator (GenesysHub gHub, Dispatcher dsp) : INotifyPropert
          wayPointIndex = 0;
       }
       public int gCodeSegIndex, wayPointIndex;
-      RefCSys mReferenceCS = RefCSys.WCS;
+      //RefCSys mReferenceCS = RefCSys.WCS;
    }
    GCodeSegmentIndices[] mNextXFormIndex = [new (), new ()];
    double mPrevStepLen;
