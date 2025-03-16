@@ -149,7 +149,10 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          // Handle the OK action and update the SanityTestData with the updated settings
          sData.MCSettings = settingsDialog.Settings;
 
-         if (settingsDialog.IsModified) SanityTests[rowIndex - mNFixedTopRows] = sData;
+         if (settingsDialog.IsModified) {
+            isDirty = true;
+            SanityTests[rowIndex - mNFixedTopRows] = sData;
+         }
       };
 
       // Show the settings dialog
@@ -208,8 +211,25 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       SaveIfDirty ();
       RemoveSanityTestRows (onlySelected: false); // Proceed without saving
       ClearZombies ();
+      OpenFileDialog fileDialog = new OpenFileDialog () {
+         Filter = "Step Files (*.stp;*.step)|*.stp;*.step|IGS Files(*.igs;*.iges)|*.igs;*.iges|All files (*.*)|*.*",
+         Multiselect = true,
+         InitialDirectory = TestSuiteDir
+      };
+      if (fileDialog.ShowDialog () == true) {
+         foreach (var file in fileDialog.FileNames) {
+            var sanityTestData = new SanityTestData {
+               FxFileName = file,
+               ToRun = true
+            };
+            /*FilePath = System.IO.Path.GetDirectoryName (file);*/
+            SanityTests.Add (sanityTestData);
+            AddSanityTestRow (sanityTestData);
+         }
+         this.Title = "Sanity Tests - New Test Suite";
+      }
+      isDirty = true;
    }
-
    void OnLoadTSuiteButtonClick (object sender, RoutedEventArgs e) {
       RemoveSanityTestRows ();
       OpenFileDialog openFileDialog = new () {
@@ -221,7 +241,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          LoadFromJson (openFileDialog.FileName);
 
       TestFileName = openFileDialog.FileName;
-      this.Title = "Sanity Check " + TestFileName;
+      this.Title = "Sanity Tests Suite - " + TestFileName;
    }
 
    void OnSelectAllCheckBoxClick (object sender, RoutedEventArgs e) {
@@ -249,7 +269,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          if (saveFileDialog.ShowDialog () == true) {
             SaveToJson (saveFileDialog.FileName);
             TestFileName = saveFileDialog.FileName;
-            this.Title = "Sanity Check " + TestFileName;
+            this.Title = "Sanity Tests - " + TestFileName;
             isDirty = false; // Reset the dirty flag after saving
          }
       }
@@ -313,14 +333,17 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          MessageBoxResult result = MessageBox.Show ("Do you want to save ?", "Save Confirmation",
                                                     MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
          if (result == MessageBoxResult.Yes) {
-            // Show Save File Dialog
-            SaveFileDialog saveFileDialog = new () {
-               Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
-               InitialDirectory = TestSuiteDir
-            };
+            if (!String.IsNullOrEmpty (TestFileName)) SaveToJson (TestFileName);
+            else {
+               // Show Save File Dialog
+               SaveFileDialog saveFileDialog = new () {
+                  Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                  InitialDirectory = TestSuiteDir
+               };
 
-            if (saveFileDialog.ShowDialog () == true) {
-               SaveToJson (saveFileDialog.FileName);
+               if (saveFileDialog.ShowDialog () == true) {
+                  SaveToJson (saveFileDialog.FileName);
+               }
             }
          }
       }
@@ -412,8 +435,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
                // Create UI elements to match the loaded data, starting from row index 2 onwards
                AddSanityTestRow (sanityTestData);
             }
-
-            isDirty = false; // Reset the dirty flag after loading
+            isDirty = isTestBatch;
          }
       }
    }
@@ -428,7 +450,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          RemoveSanityTestRows (onlySelected: false);
          LoadFromJson (fileDialog.FileName);
          TestFileName = fileDialog.FileName;
-         this.Title = "Sanity Checks Test Batch : " + TestFileName;
+         this.Title = "Sanity Tests Batch - " + TestFileName;
       }
    }
 
@@ -444,10 +466,28 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          foreach (var file in fileDialog.FileNames) {
             LoadFromJson (fileDialog.FileName, true);
          }
+         TestFileName = "";
+         this.Title = "Sanity Tests - New Test Batch";
       }
 
       if (fileDialog.FileNames.Length == 0) {
          MessageBox.Show ("No files selected", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+      }
+   }
+
+   private void OnSaveAsButtonClick (object sender, RoutedEventArgs e) {
+
+      if (!String.IsNullOrEmpty (TestFileName) || SanityTests.Count == 0) return;  // return if no tests to save or existing file
+      SaveFileDialog saveFileDialog = new SaveFileDialog {
+         Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+         InitialDirectory = TestSuiteDir
+      };
+
+      if (saveFileDialog.ShowDialog () == true) {
+         TestFileName = saveFileDialog.FileName;
+         SaveToJson (TestFileName);
+         this.Title = "Sanity Tests - " + TestFileName;
+         isDirty = false; // Reset the dirty flag after saving
       }
    }
 
@@ -479,28 +519,28 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       MainGrid.Children.Add (filePathTextBox);
 
       // Add a "Browse" Button to the new row
-      Button browseButton = new () { Content = "Browse", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      Button browseButton = new () { Content = "Browse", Style = (Style)FindResource ("CustomButtonStyle"), Margin = new Thickness (5) };
       browseButton.Click += (s, args) => OnBrowseFileButtonClick (Grid.GetRow (browseButton));
       Grid.SetRow (browseButton, newRowIdx);
       Grid.SetColumn (browseButton, 2);
       MainGrid.Children.Add (browseButton);
 
       // Add a "Settings" Button to the new row
-      Button settingsButton = new () { Content = "Settings", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      Button settingsButton = new () { Content = "Settings", Style = (Style)FindResource ("CustomButtonStyle"), Margin = new Thickness (5) };
       settingsButton.Click += (s, args) => OnClickSettingsButton (Grid.GetRow (settingsButton), sanityTestData);
       Grid.SetRow (settingsButton, newRowIdx);
       Grid.SetColumn (settingsButton, 3);
       MainGrid.Children.Add (settingsButton);
 
       // Add a "GCode" Button to the new row
-      Button gCodeButton = new () { Content = "Run", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      Button gCodeButton = new () { Content = "Run", Style = (Style)FindResource ("CustomButtonStyle"), Margin = new Thickness (5) };
       gCodeButton.Click += (s, args) => OnRunSingleTestClick (Grid.GetRow (gCodeButton));
       Grid.SetRow (gCodeButton, newRowIdx);
       Grid.SetColumn (gCodeButton, 4);
       MainGrid.Children.Add (gCodeButton);
 
       // Add a "Diff" Button to the new row
-      Button diffButton = new () { Content = "Diff", Cursor = Cursors.Hand, Margin = new Thickness (5) };
+      Button diffButton = new () { Content = "Diff", Style = (Style)FindResource ("CustomButtonStyle"), Margin = new Thickness (5) };
       diffButton.Click += (s, args) => OnDiffButtonClick (Grid.GetRow (diffButton));
       Grid.SetRow (diffButton, newRowIdx);
       Grid.SetColumn (diffButton, 5);
