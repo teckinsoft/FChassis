@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <omp.h>
 
 #include "./../OcctHeaders.h"
 
@@ -103,7 +104,6 @@ class OCCTUtils {
 
          return retryBuilder.Shape();
       }
-
       return bopBuilder.Shape();
    }
 
@@ -127,10 +127,79 @@ class OCCTUtils {
             minXDist = dx;
          }
       }
-
       return minXDist; // Returns the shortest distance along X-axis
    }
 
+   static double FindMinDistance(const std::vector<gp_Pnt>& midpoints1, const std::vector<gp_Pnt>& midpoints2) {
+      double minDistance = std::numeric_limits<double>::max();
+
+      // Flatten the nested loops into a single loop
+      size_t totalIterations = midpoints1.size() * midpoints2.size();
+
+#pragma omp parallel
+      {
+         // Each thread has its own local minimum
+         double localMinDistance = std::numeric_limits<double>::max();
+
+#pragma omp for
+         for (int k = 0; k < totalIterations; ++k) {
+            // Compute the indices for the original nested loops
+            int i = k / (int)midpoints2.size();
+            int j = k % midpoints2.size();
+
+            // Compute the distance
+            double distance = midpoints1[i].Distance(midpoints2[j]);
+            if (distance < localMinDistance) {
+               localMinDistance = distance;
+            }
+         }
+
+         // Combine local results into the global minimum
+#pragma omp critical
+         {
+            if (localMinDistance < minDistance) {
+               minDistance = localMinDistance;
+            }
+         }
+      }
+      return minDistance;
+   }
+
+   // Function to compute the midpoint of an edge
+   static gp_Pnt ComputeEdgeMidpoint(const TopoDS_Edge& edge) {
+      Standard_Real first, last;
+      Handle(Geom_Curve) curve = BRep_Tool::Curve(edge, first, last);
+
+      if (!curve.IsNull()) {
+         return curve->Value((first + last) / 2.0);  // Compute midpoint
+      }
+      else {
+         std::cerr << "Warning: Null curve encountered!" << std::endl;
+         return gp_Pnt(0, 0, 0); // Return a default point
+      }
+   }
+
+   // Compute the minimum distance using edge midpoints
+   static double EdgeMidpointDistance(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) {
+      std::vector<gp_Pnt> midpoints1, midpoints2;
+
+      // Extract edges and compute midpoints for shape1
+      for (TopExp_Explorer edgeExp(shape1, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
+         TopoDS_Edge edge = TopoDS::Edge(edgeExp.Current());
+         midpoints1.push_back(ComputeEdgeMidpoint(edge));
+      }
+
+      // Extract edges and compute midpoints for shape2
+      for (TopExp_Explorer edgeExp(shape2, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
+         TopoDS_Edge edge = TopoDS::Edge(edgeExp.Current());
+         midpoints2.push_back(ComputeEdgeMidpoint(edge));
+      }
+
+
+      auto d = FindMinDistance(midpoints1, midpoints2);
+      return d;
+
+   }
 
    // Function to merge two shapes along the X-axis
    static TopoDS_Shape MergeShapesAlongX(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) {
@@ -142,16 +211,8 @@ class OCCTUtils {
       // Try the Boolean union operation
       TopoDS_Shape fusedShape = BooleanUnion(shape1, shape2);
 
-      if (!fusedShape.IsNull()) {
-         // If the union fails, translate shape2 and retry
-         double d = OCCTUtils::ShortestDistanceX(shape1, shape2);
-         TopoDS_Shape translatedShape2 = TranslateAlongX(shape2, -2.0 * d); // Translate by -1.0 mm along X-axis
-         fusedShape = BooleanUnion(shape1, translatedShape2);
-
-         if (fusedShape.IsNull()) {
-            throw std::runtime_error("Fusing input parts failed even after translation.");
-         }
-      }
+      if (fusedShape.IsNull())
+         throw std::runtime_error("Fusing input parts failed even after translation.");
 
       // Fix the resulting shape
       fusedShape = FixShape(fusedShape);
@@ -319,6 +380,7 @@ int IGESNative::LoadIGES(const std::string& filePath, int pNo /*= 0*/) {
 
    reader.TransferRoots();
    TopoDS_Shape shape = TopoDS_Shape(reader.OneShape());
+   shape = OCCTUtils::FixShape(shape);
    this->pShape->SetShape((IGESShapePimpl::ShapeType)pNo, shape);
 
    // Any lew loading of Part 1 or 2, fused part should be set to null
@@ -499,8 +561,14 @@ int IGESNative::UnionShapes() {
    if (rightShape.IsNull())
       throw NoPartLoadedException(1);
 
+   auto d = OCCTUtils::EdgeMidpointDistance(leftShape, rightShape);
+   double trans = 0;
+   if (d < 0.5) trans = 2.5 * d;
+   else if (d < 0.9) trans = 1 + d;
+   TopoDS_Shape translatedRightShape = OCCTUtils::TranslateAlongX(rightShape, -2.0 * d); // Translate by -1.0 mm along X-axis
+
    // Perform the initial union operation
-   BRepAlgoAPI_Fuse fuser(leftShape, rightShape);
+   BRepAlgoAPI_Fuse fuser(leftShape, translatedRightShape);
    fuser.Build();
 
    TopoDS_Shape fusedShape;
@@ -511,16 +579,18 @@ int IGESNative::UnionShapes() {
    // Validate the fuse operation
    if (!fuser.IsDone() || fusedShape.IsNull())
    {
-      // Try once again
-      fusedShape = OCCTUtils::MergeShapesAlongX(leftShape, rightShape);
+      // Try fusion once again
+      fusedShape = OCCTUtils::MergeShapesAlongX(leftShape, translatedRightShape);
       if (fusedShape.IsNull())
          throw FuseFailureException("Fusing input parts failed");
       fusedShape = OCCTUtils::FixShape(fusedShape);
       if (fusedShape.IsNull())
          throw FuseFailureException("Fusing input parts failed");
-      pShape->SetShape(IGESShapePimpl::ShapeType::Fused, fusedShape);
    }
+   else
+      fusedShape = OCCTUtils::FixShape(fusedShape);
 
+   pShape->SetShape(IGESShapePimpl::ShapeType::Fused, fusedShape);
 
    // Call the function to handle intersecting bounding curves
    double tolerance = 1e-1; // Adjust the tolerance as needed
