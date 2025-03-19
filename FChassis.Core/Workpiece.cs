@@ -178,6 +178,14 @@ public class Workpiece : INotifyPropertyChanged {
             Cuts.RemoveAt (ii);
             ii--;
          }
+      ERotate eTextAng = mcs.MarkAngle;
+      double textAng = eTextAng switch {
+         ERotate.Rotate0 => 0,
+         ERotate.Rotate90 => 90 * Math.PI / 180,
+         ERotate.Rotate180 => Math.PI,
+         ERotate.Rotate270 => 270 * Math.PI / 180,
+         _ => 0
+      };
       int cutIndex = Cuts.Count + 1;
       var bp = mModel.Baseplane;
       var xfm = bp.Xfm.GetInverse () * Matrix3.Translation (0, 0, Offset);
@@ -185,9 +193,14 @@ public class Workpiece : INotifyPropertyChanged {
       if (mcs.MarkTextPosX.LieWithin (mModel.Bound.XMin, mModel.Bound.XMax))
          textPt = new Point2 (mcs.MarkTextPosX, mcs.MarkTextPosY);
 
+      // Additional rotational angle
+      Point3 ax1 = new (textPt.X, textPt.Y, 0); Point3 ax2 = new (textPt.X, textPt.Y, 10);
+      var rotXfm = Matrix3.Rotation (ax1, ax2, textAng);
+
       var e2t = new E2Text (mcs.MarkText, textPt, mcs.MarkTextHeight, "SIMPLEX", 0);
       foreach (var pline in e2t.Plines) {
-         Pline p2 = pline.Xformed (xfm);
+         Pline p2 = pline.Xformed (rotXfm * xfm);
+
          Cuts.Add (new Tooling (this, mModel.Baseplane, p2, EKind.Mark));
          Cuts[^1].Name = $"Tooling-{cutIndex++}";
          Cuts[^1].FeatType = $"{Utils.GetFlangeType (Cuts[^1],
