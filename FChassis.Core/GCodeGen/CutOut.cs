@@ -562,7 +562,7 @@ public class CutOut : ToolingFeature {
             case NotchSectionType.WireJointTraceJumpForwardOnFlex:
                if (ii == 0) throw new Exception ("CutOut writing starts from Wire Joint Jump Trace, which is wrong");
                Vector3 scrapSideNormal = Utils.GetMaterialRemovalSideDirection (ToolingSegments[cutoutSequence.StartIndex],
-                  ToolingSegments[cutoutSequence.StartIndex].Curve.End, ToolingItem.ProfileKind);
+                  ToolingSegments[cutoutSequence.StartIndex].Curve.End, EFeatureType.Cutout, ToolingItem.ProfileKind);
                string comment;
                if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForward)
                   comment = "(( ** CutOut: Wire Joint Jump Trace Forward Direction ** ))";

@@ -166,6 +166,12 @@ public enum EMove {
    None
 }
 
+public enum EFeatureType {
+   Hole,
+   Notch,
+   Cutout,
+   None
+}
 /// <summary>
 /// Represents the drawable information of a G-Code segment, 
 /// which is used for simulation purposes.
@@ -778,7 +784,7 @@ public static class Utils {
       return new (newToolingEntryPoint, scrapSideDirection);
    }
 
-   public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, ECutKind profileKind = ECutKind.None) {
+   public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EFeatureType featType, ECutKind profileKind = ECutKind.None) {
       var toolingPlaneNormal = ts.Vec0;
       if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal))
          throw new Exception ("In GetMaterialRemovalSideDirection: The given point is not on the Tool Segment's Curve");
@@ -802,12 +808,17 @@ public static class Utils {
       var biNormal = Geom.Cross (toolingDir, toolingPlaneNormal).Normalized ();
       Vector3 scrapSideDirection = biNormal.Normalized ();
 
-      // The profile is clockwise
-      if (profileKind == ECutKind.Top2YNeg && Geom.Cross (toolingDir, biNormal).IsSameSense (toolingPlaneNormal))
+      if (featType == EFeatureType.Notch) {
+         // The profile is clockwise
+         if (profileKind == ECutKind.Top2YNeg && Geom.Cross (toolingDir, biNormal).IsSameSense (toolingPlaneNormal))
+            scrapSideDirection = -biNormal;
+         // The profile is counter-clockwise
+         else if ((profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top) && Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
+            scrapSideDirection = -biNormal;
+      } else if (featType == EFeatureType.Cutout) {
+         // The profile is always counter-clockwise
          scrapSideDirection = -biNormal;
-      // The profile is counter-clockwise
-      else if ((profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top) && Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
-         scrapSideDirection = -biNormal;
+      }
 
       return scrapSideDirection;
    }
@@ -1106,7 +1117,7 @@ public static class Utils {
          );
 
          if (twoFlangeNotchStartAndEndOnSameSideFlange)
-            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, toolingItem.ProfileKind);
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EFeatureType.Notch, toolingItem.ProfileKind);
          else
             scrapsideMaterialDir = vectorOutwardAtSpecPoint;
 
@@ -1164,7 +1175,7 @@ public static class Utils {
          );
 
          if (twoFlangeNotchStartAndEndOnSameSideFlange)
-            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, toolingItem.ProfileKind);
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EFeatureType.Notch, toolingItem.ProfileKind);
          else
             scrapsideMaterialDir = vectorOutwardAtSpecPoint;
 
@@ -1194,9 +1205,8 @@ public static class Utils {
                      outwardNormalAlongFlange *= -1.0;
 
                   break;
-               } else {
+               } else
                   p1p2 = Geom.Perturb (p1p2);
-               }
 
                ++nc;
                if (nc > 10)
@@ -1319,19 +1329,6 @@ public static class Utils {
                var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (segments[segIndex], crvs);
                segments.RemoveAt (segIndex);
                segments.InsertRange (segIndex, toolSegsForCrvs);
-
-               //newSegIndices[idx] = segIndex;
-               //notchPoints[idx] = segments[segIndex].Curve.End;
-               //idx++;
-
-               //var (_, notchPoints) = Notch.ComputeNotchPointOccuranceParams (segments, percentPos, curveLeastLength);
-               //notchPtsInfo = Notch.GetNotchPointsInfo (segIndices, notchPoints, percentPos);
-
-               //nptInterestPts = [];
-               //for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++)
-               //   nptInterestPts.Add (notchPtsInfo[ii].mPoints[jj]);
-
-               //segIndex = segments.FindIndex (s => s.Curve.End.DistTo (npt).EQ (0, tolerance));
             }
             newSegIndices[idx] = segIndex;
             notchPoints[idx] = segments[segIndex].Curve.End;
@@ -1350,14 +1347,6 @@ public static class Utils {
       string[] atPos = ["@25", "@50", "@75"];
       for (int ii = 0; ii < nptPts.Count; ii++) {
          var npt = nptPts[ii];
-         //double dd;
-
-         //for (int jj = 0; jj < segments.Count; jj++) {
-         //   dd = segments[jj].Curve.End.DistTo (npt);
-         //   if (dd.EQ (0, tolerance)) {
-         //      idx = jj; break;
-         //   }
-         //}
          idx = -1;
          idx = segments.FindIndex (s => s.Curve.End.DistTo (npt).EQ (0, tolerance));
          if (segIndices[ii] == -1) idx = -1;
@@ -1393,7 +1382,6 @@ public static class Utils {
       // Consistency check
       if (segments.Count == 0 || segIndex < 0 || segIndex >= segments.Count ||
          !Geom.IsPointOnCurve (segments[segIndex].Curve, point, fpn, tolerance))
-         //return toolSegs;
          throw new Exception ("SplitToolingSegmentsAtPoint: Point not on the curve");
 
       var crvs = Geom.SplitCurve (segments[segIndex].Curve, intPoints, fpn,
