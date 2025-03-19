@@ -330,7 +330,7 @@ public class Workpiece : INotifyPropertyChanged {
             // is lesser than 2.0, the cutout is discarded
             // This is included to exclude such cutouts that are generated from JOIN functionality
             if (cut.IsFlexCutout ()) {
-               if (cut.IsNarrowFeature ()) continue;
+               if (cut.IsNarrowFlexOnlyFeature ()) continue;
             }
             if (cut.IsFlexOnlyFeature ()) continue;
             cut.Name = $"Tooling-{cutIndex++}";

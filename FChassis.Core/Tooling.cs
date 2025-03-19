@@ -442,7 +442,8 @@ public class Tooling {
    /// </caveat>
    /// <param name="min">Minimum value threshold</param>
    /// <returns>True if a narrow feature, False otherwise</returns>
-   public bool IsNarrowFeature (double min = 2.0) {
+   public bool IsNarrowFlexOnlyFeature (double min = 2.0) {
+      if (!IsFlexOnlyFeature ()) return false;
       double minVal = double.MaxValue;
       for (int ii = 0; ii < Segs.Count - 1; ii++) {
          for (int jj = ii + 1; jj < Segs.Count; jj++) {
