@@ -94,6 +94,7 @@ internal static class Extensions {
       Point3 pt = new (val.X - sub.X, val.Y - sub.Y, val.Z - sub.Z);
       return pt;
    }
+   public static Vector3 ToVector (this Point3 val) => new Vector3 (val.X, val.Y, val.Z);
    public static Point2 Subtract (this Point2 val, Point2 sub) {
       Point2 pt = new (val.X - sub.X, val.Y - sub.Y);
       return pt;
@@ -1293,6 +1294,9 @@ public static class Utils {
                                                     bool wireJointCuts,
                                                     double tolerance = 1e-6) {
       List<Point3> nptInterestPts = [], nptPts = [];
+      int[] newSegIndices = [.. segIndices];
+      Point3[] notchPoints = new Point3[percentPos.Length];
+      int idx = 0;
       for (int ii = 0; ii < notchPtsInfo.Count; ii++) {
          nptInterestPts = [];
          for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count && segIndices.Contains (notchPtsInfo[ii].mSegIndex); jj++)
@@ -1316,16 +1320,26 @@ public static class Utils {
                segments.RemoveAt (segIndex);
                segments.InsertRange (segIndex, toolSegsForCrvs);
 
-               var (_, notchPoints) = Notch.ComputeNotchPointOccuranceParams (segments, percentPos, curveLeastLength);
-               notchPtsInfo = Notch.GetNotchPointsInfo (segIndices, notchPoints, percentPos);
+               //newSegIndices[idx] = segIndex;
+               //notchPoints[idx] = segments[segIndex].Curve.End;
+               //idx++;
 
-               nptInterestPts = [];
-               for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++)
-                  nptInterestPts.Add (notchPtsInfo[ii].mPoints[jj]);
+               //var (_, notchPoints) = Notch.ComputeNotchPointOccuranceParams (segments, percentPos, curveLeastLength);
+               //notchPtsInfo = Notch.GetNotchPointsInfo (segIndices, notchPoints, percentPos);
+
+               //nptInterestPts = [];
+               //for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++)
+               //   nptInterestPts.Add (notchPtsInfo[ii].mPoints[jj]);
+
+               //segIndex = segments.FindIndex (s => s.Curve.End.DistTo (npt).EQ (0, tolerance));
             }
+            newSegIndices[idx] = segIndex;
+            notchPoints[idx] = segments[segIndex].Curve.End;
+            idx++;
          }
       }
 
+      notchPtsInfo = Notch.GetNotchPointsInfo (newSegIndices, notchPoints, percentPos);
       for (int ii = 0; ii < notchPtsInfo.Count; ii++) {
          nptInterestPts = [];
          for (int jj = 0; jj < notchPtsInfo[ii].mPoints.Count; jj++)
@@ -1336,14 +1350,16 @@ public static class Utils {
       string[] atPos = ["@25", "@50", "@75"];
       for (int ii = 0; ii < nptPts.Count; ii++) {
          var npt = nptPts[ii];
-         double dd;
-         int idx = -1;
-         for (int jj = 0; jj < segments.Count; jj++) {
-            dd = segments[jj].Curve.End.DistTo (npt);
-            if (dd.EQ (0, tolerance)) {
-               idx = jj; break;
-            }
-         }
+         //double dd;
+
+         //for (int jj = 0; jj < segments.Count; jj++) {
+         //   dd = segments[jj].Curve.End.DistTo (npt);
+         //   if (dd.EQ (0, tolerance)) {
+         //      idx = jj; break;
+         //   }
+         //}
+         idx = -1;
+         idx = segments.FindIndex (s => s.Curve.End.DistTo (npt).EQ (0, tolerance));
          if (segIndices[ii] == -1) idx = -1;
          NotchPointInfo nptInfo = new ();
          double atpc = 0;

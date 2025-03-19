@@ -237,7 +237,7 @@ public class GCodeGenerator {
    string NCName;
    bool mLastCutScope = false;
    ToolingSegment? mPrevToolingSegment = null;
-   bool mHeaderComplete = true;
+   List<double> mCutscopeToolingLengths = [];
    public bool IsRapidMoveToPiercingPositionWithPingPong { get; set; }
    #endregion
 
@@ -1210,6 +1210,7 @@ public class GCodeGenerator {
    /// <returns>The generated G Code</returns>
    /// <exception cref="Exception">Throws an exception if an error occurs during G Code generation</exception>
    public int GenerateGCode (ToolHeadType head, List<MachinableCutScope> mcCutScopes) {
+      mCutscopeToolingLengths = [];
       Head = head;
       CreateDummyBlock4Master = false;
 
@@ -1278,7 +1279,16 @@ public class GCodeGenerator {
          sw.WriteLine ("G61\t( Stop Block Preparation )");
          sw.WriteLine (GetGCodeApplyToolDiaCompensation ());
          sw.WriteLine (GetGCodeComment ($" Cutting with {Head} head "));
-         mHeaderComplete = false;
+         foreach (var csc in mcCutScopes)
+            mCutscopeToolingLengths.Add (GetTotalToolingsLength (csc.Toolings));
+         var totalToolingsLen = mCutscopeToolingLengths.Sum ();
+         string ncname = NCName;
+         if (ncname.Length > 20) ncname = ncname[..20];
+         double totalMarkLength = 0;
+         sw.WriteLine ($"G253 E0 F=\"0=1:{ncname}:{Math.Round (totalToolingsLen, 2)}," +
+                $"{Math.Round (totalMarkLength, 2)}\"");
+         sw.WriteLine ($"G20 X=BlockID");
+
          // ****************************************************************************
          // Logic to change scope goes here.
          // 0. Create partition for multipass tooling ( sets head 0 or 1 )
@@ -1338,7 +1348,7 @@ public class GCodeGenerator {
             }
             if (cuts.Count == 0) continue;
 
-            WriteCuts (cuts, cutScopeBound, xStart, ref xEnd, mcCutScope, totalCuts);
+            WriteCuts (cuts, cutScopeBound, xStart, ref xEnd, mcCutScope, totalCuts, mCutscopeToolingLengths[mm]);
          }
          // Re init Traces with first entry of CutScopeTraces
          sw.WriteLine ("\r\nN65535");
@@ -1363,7 +1373,8 @@ public class GCodeGenerator {
    /// <exception cref="Exception">If the tooling X max of the is more than the 
    /// cutscope bound, an exception is thrown</exception>
    void WriteCuts (List<Tooling> cuts, Bound3 cutScopeBound, double xStart,
-      ref double xEnd, MachinableCutScope mcCutScope, List<Tooling> totalCuts) {
+      ref double xEnd, MachinableCutScope mcCutScope, List<Tooling> totalCuts,
+      double cutscopeToolingLength) {
       // GCode generation for all the eligible tooling starts here
       xEnd = cutScopeBound.XMax;
       foreach (var cut in cuts) {
@@ -1375,7 +1386,7 @@ public class GCodeGenerator {
       var xPartition = GetXPartition (mcCutScope.Toolings);
 
       // Actually write toolings to g code
-      DoWriteCuts (cuts, cutScopeBound, xStart, xPartition, xEnd, false);
+      DoWriteCuts (cuts, cutScopeBound, xStart, xPartition, xEnd, shouldOutputDigit: false, cutscopeToolingLength);
       totalCuts.AddRange (cuts);
 
       // Update Traces for this cutscope
@@ -2810,6 +2821,24 @@ public class GCodeGenerator {
       if (!isFlexTooling)
          sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
    }
+
+   public double GetTotalToolingsLength (List<Tooling> toolingItems) {
+      // For notches, compute the length
+      // Compute the total tooling lengths of Hole, Cutouts, and Notches
+      double totalToolingCutLength = toolingItems
+          .Where (a => (a.IsCutout () || a.IsHole ()))
+          .Sum (a => a.Perimeter);
+
+      foreach (var ti in toolingItems) {
+         if (ti.EdgeNotch)
+            continue;
+         else
+            totalToolingCutLength += Notch.GetTotalNotchToolingLength (
+                Process.Workpiece.Bound, ti, mPercentLengths, NotchWireJointDistance,
+                NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0));
+      }
+      return totalToolingCutLength;
+   }
    /// <summary>
    /// This is the main method which prepares the machine with calling various pre-machining
    /// settings/macros, and then calls WriteTooling, which actually calls machining G Codes.
@@ -2819,39 +2848,18 @@ public class GCodeGenerator {
    /// <param name="shouldOutputDigit"></param>
    void DoWriteCuts (
     List<Tooling> toolingItems, Bound3 bound, /*double frameFeed,*/ double xStart, double xPartition,
-      double xEnd, bool shouldOutputDigit) {
+      double xEnd, bool shouldOutputDigit, double cutscopeToolingLength) {
       Tooling prevToolingItem = null;
       List<ToolingSegment> prevToolingSegs = null;
       bool first = true;
       string traverseM = UsePingPong ? "M1014" : "";
       mProgramNumber = mPgmNo[Utils.EFlange.Web];
 
-      // Compute the total tooling lengths of Hole, Cutouts, and Notches
-      double totalToolingCutLength = toolingItems
-          .Where (a => (a.IsCutout () || a.IsHole ()))
-          .Sum (a => a.Perimeter);
-
-      // For notches, compute the length
-      foreach (var ti in toolingItems) {
-         if (ti.IsNotch ()) {
-            mPercentLengths = [0.25, 0.5, 0.75];
-            if (Notch.IsEdgeNotch (Process.Workpiece.Bound, ti, mPercentLengths,
-                mCurveLeastLength, !NotchWireJointDistance.EQ (0)))
-               continue;
-            else {
-               totalToolingCutLength += Notch.GetTotalNotchToolingLength (
-                   Process.Workpiece.Bound, ti, mPercentLengths, NotchWireJointDistance,
-                   NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0));
-            }
-         }
-      }
-
       double totalMarkLength = Process.Workpiece.Cuts
           .Where (a => a.IsMark ())
           .Sum (a => a.Perimeter);
 
       double prevCutToolingsLength = 0, prevMarkToolingsLength = 0;
-
       for (int i = 0; i < toolingItems.Count; i++) {
          Tooling toolingItem = toolingItems[i];
 
@@ -2867,9 +2875,9 @@ public class GCodeGenerator {
          if ((toolingItem.IsHole () && !toTreatAsCutOut) || toolingItem.IsMark ()) {
             feature = new Hole (
                 toolingItem, this, xStart, xEnd, xPartition, prevToolingSegs, mPrevToolingSegment, bound,
-                prevCutToolingsLength, prevMarkToolingsLength, totalMarkLength, totalToolingCutLength,
+                prevCutToolingsLength, prevMarkToolingsLength, totalMarkLength, cutscopeToolingLength,
                 first, prevToolingItem, i == toolingItems.Count - 1);
-         } else if (toolingItem.IsNotch ()) {
+         } else if (toolingItem.IsNotch () && !toolingItem.EdgeNotch) {
             Utils.EPlane previousPlaneType = Utils.EPlane.None;
 
             // Write the Notch first
@@ -2881,15 +2889,17 @@ public class GCodeGenerator {
                 toolingItem, bound, Process.Workpiece.Bound, this, prevToolingItem, mPrevToolingSegment,
                 prevToolingSegs, first, previousPlaneType, xStart, xPartition, xEnd,
                 NotchWireJointDistance, NotchApproachLength, MinNotchLengthThreshold, mPercentLengths,
-                prevCutToolingsLength, totalToolingCutLength, isWireJointsNeeded: isWireJointsNeeded,
+                prevCutToolingsLength, cutscopeToolingLength, isWireJointsNeeded: isWireJointsNeeded,
                 curveLeastLength: mCurveLeastLength);
          } else if (toolingItem.IsCutout () || toTreatAsCutOut) {
             Utils.EPlane previousPlaneType = Utils.EPlane.None;
             feature = new CutOut (
                 this, toolingItem, prevToolingItem, prevToolingSegs, mPrevToolingSegment, previousPlaneType,
                 xStart, xPartition, xEnd, NotchWireJointDistance, NotchApproachLength, prevCutToolingsLength, prevMarkToolingsLength,
-                totalMarkLength, totalToolingCutLength, first, toTreatAsCutOut);
+                totalMarkLength, cutscopeToolingLength, first, toTreatAsCutOut);
          }
+
+         if (feature == null) continue;
 
          if (first) prevToolingItem = null;
          mProgramNumber = GetProgNo (toolingItem);
@@ -2901,20 +2911,10 @@ public class GCodeGenerator {
             string ncname = NCName;
             if (ncname.Length > 20) ncname = ncname[..20];
             if (!CreateDummyBlock4Master) {
-               sw.WriteLine ($"G253 E0 F=\"0=1:{ncname}:{Math.Round (totalToolingCutLength, 2)}," +
-                $"{Math.Round (totalMarkLength, 2)}\"");
-               if (!mHeaderComplete) {
-                  sw.WriteLine ($"G20 X=BlockID");
-                  mHeaderComplete = true;
-               }
                if (shouldOutputDigit)
                   sw.WriteLine ("G253 E0 F=\"3=THL RF\"");
             }
          }
-
-         bool isValidNotch = toolingItem.IsNotch () &&
-             !Notch.IsEdgeNotch (Process.Workpiece.Bound, toolingItem, mPercentLengths,
-                 mCurveLeastLength, !NotchWireJointDistance.EQ (0));
 
          // ** Write tooling **
          feature.WriteTooling ();
@@ -2928,7 +2928,7 @@ public class GCodeGenerator {
          //// ** Tooling block finalization - Start**
          // Compute the cut tooling length
          if (!toolingItem.IsMark ()) {
-            if (toolingItem.IsNotch () && isValidNotch)
+            if (toolingItem.IsNotch () && !toolingItem.EdgeNotch)
                prevCutToolingsLength += Notch.GetTotalNotchToolingLength (
                    Process.Workpiece.Bound, toolingItem, [0.25, 0.5, 0.75],
                    NotchWireJointDistance, NotchApproachLength, mCurveLeastLength,

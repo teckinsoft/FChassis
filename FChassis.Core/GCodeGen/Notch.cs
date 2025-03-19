@@ -287,10 +287,9 @@ public class Notch : ToolingFeature {
       );
 
       if (!mTwoFlangeNotchStartAndEndOnSameSideFlange &&
-         Notch.IsEdgeNotch (mGCodeGen.Process.Workpiece.Bound, toolingItem, percentlength,
-         curveLeastLength, mIsWireJointsNeeded)) {
+         toolingItem.EdgeNotch)
          EdgeNotch = true;
-      } else if (mToolingPerimeter < MinNotchLengthThreshold && mToolingItem.Segs[0].Vec0.Normalized ().EQ (mToolingItem.Segs[^1].Vec1.Normalized ())) {
+      else if (mToolingPerimeter < MinNotchLengthThreshold && mToolingItem.Segs[0].Vec0.Normalized ().EQ (mToolingItem.Segs[^1].Vec1.Normalized ())) {
          mShortPerimeterNotch = true;
          mPercentLength = [0.5];
          mIsWireJointsNeeded = false;
@@ -2417,31 +2416,16 @@ public class Notch : ToolingFeature {
       var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
          leastCurveLength, isWireJointCutsNeeded);
       if (toolingItem.IsNotch () && attrs.Count == 0) return true;
-      //if (toolingItem.ProfileKind == ECutKind.YNegFlex || toolingItem.ProfileKind == ECutKind.YPosFlex)
-      //   return true;
-      //var segs = toolingItem.Segs;
-      //if (segs[0].Curve.Start.Z.EQ (bound.ZMin) && segs[^1].Curve.Start.Z.EQ (bound.ZMin))
-      //   ;
-      //else if (segs[0].Curve.Start.X.EQ (bound.XMin) && segs[^1].Curve.Start.X.EQ (bound.XMin))
-      //   ;
-      //else if (segs[0].Curve.Start.X.EQ (bound.XMax) && segs[^1].Curve.Start.X.EQ (bound.XMax))
-      //   ;
-      //else if (segs[0].Curve.Start.X.EQ (bound.XMin) && segs[^1].Curve.Start.X.EQ (bound.ZMin))
-      //   ;
-      //else if (segs[0].Curve.Start.X.EQ (bound.XMax) && segs[^1].Curve.Start.X.EQ (bound.ZMin))
-      //   ;
-      //else
-      //   return true;
-      //   //var segs = toolingItem.Segs;
-      //   //if (segs[0].Curve.Start.Z.EQ (bound.ZMin)  )
 
-      //   //for (int ii = 0; ii < segs.Count; ii++) {
-
-      //   //   if (segs[ii].Curve.Start.X.SGT (bound.XMin) && segs[ii].Curve.Start.X.SLT (bound.XMax)) {
-
-      //   //   }
-      //   //}
-      return false;
+      // If a notch should have start and endx at XMin, or XMax or ZMin
+      // it is not an edge notch
+      if ((toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMax, 1e-2) || toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMin, 1e-2) ||
+         toolingItem.Segs[0].Curve.Start.Z.EQ (bound.ZMin, 1e-2)) &&
+         (toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMax, 1e-2) || toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMin, 1e-2) ||
+         toolingItem.Segs[^1].Curve.End.Z.EQ (bound.ZMin, 1e-2)))
+         return false;
+      else
+         return true;
    }
 
    /// <summary>

@@ -312,6 +312,14 @@ public class Workpiece : INotifyPropertyChanged {
       }
       foreach (var cut in cuts) if (cut != null) {
             cut.IdentifyCutout ();
+
+            // If the cutout is fully on the flex and if it has shortest distance between (across)
+            // is lesser than 2.0, the cutout is discarded
+            // This is included to exclude such cutouts that are generated from JOIN functionality
+            if (cut.IsFlexCutout ()) {
+               if (cut.IsNarrowFeature ()) continue;
+            }
+            if (cut.IsFlexOnlyFeature ()) continue;
             cut.Name = $"Tooling-{cutIndex++}";
             cut.FeatType = $"{Utils.GetFlangeType (cut,
                                                    GCodeGenerator.GetXForm (this))} - {cut.Kind}";
@@ -365,6 +373,13 @@ public class Workpiece : INotifyPropertyChanged {
                   if (cutSegs.First ().Curve.Start.Y > cutSegs[^1].Curve.End.Y)
                      cut.Reverse ();
                }
+
+               // Set if the notch is a EdgeNotch
+               double[] percentLengths = [0.25, 0.5, 0.75];
+               double mCurveLeastLength = 0.5;
+               if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
+                   mCurveLeastLength, !MCSettings.It.NotchWireJointDistance.EQ (0)))
+                  cut.EdgeNotch = true;
                cutSegs = [.. cut.Segs];
             }
 
