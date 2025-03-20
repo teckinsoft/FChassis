@@ -97,8 +97,8 @@ public class Workpiece : INotifyPropertyChanged {
                || type == EType.YNeg && ep.Xfm.M11 * ep.Xfm.M23 < 0.0
                || type == EType.YPos && ep.Xfm.M11 * ep.Xfm.M23 > 0.0) if (shape.Winding == EWinding.CCW)
                   shape.Reverse ();
-            else if (shape.Winding == EWinding.CW)
-               shape.Reverse ();
+               else if (shape.Winding == EWinding.CW)
+                  shape.Reverse ();
 
             Tooling cut = new (this, ep, shape, EKind.Hole);
             var name = $"Tooling-{cutIndex++}";
@@ -168,10 +168,6 @@ public class Workpiece : INotifyPropertyChanged {
          swCalcBound.Stop ();
          tsCalcBound += swCalcBound.Elapsed;
       }
-
-      //sw.Stop ();
-      //TimeSpan ts = sw.Elapsed;
-
       Dirty ();
       return true;
    }
@@ -182,6 +178,14 @@ public class Workpiece : INotifyPropertyChanged {
             Cuts.RemoveAt (ii);
             ii--;
          }
+      ERotate eTextAng = mcs.MarkAngle;
+      double textAng = eTextAng switch {
+         ERotate.Rotate0 => 0,
+         ERotate.Rotate90 => 90 * Math.PI / 180,
+         ERotate.Rotate180 => Math.PI,
+         ERotate.Rotate270 => 270 * Math.PI / 180,
+         _ => 0
+      };
       int cutIndex = Cuts.Count + 1;
       var bp = mModel.Baseplane;
       var xfm = bp.Xfm.GetInverse () * Matrix3.Translation (0, 0, Offset);
@@ -189,13 +193,19 @@ public class Workpiece : INotifyPropertyChanged {
       if (mcs.MarkTextPosX.LieWithin (mModel.Bound.XMin, mModel.Bound.XMax))
          textPt = new Point2 (mcs.MarkTextPosX, mcs.MarkTextPosY);
 
+      // Additional rotational angle
+      Point3 ax1 = new (textPt.X, textPt.Y, 0); Point3 ax2 = new (textPt.X, textPt.Y, 10);
+      var rotXfm = Matrix3.Rotation (ax1, ax2, textAng);
+
       var e2t = new E2Text (mcs.MarkText, textPt, mcs.MarkTextHeight, "SIMPLEX", 0);
       foreach (var pline in e2t.Plines) {
-         Pline p2 = pline.Xformed (xfm);
+         Pline p2 = pline.Xformed (rotXfm * xfm);
+
          Cuts.Add (new Tooling (this, mModel.Baseplane, p2, EKind.Mark));
          Cuts[^1].Name = $"Tooling-{cutIndex++}";
          Cuts[^1].FeatType = $"{Utils.GetFlangeType (Cuts[^1],
                                 GCodeGenerator.GetXForm (this))} - {Cuts[^1].Kind}";
+
          // Calculate the bound3 for each cut
          Cuts[^1].Bound3 = Utils.CalculateBound3 ([.. Cuts[^1].Segs], Model.Bound);
       }
@@ -315,14 +325,18 @@ public class Workpiece : INotifyPropertyChanged {
       }
       foreach (var cut in cuts) if (cut != null) {
             cut.IdentifyCutout ();
+
+            // If the cutout is fully on the flex and if it has shortest distance between (across)
+            // is lesser than 2.0, the cutout is discarded
+            // This is included to exclude such cutouts that are generated from JOIN functionality
+            if (cut.IsFlexCutout ()) {
+               if (cut.IsNarrowFlexOnlyFeature ()) continue;
+            }
+            if (cut.IsFlexOnlyFeature ()) continue;
             cut.Name = $"Tooling-{cutIndex++}";
             cut.FeatType = $"{Utils.GetFlangeType (cut,
                                                    GCodeGenerator.GetXForm (this))} - {cut.Kind}";
             var cutSegs = cut.Segs.ToList ();
-            //bool YNegPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Y + 1.0).EQ (0));
-            //bool YPosPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Y - 1.0).EQ (0));
-            //bool TopPlaneFeat = cutSegs.Any (cutSeg => Math.Abs (cutSeg.Vec0.Normalized ().Z - 1.0).EQ (0));
-            //bool FlexPlaneFeat = !YNegPlaneFeat && !YPosPlaneFeat && !TopPlaneFeat;
             if (cut.Kind == EKind.Cutout || cut.Kind == EKind.Hole) {
                if (!It.CutCutouts)
                   continue;
@@ -353,20 +367,32 @@ public class Workpiece : INotifyPropertyChanged {
                                                                 GCodeGenerator.GetXForm (this));
                var NotchEndFlType = Utils.GetArcPlaneFlangeType (cutSegs[^1].Vec1,
                                                                  GCodeGenerator.GetXForm (this));
-               if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg)                   // If the notch starts on a flange and ends on the same flange
-                  if (cutSegs[0].Vec0.Normalized ().EQ (cutSegs[^1].Vec1.Normalized ())) if (cutSegs[^1].Curve.End.X < cutSegs[0].Curve.Start.X)
+               // If the notch starts on a flange and ends on the same flange
+               if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg) {
+                  if (cutSegs[0].Vec0.Normalized ().EQ (cutSegs[^1].Vec1.Normalized ())) {
+                     if (cutSegs[^1].Curve.End.X < cutSegs[0].Curve.Start.X)
                         cut.Reverse ();
-                  else { // If the notch starts on web and ends on a flange
+                  } else { // If the notch starts on web and ends on a flange
                      var endX = cutSegs[^1].Curve.End.X;
                      if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
                         cut.Reverse ();
                      else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX)
                         cut.Reverse ();
                   }
-               else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) if (cutSegs.First ().Curve.Start.X > cutSegs[^1].Curve.End.X)
+               } else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) {
+                  if (cutSegs.First ().Curve.Start.X > cutSegs[^1].Curve.End.X)
                      cut.Reverse ();
-               else if (cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YNegToYPos) if (cutSegs.First ().Curve.Start.Y > cutSegs[^1].Curve.End.Y)
+               } else if (cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YNegToYPos) {
+                  if (cutSegs.First ().Curve.Start.Y > cutSegs[^1].Curve.End.Y)
                      cut.Reverse ();
+               }
+
+               // Set if the notch is a EdgeNotch
+               double[] percentLengths = [0.25, 0.5, 0.75];
+               double mCurveLeastLength = 0.5;
+               if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
+                   mCurveLeastLength, !MCSettings.It.NotchWireJointDistance.EQ (0)))
+                  cut.EdgeNotch = true;
                cutSegs = [.. cut.Segs];
             }
 

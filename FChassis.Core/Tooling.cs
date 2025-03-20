@@ -1,4 +1,6 @@
-﻿using Flux.API;
+﻿using System;
+using System.Linq;
+using Flux.API;
 
 namespace FChassis.Core;
 
@@ -91,6 +93,7 @@ public class Tooling {
    double mPerimeter = -1.0;
    List<ToolingSegment> mSegs = [];
 
+   public bool EdgeNotch { get; set; } = false;
    public List<ToolingSegment> Segs {
       get {
          if (mSegs.Count == 0)
@@ -100,7 +103,7 @@ public class Tooling {
 
       set { mSegs = value; }
    }
-
+   public Tooling RefTooling { get; set; } = null;
    Bound3? mBound3 = null;
    public double XMin { get => mBound3.Value.XMin; }
    public double XMax { get => mBound3.Value.XMax; }
@@ -414,7 +417,7 @@ public class Tooling {
    // which features on the E3Flex is a
    // FlexFeature
    public bool IsFlexFeature () => Traces.Any (a => a.Ent is E3Flex);
-
+   public bool IsFlexOnlyFeature () => Traces.All (a => a.Ent is E3Flex);
    // Features either Notch or hole,
    // which feature only on the E3Planes
    // and not on any E3Flex is PlaneFeature
@@ -422,4 +425,39 @@ public class Tooling {
 
    public bool IsFlexHole () => IsHole () && IsFlexFeature ();
    public bool IsFlexCutout () => IsCutout () && IsFlexFeature ();
+   public bool IsFlexNotch () => IsNotch () && IsFlexFeature ();
+
+   /// <summary>
+   /// This method judges a feature to be a narrow one if an across distance
+   /// is lesser than the minimum. 
+   /// How it works: For every two directional edges, which are opposing in direction,
+   /// the distance between the start/end is compared with another edge's start and end.
+   /// If the shortest length is less than minimum (default 2 mm), it is judged as 
+   /// narrow.
+   /// </summary>
+   /// <caveat>
+   /// If in a feature, even if two of the edges come very close to each other,
+   /// that feature will be marked narrow. This method is to be used for features
+   /// mostly composed of linear segments
+   /// </caveat>
+   /// <param name="min">Minimum value threshold</param>
+   /// <returns>True if a narrow feature, False otherwise</returns>
+   public bool IsNarrowFlexOnlyFeature (double min = 2.0) {
+      if (!IsFlexOnlyFeature ()) return false;
+      double minVal = double.MaxValue;
+      for (int ii = 0; ii < Segs.Count - 1; ii++) {
+         for (int jj = ii + 1; jj < Segs.Count; jj++) {
+            if (Segs[ii].Curve.End.Subtract (Segs[ii].Curve.Start).ToVector ().Opposing (Segs[jj].Curve.End.Subtract (Segs[jj].Curve.Start).ToVector ())) {
+               var v1 = Segs[ii].Curve.Start.DistTo (Segs[jj].Curve.Start);
+               var v2 = Segs[ii].Curve.Start.DistTo (Segs[jj].Curve.End);
+               var v3 = Segs[jj].Curve.Start.DistTo (Segs[ii].Curve.End);
+               var v4 = Segs[jj].Curve.End.DistTo (Segs[ii].Curve.End);
+               double[] mivals = [v1, v2, v3, v4];
+               double miv = mivals.Min ();
+               if (minVal > miv) minVal = miv;
+            }
+         }
+      }
+      return minVal.LTEQ (min);
+   }
 }

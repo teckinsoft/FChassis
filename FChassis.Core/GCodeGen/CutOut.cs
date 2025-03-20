@@ -12,7 +12,7 @@ public class CutOut : ToolingFeature {
    #region Constructor
    public CutOut (GCodeGenerator gcgen, Tooling toolingItem,
       Tooling prevToolingItem, List<ToolingSegment> prevSegs, ToolingSegment? prevToolingSegment,
-      EPlane prevPlaneType, double xStart, double xPartition, double xEnd,
+      EPlane prevPlaneType, double xStart, double xPartition, double xEnd, double wireJointDistance,
        double notchApproachLength, double prevCutToolingsLength, double prevMarkToolingsLength,
             double totalMarkLength, double totalToolingCutLength, bool isFirstTooling, bool featureToBeTreatedAsCutout) {
       mFeatureToBeTreatedAsCutout = featureToBeTreatedAsCutout;
@@ -29,6 +29,7 @@ public class CutOut : ToolingFeature {
       mTotalToolingCutLength = totalToolingCutLength;
       NotchApproachLength = notchApproachLength;
       mPrevPlane = prevPlaneType;
+      mWireJointDistance = wireJointDistance;
       PerformToolingSegmentation ();
    }
    #endregion
@@ -78,6 +79,7 @@ public class CutOut : ToolingFeature {
    List<Point3> mPreWJTPts = [];
    bool mFeatureToBeTreatedAsCutout = false;
    ToolingSegment? mFlexStartRef = null;
+   double mWireJointDistance;
    #endregion
 
    #region Preprocessors
@@ -113,26 +115,25 @@ public class CutOut : ToolingFeature {
             mCutOutBlocks[ii].SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex) {
             if (mCutOutBlocks[ii].StartIndex != mCutOutBlocks[ii].EndIndex)
                throw new Exception ("WJT start index is not equal to end");
-            if (ToolingSegments[mCutOutBlocks[ii].StartIndex].Curve.Length.SLT (2.0, 0.1)) {
+            if (ToolingSegments[mCutOutBlocks[ii].StartIndex].Curve.Length.SLT (mWireJointDistance, 0.1)) {
                int stIndex = mCutOutBlocks[ii].StartIndex;
                var llen = ToolingSegments[mCutOutBlocks[ii].StartIndex].Curve.Length;
                double cumLen = llen;
                //var tn = ToolingItem.Name;
                //var sIdx = stIndex;
-               while (stIndex - 1 >= 0 && cumLen.SLT (2.0)) {
+               while (stIndex - 1 >= 0 && cumLen.SLT (mWireJointDistance)) {
                   cumLen += ToolingSegments[stIndex - 1].Curve.Length;
-                  if (Math.Abs (cumLen - 2.0).EQ (0, 0.1))
+                  if (Math.Abs (cumLen - mWireJointDistance).EQ (0, 0.1))
                      break;
-                  if (Math.Abs (cumLen - 2.0).SGT (0.1))
-                     throw new Exception ("WJT length != 2.0");
+                  if (Math.Abs (cumLen - mWireJointDistance).SGT (0.1))
+                     throw new Exception ("Cumulative WJT != Wire Joint Distance");
                   stIndex--;
                }
             } else {
-               if (Math.Abs (ToolingSegments[mCutOutBlocks[ii].StartIndex].Curve.Length - 2.0).GTEQ (0.4)) {
-                  throw new Exception ("WJT length != 2.0");
+               if (Math.Abs (ToolingSegments[mCutOutBlocks[ii].StartIndex].Curve.Length - mWireJointDistance).GTEQ (0.4)) {
+                  throw new Exception ("Cumulative WJT != Wire Joint Distance");
                }
             }
-            //throw new Exception ("WJT length != 2.0");
          }
 
          // The start index of ii-th cutting block shall be lesser than or equal to ii-th end index
@@ -302,7 +303,7 @@ public class CutOut : ToolingFeature {
       var segBounds = Utils.GetToolingSegmentsBounds (segs, fullPartBound);
       var yMax = (double)(segBounds.YMax); var yMin = (double)(segBounds.YMin);
       var ySpan = yMax - yMin;
-      if (Math.Abs(ySpan).GTEQ(2* minCutOutLengthThreshold)) { 
+      if (Math.Abs (ySpan).GTEQ (2 * minCutOutLengthThreshold)) {
          foreach (var seg in segs) {
             if (Utils.GetArcPlaneFlangeType (seg.Vec0, XForm4.IdentityXfm) != EFlange.Web)
                return false;
@@ -376,14 +377,8 @@ public class CutOut : ToolingFeature {
 
          // Populate points
          PopulatePreWJTPts (StPoint, eStIdx, eEndIdx, preWJTPts);
-         //preWJTPts.Remove (preWJTPts[^1]);
       }
 
-      //dd.Clear ();
-      //Point3 stPt = ToolingSegments.FindIndex (t => Geom.IsPointOnCurve (t.Curve, preWJTPts[ii], t.Vec0));
-      //for (int ii = 0; ii < preWJTPts.Count; ii++) {
-      //   var dist = Geom.GetLengthBetween (ToolingSegments, StPoint, EndPoint, inSameOrder: true);
-      //}
       // ** Get the distance between the st and end points **
       CheckSanityOfCutOutBlocks ();
 
@@ -435,9 +430,6 @@ public class CutOut : ToolingFeature {
    void DoWireJointJumpTraceSegmentationForFlanges () {
       // ** Compute Pre Wire Joint Points on the tooling segments
       ComputePreWireJointPoints ();
-      //var nonWebCOIdx = mCutOutBlocks.FindIndex (co => co.Flange != EFlange.Web);
-      //if (nonWebCOIdx != -1) throw new Exception ("In DoWireJointJumpTraceSegmentationForFlanges: One of the CutOut notch section's flange is not Web");
-      // ** Create Wire joint jump trace cutout blocks
       for (int ii = 0; ii < mPreWJTPts.Count; ii++) {
          for (int jj = 0; jj < mCutOutBlocks.Count; jj++) {
             var preWJTPtIndex = ToolingSegments.FindIndex (t => t.Curve.End.EQ (mPreWJTPts[ii]));
@@ -493,6 +485,7 @@ public class CutOut : ToolingFeature {
                   CheckSanityOfCutOutBlocks ();
                   var nextStartIndex = mCutOutBlocks[jj + 1].StartIndex;
                   var nextEndIndex = mCutOutBlocks[jj + 1].EndIndex;
+
                   // Reassign the end index of the current cutout block
                   NotchSequenceSection cb;
                   if (nextStartIndex == segIndexToSplit) {
@@ -524,7 +517,6 @@ public class CutOut : ToolingFeature {
       if (startIndex > endIndex) throw new Exception ("Start index > End Index. Wrong!");
 
       // Compute 25%, 50% and 75% lengths for segments from startIndex to endIndex
-      //double[] lengths = { 0, 0, 0 };
       double[] percentages = [0.05, 0.25, 0.5, 0.75];
       var toolingLengthBetween = Geom.GetLengthBetween (ToolingSegments, startIndex, endIndex);
       for (int ii = 0; ii < percentages.Length; ii++) {
@@ -534,17 +526,8 @@ public class CutOut : ToolingFeature {
          double dist;
          try {
             var isCircle = Utils.IsCircle (ToolingSegments[segIndexToSplit].Curve);
-            //if (isCircle)
-            //   iPoint = ToolingSegments[segIndexToSplit].Curve.Start;
-            //if (ii == 0) iPoint = startPoint;
-            //else iPoint = points[^1];
-
             dist = Geom.GetLengthBetween (ToolingSegments, iPoint, preWJTPt, inSameOrder: true);
             mDistances.Add (dist);
-            //if (percentages[ii].SGT (0.5) && isCircle) {
-            //   var (cen, rad) = Geom.EvaluateCenterAndRadius (ToolingSegments[segIndexToSplit].Curve as Arc3);
-            //   dist = ToolingSegments[segIndexToSplit].Curve.Length - dist;
-            //}
          } catch (Exception) { break; }
          if (segIndexToSplit == -1 || segIndexToSplit > endIndex) {
             if (segIndexToSplit == -1)
@@ -552,23 +535,8 @@ public class CutOut : ToolingFeature {
             else
                throw new Exception ("In PopulatePreWJTPts: segIndexToSplit > endIndex");
          }
-
-         //iPoint = preWJTPt;
          points.Add (preWJTPt);
       }
-      //while (true) {
-      //   var (preWJTPt, segIndexToSplit) = Geom.GetPointAtLengthFrom (iPoint, GCGen.MinNotchLengthThreshold, ToolingSegments);
-      //   if (segIndexToSplit == -1 || segIndexToSplit < startIndex) break;
-      //   double dist;
-      //   try {
-      //      dist = Geom.GetLengthBetween (ToolingSegments, iPoint, preWJTPt, inSameOrder: true);
-      //   } catch (Exception) { break; }
-      //   if (segIndexToSplit == -1 || segIndexToSplit > endIndex || dist < (GCGen.MinNotchLengthThreshold / 2))
-      //      break;
-
-      //   iPoint = preWJTPt;
-      //   points.Add (preWJTPt);
-      //}
    }
 
    /// <summary>
@@ -594,7 +562,7 @@ public class CutOut : ToolingFeature {
             case NotchSectionType.WireJointTraceJumpForwardOnFlex:
                if (ii == 0) throw new Exception ("CutOut writing starts from Wire Joint Jump Trace, which is wrong");
                Vector3 scrapSideNormal = Utils.GetMaterialRemovalSideDirection (ToolingSegments[cutoutSequence.StartIndex],
-                  ToolingSegments[cutoutSequence.StartIndex].Curve.End);
+                  ToolingSegments[cutoutSequence.StartIndex].Curve.End, EFeatureType.Cutout, ToolingItem.ProfileKind);
                string comment;
                if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForward)
                   comment = "(( ** CutOut: Wire Joint Jump Trace Forward Direction ** ))";
@@ -615,11 +583,13 @@ public class CutOut : ToolingFeature {
                // Here it is assumed that if the next sequence block is machining on flex, in which case,
                // the current sequence type is WireJointTraceJumpForwardOnFlex, the tooling block 
                // shall be completed and so toCompleteToolingBlock is true, false otherwise
+               Point3? prevRapidPos = null;
                if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex) {
                   GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                      mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                      ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                        isFlexCut: false, isValidNotch: false, flexRefTS:mFlexStartRef, toCompleteToolingBlock: true, comment);
+                        isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out prevRapidPos,
+                        toCompleteToolingBlock: true, comment);
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
                }
@@ -631,13 +601,13 @@ public class CutOut : ToolingFeature {
                   GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                         mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                           isFlexCut: true, isValidNotch: false, flexRefTS: mFlexStartRef, toCompleteToolingBlock: false, comment);
-                  
+                           isFlexCut: true, isValidNotch: false, flexRefTS: mFlexStartRef, out prevRapidPos, toCompleteToolingBlock: false, comment);
+
                } else {
                   GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                         mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                           isFlexCut: false, isValidNotch: false, flexRefTS: null, toCompleteToolingBlock: false, comment);
+                           isFlexCut: false, isValidNotch: false, flexRefTS: null, out prevRapidPos, toCompleteToolingBlock: false, comment);
                }
                PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
@@ -665,21 +635,11 @@ public class CutOut : ToolingFeature {
                         GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: true);
                   }
                   if (!continueMachining) {
-                     //if (ii == 0)
-                     //   GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
-                     //      ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: false);
-                     //else {
-                     //   GCGen.WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
-                     //   GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
-                     //      ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: true);
-                     //}
                      if (ii == 0) {
                         cutoutEntry = Tuple.Create (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0);
                         GCGen.MoveToMachiningStartPosition (cutoutEntry.Item1, cutoutEntry.Item2, ToolingItem.Name);
                      }
                      var isFromWebFlange = Utils.IsMachiningFromWebFlange (ToolingSegments, cutoutSequence.StartIndex);
-                     //GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
-                     //      ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: true);
                      GCGen.WriteToolCorrectionData (ToolingItem, isFromWebFlange, isFlexTooling: false);
                      GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
                            ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: false);
@@ -723,13 +683,12 @@ public class CutOut : ToolingFeature {
                      for (int jj = cutoutSequence.StartIndex; jj <= cutoutSequence.EndIndex; jj++) {
                         GCGen.WriteFlexLineSeg (ToolingSegments[jj],
                         isWJTStartCut: false, ToolingItem.Name, flexRefSeg: mFlexStartRef);
-
-                        //GCGen.WriteCurve (ToolingSegments[jj], ToolingItem.Name, isFlexSection: true, flexRef: mFlexStartRef);
                         mExitTooling = ToolingSegments[jj];
                         mBlockCutLength += ToolingSegments[jj].Curve.Length;
                         PreviousToolingSegment = ToolingSegments[jj];
                      }
                      mFlexStartRef = null;
+
                      // The next in sequence has to be wire joint jump trace and so
                      // continueMachining is made to false
                      GCGen.DisableMachiningDirective ();
@@ -746,43 +705,5 @@ public class CutOut : ToolingFeature {
          }
       }
    }
-
-   //public void WriteGCode (List<ToolingSegment> toolingSegs) {
-   //   (var curve, var CurveStartNormal, _) = toolingSegs[0];
-   //   Utils.EPlane previousPlaneType = Utils.EPlane.None;
-   //   Utils.EPlane currPlaneType;
-   //   if (ToolingItem.IsFlexFeature ()) currPlaneType = Utils.EPlane.Flex;
-   //   else currPlaneType = Utils.GetFeatureNormalPlaneType (CurveStartNormal, GCGen.GetXForm ());
-   //   // Write any feature other than notch
-   //   GCGen.MoveToMachiningStartPosition (curve.Start, CurveStartNormal, ToolingItem.Name);
-   //   {
-   //      bool isFromWebFlange = true;
-   //      if (Math.Abs (toolingSegs[0].Vec0.Y) > Math.Abs (toolingSegs[0].Vec0.Z))
-   //         isFromWebFlange = false;
-   //      GCGen.WriteToolCorrectionData (ToolingItem, isFromWebFlange);
-   //      // Write all other features such as Holes, Cutouts and edge notches
-   //      GCGen.EnableMachiningDirective ();
-   //      for (int i = 0; i < toolingSegs.Count; i++) {
-   //         var (Curve, startNormal, endNormal) = toolingSegs[i];
-   //         startNormal = startNormal.Normalized ();
-   //         endNormal = endNormal.Normalized ();
-   //         var startPoint = Curve.Start;
-   //         var endPoint = Curve.End;
-   //         if (i > 0) currPlaneType = Utils.GetFeatureNormalPlaneType (endNormal, GCGen.GetXForm ());
-
-   //         if (Curve is Arc3) { // This is a 2d arc. 
-   //            var arcPlaneType = Utils.GetArcPlaneType (startNormal, GCGen.GetXForm ());
-   //            var arcFlangeType = Utils.GetArcPlaneFlangeType (startNormal, GCGen.GetXForm ());
-   //            (var center, _) = Geom.EvaluateCenterAndRadius (Curve as Arc3);
-   //            GCGen.WriteArc (Curve as Arc3, arcPlaneType, arcFlangeType, center, startPoint, endPoint, startNormal,
-   //               ToolingItem.Name);
-   //         } else GCGen.WriteLine (endPoint, startNormal, endNormal, currPlaneType, previousPlaneType,
-   //            Utils.GetFlangeType (ToolingItem, new ()), ToolingItem.Name);
-   //         previousPlaneType = currPlaneType;
-   //      }
-   //      GCGen.DisableMachiningDirective ();
-   //      PreviousToolingSegment = toolingSegs[^1];
-   //   }
-   //}
    #endregion
 }

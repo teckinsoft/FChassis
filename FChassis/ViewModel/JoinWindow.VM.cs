@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -132,12 +131,9 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
                break;
          } else break;
 
-         ConvertCadToImage (false, pNo);
+         ConvertCadToImage (false);
       } while (false);
-
-      if (errorNo != 0)
-         HandleIGESError (errorNo);
-
+      if (errorNo != 0) HandleIGESError (errorNo);
       return errorNo;
    }
 
@@ -264,22 +260,20 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return true;
    }
 
-   void ConvertCadToImage (bool fused, int pno = -1) {
+   void ConvertCadToImage (bool fused) {
       if (_iges == null) return;
-      int width = 800, height = 600;
+      int width = 1000, height = 1000;
       byte[] imageData = null!;
       int errorNoFused = 0, errorNoP1 = 0, errorNoP2 = 0;
       if (fused)
          errorNoFused = _iges.GetShape (2, width, height, ref imageData);
-      else {
+      else
          errorNoP1 = _iges.GetShape (-1, width, height, ref imageData);
-      }
 
       if (errorNoP1 == 0 && errorNoP2 == 0 && errorNoFused != 0) {
          if (HandleIGESError (errorNoFused))
             return;
       }
-
       UpdateImage (width, height, imageData);
    }
 

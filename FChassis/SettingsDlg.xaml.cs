@@ -3,6 +3,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
 using FChassis.Core;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 
 namespace FChassis;
@@ -12,14 +14,37 @@ using static FChassis.Core.MCSettings.EHeads;
 
 
 /// <summary>Interaction logic for SettingsDlg.xaml</summary>
-public partial class SettingsDlg : Window {
+public partial class SettingsDlg : Window, INotifyPropertyChanged {
    public delegate void OnOkActionDelegate ();
    public event OnOkActionDelegate OnOkAction;
+   bool _isRestrictedSettingsVisible;
+
+   public bool IsRestrictedSettingsVisible {
+      get => _isRestrictedSettingsVisible;
+      set {
+         if (_isRestrictedSettingsVisible != value) {
+            _isRestrictedSettingsVisible = value;
+            OnPropertyChanged ();
+         }
+      }
+   }
+
+   public event PropertyChangedEventHandler PropertyChanged;
+   protected void OnPropertyChanged ([CallerMemberName] string propertyName = null) {
+      PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
+   }
    public MCSettings Settings { get; private set; }
    public bool IsModified { get; private set; }
 
    public SettingsDlg (MCSettings set) {
       InitializeComponent ();
+      DataContext = this;
+      
+#if DEBUG || TESTRELEASE
+       IsRestrictedSettingsVisible = true;
+#else
+      IsRestrictedSettingsVisible = false;
+#endif
       Bind (set);
       tbNotchWireJointDistance.TextChanged += TbNotchWireJointDistanceValueChanged;
    }

@@ -126,7 +126,7 @@ class IGESNative {
    void Redraw();
 
    int GetShape(std::vector<unsigned char>& data, int shapeType,
-      const int width, const int height, bool save = false);
+      int width, int height, bool save = false);
 
    private:
    int getShape(TopoDS_Shape& shape, int shapeType);

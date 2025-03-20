@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Threading;
-using System.Reflection.Emit;
+﻿using System.Windows.Threading;
 using System.ComponentModel;
-using System.Diagnostics;
 
 using Flux.API;
 
@@ -39,7 +32,7 @@ public class ProcessSimulator (GenesysHub gHub, Dispatcher dsp) : INotifyPropert
          wayPointIndex = 0;
       }
       public int gCodeSegIndex, wayPointIndex;
-      RefCSys mReferenceCS = RefCSys.WCS;
+      //RefCSys mReferenceCS = RefCSys.WCS;
    }
    GCodeSegmentIndices[] mNextXFormIndex = [new (), new ()];
    double mPrevStepLen;
@@ -56,7 +49,7 @@ public class ProcessSimulator (GenesysHub gHub, Dispatcher dsp) : INotifyPropert
    public event TriggerRedrawDelegate TriggerRedraw;
    public event Action SimulationFinished;
    public event SetSimulationStatusDelegate SetSimulationStatus;
-   public event ZoomExtentsWithBound3Delegate zoomExtentsWithBound3Delegate;
+   public event ZoomExtentsWithBound3Delegate zoomExtentsWithBound3Delegate = null;
    public event PropertyChangedEventHandler PropertyChanged;
    protected void OnPropertyChanged (string propertyName) {
       PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));

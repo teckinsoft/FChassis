@@ -1,5 +1,8 @@
-﻿#include <assert.h>
+﻿#define NOMINMAX // Disable the min/max macros
+#include <assert.h>
 #include <memory>
+#include <vector>
+#include <limits>
 
 #include <msclr/marshal_cppstd.h>
 
@@ -15,9 +18,9 @@ extern "C" void CleanupOCCT(); //Allows C++/CLI to call it
 namespace FChassis::IGES {
 
    IGES::IGES() : pPriv(nullptr) {
-      _putenv("CSF_TclLib=C:\\FluxSDK\\bin\\tcl86.dll");
+      /*_putenv("CSF_TclLib=C:\\FluxSDK\\bin\\tcl86.dll");
       _putenv("CSF_TkLib=C:\\FluxSDK\\bin\\tk86.dll");
-      _putenv("CSF_GraphicShr=C:\\FluxSDK\\bin\\TKOpenGl.dll");
+      _putenv("CSF_GraphicShr=C:\\FluxSDK\\bin\\TKOpenGl.dll");*/
    }
 
    IGES::~IGES() {
@@ -176,15 +179,26 @@ namespace FChassis::IGES {
 
    int IGES::GetShape(int shapeType, int width, int height, array<unsigned char>^% rData) {
       std::vector<unsigned char> pngData;
-      int errorNo = this->pPriv->GetShape(pngData, shapeType, width, height);
 
-      if (errorNo != 0 || pngData.empty()) return errorNo;  // Handle errors
+      // Call the native method to populate pngData
+      int errorNo = pPriv->GetShape(pngData, shapeType, width, height);
+
+      // Handle errors
+      if (errorNo != 0 || pngData.empty()) {
+         return errorNo;
+      }
+
+      // Validate pngData size
+      size_t size = pngData.size();
+      if (size > static_cast<size_t>(std::numeric_limits<int>::max()))
+         throw gcnew ArgumentException("Data size is too large.");
+      
 
       // Allocate managed array to hold the image data
-      rData = gcnew array<unsigned char>(pngData.size());
+      rData = gcnew array<unsigned char>(static_cast<int>(size));
 
       // Use Marshal::Copy to transfer data from native to managed memory
-      Marshal::Copy((IntPtr)pngData.data(), rData, 0, pngData.size());
+      Marshal::Copy(static_cast<IntPtr>(pngData.data()), rData, 0, static_cast<int>(size));
 
       return errorNo;
    }

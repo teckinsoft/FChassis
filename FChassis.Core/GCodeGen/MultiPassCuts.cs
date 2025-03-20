@@ -492,11 +492,11 @@ public class CutScope {
             mToolingScopesIntersectReverse.Add (ii);
       }
       var csc = this;
-      mHolesWithin = [.. mToolingScopesWithin.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsHole())];
-      mNotchesWithin = [.. mToolingScopesWithin.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsNotch())];
-      mHolesIntersect = [.. mToolingScopesIntersect.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsHole())];
-      mNotchesIntersect = [.. mToolingScopesIntersect.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsNotch())];
-      mHolesIntersectFwd = [.. mToolingScopesIntersectForward.Where(tsix => csc.mMPC.ToolingScopes[tsix].IsHole())];
+      mHolesWithin = [.. mToolingScopesWithin.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsHole ())];
+      mNotchesWithin = [.. mToolingScopesWithin.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsNotch ())];
+      mHolesIntersect = [.. mToolingScopesIntersect.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsHole ())];
+      mNotchesIntersect = [.. mToolingScopesIntersect.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsNotch ())];
+      mHolesIntersectFwd = [.. mToolingScopesIntersectForward.Where (tsix => csc.mMPC.ToolingScopes[tsix].IsHole ())];
    }
 
    public List<int> NotchesIntersectIndices () => mNotchesIntersect;
@@ -554,20 +554,23 @@ public class CutScope {
                ToSplit = true,
                Tooling = ts.Tooling.Clone ()
             };
-            ts1.Tooling.FeatType = ts.Tooling.FeatType + "- Split - 1";
+            ts1.Tooling.Name += "-Split-1";
+            ts1.Tooling.FeatType = ts.Tooling.FeatType + "-Split-1";
 
             // Split segments of ts1.Tooling
             ts1.Tooling.Segs = Utils.SplitNotchToScope (ts1, ts1.mIsLeftToRight, bound, 1e-4);
             ts1.Tooling.Bound3 = Utils.CalculateBound3 (ts1.Tooling.Segs, bound);
             ts1.Tooling.NotchKind = Tooling.GetCutKind (ts1.Tooling, gcGen.GetXForm ());
             ts1.Tooling.ProfileKind = Tooling.GetCutKind (ts1.Tooling, XForm4.IdentityXfm);
-
+            ts1.Tooling.RefTooling = ts.Tooling;
             ToolingScope ts2 = new (ts.Tooling, ii + 1, ts.mIsLeftToRight) {
                StartX = ixnX,
                ToSplit = true,
                Tooling = ts.Tooling.Clone ()
             };
-            ts2.Tooling.FeatType = ts.Tooling.FeatType + "- Split - 2";
+            ts2.Tooling.Name += "-Split-2";
+            ts2.Tooling.FeatType = ts.Tooling.FeatType + "-Split-2";
+            ts2.Tooling.RefTooling = ts.Tooling;
 
             // Split segments of ts2.Tooling
             ts2.Tooling.Segs = Utils.SplitNotchToScope (ts2, ts2.mIsLeftToRight, bound, 1e-4);
@@ -797,7 +800,7 @@ public class MultiPassCuts {
          featsWithInIxs = [.. cs.mToolingScopesWithin.OrderBy (tsix => tss[tsix].StartX)];
       else
          featsWithInIxs = [.. cs.mToolingScopesWithin.OrderByDescending (tsix => tss[tsix].StartX)];
-      featsWithInIxs = [.. featsWithInIxs.Where(index => !cs.DeadBandScopeToolingIndices.Contains(index))];
+      featsWithInIxs = [.. featsWithInIxs.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index))];
       var featsWithIn = featsWithInIxs
           .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
                                                             //.Where (index => !cs.DeadBandScopeToolingIndices.Contains (index)) // Exclude deadband indices
@@ -982,7 +985,7 @@ public class MultiPassCuts {
 
             // Check if any notches are intersecting
             // Get the ixn notches
-            ixnNotchesIndxs = [.. cs.mToolingScopesIntersectForward.Where(tsix => tss[tsix].IsNotch() && !tss[tsix].IsProcessed)];
+            ixnNotchesIndxs = [.. cs.mToolingScopesIntersectForward.Where (tsix => tss[tsix].IsNotch () && !tss[tsix].IsProcessed)];
             List<ToolingScope> ixnNotches = [.. ixnNotchesIndxs
                .Where (index => index >= 0 && index < tss.Count) // Ensure index is valid
                .Select (index => tss[index])];
@@ -1189,7 +1192,7 @@ public class MultiPassCuts {
             tscWithinIdxs = [.. cs.mToolingScopesWithin.Where (tsix => tss[tsix].IsProcessed == false &&
             !cs.DeadBandScopeToolingIndices.Contains (tsix))];
          else if (mpc.mGC.Heads == MCSettings.EHeads.Left || mpc.mGC.Heads == MCSettings.EHeads.Right)
-            tscWithinIdxs = [.. cs.mToolingScopesWithin.Where(tsix => tss[tsix].IsProcessed == false)];
+            tscWithinIdxs = [.. cs.mToolingScopesWithin.Where (tsix => tss[tsix].IsProcessed == false)];
 
          if (tscWithinIdxs.Count > 0) {
             var toolingScopesToBeMachined = tscWithinIdxs
@@ -1228,7 +1231,7 @@ public class MultiPassCuts {
                ixnFeatIdxs = [.. cs.mToolingScopesIntersectForward.Where (tsix => !tss[tsix].IsProcessed &&
                !cs.DeadBandScopeToolingIndices.Contains (tsix))];
             else if (mpc.mGC.Heads == MCSettings.EHeads.Left || mpc.mGC.Heads == MCSettings.EHeads.Right)
-               ixnFeatIdxs = [.. cs.mToolingScopesIntersectForward.Where(tsix => !tss[tsix].IsProcessed)];
+               ixnFeatIdxs = [.. cs.mToolingScopesIntersectForward.Where (tsix => !tss[tsix].IsProcessed)];
 
             if (ixnFeatIdxs.Count > 0) {
                var ixnFeats = ixnFeatIdxs
@@ -1326,7 +1329,8 @@ public class MultiPassCuts {
 
          // Terminate the while loop if condition is met
          if (startXPos.GTEQ (mpc.Model.Bound.XMax)) break;
-      };
+      }
+      ;
       foreach (var toolScopeItem in processedTSSKVPairs) {
          ToolingScope currentToolScope = toolScopeItem.Key;
 

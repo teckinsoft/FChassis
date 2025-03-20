@@ -15,6 +15,13 @@
 		<DefineConstants>DEBUG_ROUND3</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Platforms>AnyCPU;x64</Platforms>
+		<Configurations>Debug;Release;TestRelease</Configurations>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='TestRelease|x64'">
+	  <DefineConstants>$(DefineConstants);TESTRELEASE</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -41,16 +48,7 @@
 	  <Compile Remove="Util.cs" />
 	  <Compile Remove="Workpiece.cs" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-	</ItemGroup>
-
-	<!--<ItemGroup>
-		<ProjectReference Include="..\FChassis.Core\FChassis.Core.csproj" />
-		<ProjectReference Include="..\IGES\IGES.vcxproj" />
-	</ItemGroup>-->
-
+	
 	<ItemGroup>
 		<PackageReference Update="CommunityToolkit.Mvvm" Version="8.4.0" />
 	</ItemGroup>
@@ -75,6 +73,18 @@
 		<Reference Include="iges">
 			<HintPath>$(OutDir)iges.dll</HintPath>
 		</Reference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='TestRelease'">
+	  <Reference Include="iges">
+	    <HintPath>$(OutDir)iges.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="App.config">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 </Project>
 

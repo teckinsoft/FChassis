@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
 using Microsoft.Win32;
 
 using Flux.API;
@@ -13,7 +12,7 @@ using FChassis.Core.Processes;
 
 using SPath = System.IO.Path;
 using System.Diagnostics;
-using static FChassis.Core.MCSettings;
+using System.Runtime.CompilerServices;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
@@ -45,11 +44,44 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
 
       Sys.SelectionChanged += OnSelectionChanged;
+
 #if DEBUG
-      SanityCheckMenuItem.Visibility = Visibility.Visible;
+      IsSanityCheckVisible = true;
+#else
+      IsSanityCheckVisible = false;
+#endif
+
+#if DEBUG || TESTRELEASE
+      IsTextMarkingOptionVisible = true;
+#else
+      IsTextMarkingOptionVisible = false;
 #endif
    }
 
+   bool _isSanityCheckVisible;
+   public bool IsSanityCheckVisible {
+      get => _isSanityCheckVisible;
+      set {
+         if (_isSanityCheckVisible != value) {
+            _isSanityCheckVisible = value;
+            OnPropertyChanged ();
+         }
+      }
+   }
+   
+   bool _isTextMarkingOptionVisible;
+   public bool IsTextMarkingOptionVisible {
+      get => _isTextMarkingOptionVisible;
+      set {
+         if (_isTextMarkingOptionVisible != value) {
+            _isTextMarkingOptionVisible = value;
+            OnPropertyChanged ();
+         }
+      }
+   }
+
+   protected void OnPropertyChanged ([CallerMemberName] string propertyName = null)
+       => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
    void UpdateInputFilesList (List<string> files) => Dispatcher.Invoke (() => Files.ItemsSource = files);
 
    void PopulateFilesFromDir (string dir) {
@@ -82,8 +114,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    void OnSimulationFinished ()
       => mProcessSimulator.SimulationStatus = ProcessSimulator.ESimulationStatus.NotRunning;
 
-   protected virtual void OnPropertyChanged (string propertyName)
-      => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
+   //protected virtual void OnPropertyChanged (string propertyName)
+   //   => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
 
    void OnFileSelected (object sender, RoutedEventArgs e) {
       if (Files.SelectedItem != null)
@@ -210,7 +242,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       mProcessSimulator = new (mGHub, this.Dispatcher);
       mProcessSimulator.TriggerRedraw += TriggerRedraw;
       mProcessSimulator.SetSimulationStatus += status => SimulationStatus = status;
-      mProcessSimulator.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
+      //mProcessSimulator.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
 
       SettingServices.It.LoadSettings (MCSettings.It);
       if (String.IsNullOrEmpty (MCSettings.It.NCFilePath))
@@ -448,7 +480,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          mOverlay.Redraw ();
       }
    }
-
+   void DoRefresh (object sender, RoutedEventArgs e) => mOverlay?.Redraw ();
    void DoSorting (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          Work.DoSorting ();

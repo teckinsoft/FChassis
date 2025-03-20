@@ -15,7 +15,8 @@
 	<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
 	<BaseOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\</BaseOutputPath>
 	<PackageOutputPath>$(SolutionDir)\output\$(MSBuildProjectName)\Packages</PackageOutputPath>
-	<Platforms>AnyCPU;x64</Platforms>
+	<Platforms>x64</Platforms>
+	<Configurations>Debug;Release;TestRelease</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

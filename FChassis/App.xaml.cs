@@ -2,10 +2,8 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
 using FChassis.Core;
-using FChassis.VM;
+
 namespace FChassis;
-
-
 public partial class App : Application {
    bool AbnormalTermination { get; set; } = false;
    protected override void OnStartup (StartupEventArgs e) {
