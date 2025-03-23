@@ -11,8 +11,7 @@ setx FREEIMAGE_LIB "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\freeimage-3.17.0-vc14-64\l
 setx FREETYPE_INCLUDE "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\freetype-2.5.5-vc14-64\include" /M
 setx FREETYPE_LIB "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\freetype-2.5.5-vc14-64\lib" /M
 setx OCCT_INCLUDE "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\inc" /M
-setx OCCT_LIB_DBG "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\libdbg" /M
-setx OCCT_LIB_REL "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\librel" /M
+setx OCCT_LIB "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\lib" /M
 setx OCCT_TCL_INCLUDE "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\include" /M
 setx OCCT_TCL_LIB "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\lib" /M
 setx OPENVR_INCLUDE "C:\OCCT\OpenCASCADE-7.7.0-vc14-64\openvr-1.14.15-64\headers" /M
