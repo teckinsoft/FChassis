@@ -444,39 +444,45 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       // Clear the zombies if any
       GenesysHub?.ClearZombies ();
    }
-
+   bool _cutHoles = false, _cutNotches = false, _cutMarks = false;
    void DoAlign (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          Work.Align ();
          mScene.Bound3 = Work.Model.Bound;
          GenesysHub?.ClearZombies ();
-         if (MCSettings.It.RotateX180)
+         if (Work.Dirty) {
             Work.DeleteCuts ();
+            _cutHoles = false; _cutNotches = false;
+            _cutMarks = false;
+         }
          mOverlay.Redraw ();
          GCodeGenerator.EvaluateToolConfigXForms (Work);
       }
    }
 
    void DoAddHoles (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
+      if (!HandleNoWorkpiece () && !_cutHoles) {
          if (Work.DoAddHoles ())
             GenesysHub?.ClearZombies ();
+         _cutHoles = true;
          mOverlay.Redraw ();
       }
    }
 
    void DoTextMarking (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
+      if (!HandleNoWorkpiece () && !_cutMarks) {
          if (Work.DoTextMarking (MCSettings.It))
             GenesysHub?.ClearZombies ();
+         _cutMarks = true;
          mOverlay.Redraw ();
       }
    }
 
    void DoCutNotches (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
+      if (!HandleNoWorkpiece() && !_cutNotches) {
          if (Work.DoCutNotchesAndCutouts ())
             GenesysHub?.ClearZombies ();
+         _cutNotches = true;
          mOverlay.Redraw ();
       }
    }
@@ -489,22 +495,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
+      if (!HandleNoWorkpiece() && Work.Dirty) {
 #if DEBUG
          GenesysHub.ComputeGCode ();
+         Work.Dirty = false;
 #else
          try {
             GenesysHub.ComputeGCode ();
+            Work.Dirty = false; // This line is optional here since it will be set in finally
          } catch (Exception ex) {
-            if (ex is NegZException) 
-               MessageBox.Show ("Part might not be aligned", "Error", 
-                                 MessageBoxButton.OK, MessageBoxImage.Error);
-            else if (ex is NotchCreationFailedException ex1) 
-                  MessageBox.Show (ex1.Message, "Error", 
-                                   MessageBoxButton.OK, MessageBoxImage.Error);
-            else 
-               MessageBox.Show ("G Code generation failed", "Error", 
+            if (ex is NegZException) {
+               MessageBox.Show ("Part might not be aligned", "Error",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+            } else if (ex is NotchCreationFailedException ex1) {
+               MessageBox.Show (ex1.Message, "Error",
                                 MessageBoxButton.OK, MessageBoxImage.Error);
+            } else {
+               MessageBox.Show ("G Code generation failed", "Error",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+         } finally {
+            Work.Dirty = false; // This will always execute
          }
 #endif
          mOverlay.Redraw ();
