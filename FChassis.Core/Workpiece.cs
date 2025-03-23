@@ -63,12 +63,9 @@ public class Workpiece : INotifyPropertyChanged {
          Dirty = true;
       }
 
-      // Additional 180 degrees rotation if the user has prescribed
-      if (It.RotateX180) {
-         Apply (Matrix3.Rotation (EAxis.Z, Geo.PI * mRotToggle));
-         if (mRotToggle == 1) mRotToggle = 0;
-         else mRotToggle = 1;
-      }
+      Apply (Matrix3.Rotation (EAxis.Z, Geo.PI * mRotToggle));
+      if (mRotToggle == 1) mRotToggle = 0;
+      else mRotToggle = 1;
 
       // Now shift the origin:
       var (mbound, pbound) = (mModel.Bound, mModel.Baseplane.Bound);
