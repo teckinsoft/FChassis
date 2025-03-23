@@ -12,7 +12,7 @@ public readonly struct PointVec {
    public readonly double DistTo (PointVec rhs) => Pt.DistTo (rhs.Pt);
 }
 
-public enum EKind { Hole, Notch, Mark, Cutout };
+public enum EKind { Hole, Notch, Mark, Cutout, None };
 public enum ECutKind {
    Top2YNeg, YNegToYPos, Top,
    YPos, YNeg, Top2YPos, YPosFlex, YNegFlex, None

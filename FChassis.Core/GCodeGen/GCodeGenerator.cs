@@ -238,7 +238,7 @@ public class GCodeGenerator {
    bool mLastCutScope = false;
    ToolingSegment? mPrevToolingSegment = null;
    List<double> mCutscopeToolingLengths = [];
-   public bool IsRapidMoveToPiercingPositionWithPingPong { get; set; }
+   public bool RapidMoveToPiercingPositionWithPingPong { get; set; }
    #endregion
 
    #region Properties
@@ -2289,7 +2289,7 @@ public class GCodeGenerator {
    /// <param name="currentToolingName">Name of the current tooling</param>
    void MoveFromRetractToSafety (List<ToolingSegment> prevToolingSegs, string prevToolingName,
       List<ToolingSegment> currToolingSegs,
-      string currentToolingName, bool isMark) {
+      string currentToolingName, EKind featType) {
       if (prevToolingSegs != null && prevToolingSegs.Count > 0) {
          (var prevSegEndCurve, _, var prevSegEndCurveEndNormal) = prevToolingSegs[^1];
          var prevToolingEPRetracted =
@@ -2314,7 +2314,7 @@ public class GCodeGenerator {
       Point3 currToolingSPRetractedSafeZ = new (currToolingSPRetracted.X, currToolingSPRetracted.Y,
          mSafeClearance);
       var mcCoordsCurrToolingSPRetractedSafeZ = XfmToMachine (currToolingSPRetractedSafeZ);
-      if (!isMark) {
+      if (featType != EKind.Mark) {
          Utils.RapidPosition (sw, mcCoordsCurrToolingSPRetractedSafeZ.X, mcCoordsCurrToolingSPRetractedSafeZ.Y,
             mcCoordsCurrToolingSPRetractedSafeZ.Z, 0, createDummyBlock4Master: CreateDummyBlock4Master);
          if (!CreateDummyBlock4Master) {
@@ -2337,21 +2337,20 @@ public class GCodeGenerator {
    /// <param name="toolingStartNormalVec">Normal vector (outward) at the next tooling start point</param>
    /// <param name="toolingName">Name of the tooling : Can be used in simulation for debug purpose</param>
    public void MoveFromSafetyToRetract (Point3 toolingStartPt, Vector3 toolingStartNormalVec, string toolingName,
-      bool planeChangeNeeded, bool isMark, bool usePingPongOption = true, string comment = "") {
+      bool planeChangeNeeded, EKind featType, bool usePingPongOption = true, string comment = "") {
       var currToolingStPtRetracted =
             Utils.MovePoint (toolingStartPt, toolingStartNormalVec, mRetractClearance);
       var angleBetweenZAxisNcurrToolingStPt =
     Utils.GetAngleAboutXAxis (XForm4.mZAxis, toolingStartNormalVec, GetXForm ()).R2D ();
       var mcCoordsCurrToolingStPtRetracted = XfmToMachine (currToolingStPtRetracted);
 
-      if (!isMark) {
-         if (planeChangeNeeded) {
+      if (featType != EKind.Mark) {
+         if (planeChangeNeeded)
             Utils.LinearMachining (sw, mcCoordsCurrToolingStPtRetracted.X, mcCoordsCurrToolingStPtRetracted.Y,
                mcCoordsCurrToolingStPtRetracted.Z, angleBetweenZAxisNcurrToolingStPt, Rapid, "Move to Piercing Position",
                createDummyBlock4Master: CreateDummyBlock4Master);
-         } else {
-            RapidMoveToPiercingPosition (currToolingStPtRetracted, toolingStartNormalVec, usePingPongOption, comment);
-         }
+         else
+            RapidMoveToPiercingPosition (toolingStartPt, toolingStartNormalVec, featType, usePingPongOption, comment);
 
          if (!CreateDummyBlock4Master) {
             mTraces[(int)Head].Add (new (mToolPos[(int)Head], currToolingStPtRetracted,
@@ -2377,10 +2376,11 @@ public class GCodeGenerator {
       var minPt = new Point3 (xMin, 0, 0); var maxPt = new Point3 (xMax, 0, 0);
       var mcMinPt = GCodeGenerator.XfmToMachine (this, minPt);
       var mcMaxPt = GCodeGenerator.XfmToMachine (this, maxPt);
+      var toolingLen = Utils.GetToolingLength (toolingItem, startIndex, endIndex);
       if (LeftToRightMachining)
-         sw.WriteLine ($"START_X={mcMinPt.X:F3} END_X={mcMaxPt.X:F3} PathLength={toolingItem.Perimeter:F2}");
+         sw.WriteLine ($"START_X={mcMinPt.X:F3} END_X={mcMaxPt.X:F3} PathLength={toolingLen:F2}");
       else
-         sw.WriteLine ($"START_X={mcMaxPt.X:F3} END_X={mcMinPt.X:F3} PathLength={toolingItem.Perimeter:F2}");
+         sw.WriteLine ($"START_X={mcMaxPt.X:F3} END_X={mcMinPt.X:F3} PathLength={toolingLen:F2}");
    }
 
    /// <summary>
@@ -2397,7 +2397,7 @@ public class GCodeGenerator {
          if (prevToolingItem != null) arcMcCoordsCenter = XfmToMachine (evalValue.Item1);
          else arcMcCoordsCenter = XfmToMachine (evalValue.Item1);
          var point2 = Utils.ToPlane (arcMcCoordsCenter, Utils.GetFeatureNormalPlaneType (toolingItem.Start.Vec, XForm4.IdentityXfm));
-         sw.WriteLine ($"X_Coordinate={point2.X:F3} YZ_Coordinate={point2.Y:F3}");
+         sw.WriteLine ($"X_Coordinate={point2.X:F3} YZ_Coordinate={point2.Y + JobThickness:F3}");
       }
    }
 
@@ -2472,7 +2472,7 @@ public class GCodeGenerator {
 
       sw.WriteLine ("SplitStartX={0} SplitPartitionX={1} SplitEndX={2} ( Cut Scope Length:{3} )",
          xStart.ToString ("F3"), xPartition.ToString ("F3"), SplitEndX.ToString ("F3"), (xEnd - xStart).ToString ("F3"));
-      WriteBounds (toolingItem, pts);
+      WriteBounds (pts);
       if (CreateDummyBlock4Master) return;
       if (!isValidNotch) CalibrateForCircle (toolingItem, prevToolingItem);
       sw.WriteLine ("X_Correction=0 YZ_Correction=0");
@@ -2483,13 +2483,16 @@ public class GCodeGenerator {
    /// </summary>
    /// <param name="toolingItem">The input tooling item</param>
    /// <param name="pts">The input set of points for which the bounds need to be written</param>
-   public void WriteBounds (Tooling toolingItem, List<Point3> pts) {
+   public void WriteBounds (List<Point3> pts) {
       var toolingSegsBounds = Utils.GetPointsBounds (pts);
       var xMin = toolingSegsBounds.XMin; var xMax = toolingSegsBounds.XMax;
+      double tl = 0;
+      for (int ii = 1; ii < pts.Count; ii++)
+         tl += pts[ii - 1].DistTo (pts[ii]);
       if (LeftToRightMachining)
-         sw.WriteLine ($"START_X={xMin:F3} END_X={xMax:F3} PathLength={toolingItem.Perimeter:F2}");
+         sw.WriteLine ($"START_X={xMin:F3} END_X={xMax:F3} PathLength={tl:F2}");
       else
-         sw.WriteLine ($"START_X={xMax:F3} END_X={xMin:F3} PathLength={toolingItem.Perimeter:F2}");
+         sw.WriteLine ($"START_X={xMax:F3} END_X={xMin:F3} PathLength={tl:F2}");
    }
 
    /// <summary>
@@ -2773,24 +2776,24 @@ public class GCodeGenerator {
          if (prevToolingSegment != null)
             MoveToNextTooling (prevToolingSegment.Value.Vec0, prevToolingSegment,
             notchEntry.Item1, notchEntry.Item2.Normalized (), prevToolingItem != null ? prevToolingItem.Name : "",
-            toolingItem.Name, firstTooling, toolingItem.IsMark ());
+            toolingItem.Name, firstTooling, toolingItem.Kind);
          else
             MoveToNextTooling (prevToolingItem != null ? prevToolingItem.End.Vec : new Vector3 (),
                (prevToolingSegs != null && prevToolingSegs.Count > 0) ? prevToolingSegs[^1] : null,
             notchEntry.Item1, notchEntry.Item2.Normalized (), prevToolingItem != null ? prevToolingItem.Name : "",
-            toolingItem.Name, firstTooling, toolingItem.IsMark ());
+            toolingItem.Name, firstTooling, toolingItem.Kind);
       } else {
          if (prevToolingSegment != null)
             MoveToNextTooling (prevToolingSegment.Value.Vec0, prevToolingSegment,
             modifiedToolingSegs[0].Curve.Start, modifiedToolingSegs[0].Vec0,
             prevToolingItem != null ? prevToolingItem.Name : "",
-            toolingItem.Name, firstTooling, toolingItem.IsMark ());
+            toolingItem.Name, firstTooling, toolingItem.Kind);
          else
             MoveToNextTooling (prevToolingItem != null ? prevToolingItem.End.Vec : new Vector3 (),
                (prevToolingSegs != null && prevToolingSegs.Count > 0) ? prevToolingSegs[^1] : null,
                modifiedToolingSegs[0].Curve.Start, modifiedToolingSegs[0].Vec0,
                prevToolingItem != null ? prevToolingItem.Name : "",
-               toolingItem.Name, firstTooling, toolingItem.IsMark ());
+               toolingItem.Name, firstTooling, toolingItem.Kind);
       }
    }
 #nullable restore
@@ -3137,19 +3140,7 @@ public class GCodeGenerator {
       } else
          WriteToolCorrectionData (toolingItem, isFromWebFlange, isFlexTooling: isFlexCut, isNotchCut: isValidNotch);
 
-      // Rapid positioning again without the ping-pong option false 
-      // to avoid M1014 being printed
-      RapidPositionWithClearance (
-          nextMachiningStart,
-          wjtSeg.Vec0,
-          mRetractClearance,
-          toolingItem.Name,
-          isMark: false,
-          usePingPongOption: false
-      );
-
       prevRapidPos = Utils.MovePoint (nextMachiningStart, wjtSeg.Vec0.Normalized (), mRetractClearance);
-
       if (isValidNotch) {
          WriteLineStatement (NotchCutStartToken);
          WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: isValidNotch);
@@ -3206,7 +3197,6 @@ public class GCodeGenerator {
    /// <param name="prevToolingEndSegment">The previous end segment</param>
    /// <param name="nextToolingStartPoint">The start point on the next tooling segment</param>
    /// <param name="nextToolingStartNormal">The start normal of the next tooling</param>
-   /// <param name="nextToolingFlangeType">The Flange type of the next tooling segment</param>
    /// <param name="prevToolingItemName">The name of the previous tooling stroke</param>
    /// <param name="nextToolingItemName">The name of the current tooling stroke.</param>
    /// <param name="firstTime">A boolean flag that tells if the tooling item is the first one to start with.
@@ -3219,23 +3209,23 @@ public class GCodeGenerator {
     string prevToolingItemName,
     string nextToolingItemName,
     bool firstTime,
-    bool isMark,
+    EKind featType,
     bool usePingPongOption = true) {
       double changeInAngle;
 
-      if (firstTime) {
+      if (firstTime)
          changeInAngle = Utils.GetAngleAboutXAxis (
              XForm4.mZAxis,
              nextToolingStartNormal,
              GetXForm ()
          ).R2D ();
-      } else {
+      else
          changeInAngle = Utils.GetAngleAboutXAxis (
              prevToolingEndNormal,
              nextToolingStartNormal,
              GetXForm ()
          ).R2D ();
-      }
+
 
       bool movedToCurrToolingRetractedPos = false;
       bool planeChangeNeeded = false;
@@ -3243,9 +3233,8 @@ public class GCodeGenerator {
       if (!changeInAngle.LieWithin (-10.0, 10.0) && !CreateDummyBlock4Master) {
          planeChangeNeeded = true;
 
-         if (!isMark) {
+         if (featType != EKind.Mark)
             sw.WriteLine ("PlaneTransfer\t( Enable Plane Transformation for Tool TurnOver )");
-         }
 
          MoveFromRetractToSafety (
              prevToolingEndSegment,
@@ -3253,7 +3242,7 @@ public class GCodeGenerator {
              nextToolingStartPoint,
              nextToolingStartNormal,
              nextToolingItemName,
-             isMark
+             featType
          );
 
          MoveFromSafetyToRetract (
@@ -3261,14 +3250,14 @@ public class GCodeGenerator {
              nextToolingStartNormal,
              nextToolingItemName,
              planeChangeNeeded,
-             isMark,
+             featType,
              usePingPongOption
          );
 
          movedToCurrToolingRetractedPos = true;
          sw.WriteLine ("EndPlaneTransfer\t( Disable Plane Transformation after Tool TurnOver)");
       } else {
-         if (!isMark) {
+         if (featType != EKind.Mark) {
             sw.WriteLine ("ToolPlane\t( Confirm Cutting Plane )");
 
             if (CreateDummyBlock4Master) {
@@ -3283,7 +3272,7 @@ public class GCodeGenerator {
              nextToolingStartNormal,
              nextToolingItemName,
              planeChangeNeeded,
-             isMark,
+             featType,
              usePingPongOption
          );
       }
@@ -3301,7 +3290,7 @@ public class GCodeGenerator {
    /// <param name="currentToolingName"></param>
    /// <param name="isMark"></param>
    public void MoveFromRetractToSafety (ToolingSegment? prevToolingLastSegment, string prevToolingName,
-      Point3 currToolingStPoint, Vector3 currToolingStNormal, string currentToolingName, bool isMark) {
+      Point3 currToolingStPoint, Vector3 currToolingStNormal, string currentToolingName, EKind featType) {
       if (prevToolingLastSegment != null) {
          (var prevSegEndCurve, _, var prevSegEndCurveEndNormal) = prevToolingLastSegment.Value;
          var prevToolingEPRetracted =
@@ -3309,7 +3298,7 @@ public class GCodeGenerator {
          Point3 prevToolingEPRetractedSafeZ = new (prevToolingEPRetracted.X, prevToolingEPRetracted.Y,
             mSafeClearance);
          var mcCoordsPrevToolingEPRetractedSafeZ = XfmToMachine (prevToolingEPRetractedSafeZ);
-         if (!isMark)
+         if (featType != EKind.Mark)
             Utils.LinearMachining (sw, mcCoordsPrevToolingEPRetractedSafeZ.X, mcCoordsPrevToolingEPRetractedSafeZ.Y,
                mcCoordsPrevToolingEPRetractedSafeZ.Z, 0, Rapid, comment: "", machine: Machine, createDummyBlock4Master: CreateDummyBlock4Master);
 
@@ -3327,7 +3316,7 @@ public class GCodeGenerator {
       Point3 currToolingSPRetractedSafeZ = new (currToolingSPRetracted.X, currToolingSPRetracted.Y,
          mSafeClearance);
       var mcCoordsCurrToolingSPRetractedSafeZ = XfmToMachine (currToolingSPRetractedSafeZ);
-      if (!isMark) {
+      if (featType != EKind.Mark) {
          Utils.RapidPosition (sw, mcCoordsCurrToolingSPRetractedSafeZ.X, mcCoordsCurrToolingSPRetractedSafeZ.Y,
             mcCoordsCurrToolingSPRetractedSafeZ.Z, 0, machine: Machine, createDummyBlock4Master: CreateDummyBlock4Master);
 
@@ -3384,12 +3373,14 @@ public class GCodeGenerator {
    /// <param name="usePingPongOption"></param>
    /// <param name="comment"></param>
    public void RapidMoveToPiercingPosition (
-    Point3 stPoint, Vector3 stNormal, bool usePingPongOption = true, string comment = "") {
+    Point3 stPoint, Vector3 stNormal, EKind featType, bool usePingPongOption = true, string comment = "") {
       // Debug
-      if (IsRapidMoveToPiercingPositionWithPingPong && usePingPongOption)
+      if (RapidMoveToPiercingPositionWithPingPong && usePingPongOption)
          return;
       if (CreateDummyBlock4Master) return;
-      var mcCoordsStPoint = XfmToMachine (stPoint);
+      var stPointWithStandoff =
+            Utils.MovePoint (stPoint, stNormal, mRetractClearance);
+      var mcCoordsStPoint = XfmToMachine (stPointWithStandoff);
       var planeType = Utils.GetPlaneType (stNormal, GetXForm ());
       comment = "Move to Piercing Position " + comment;
       if (planeType == EPlane.YNeg || planeType == EPlane.YPos) {
@@ -3399,16 +3390,17 @@ public class GCodeGenerator {
              (UsePingPong && usePingPongOption) ? "M1014" : "",
              createDummyBlock4Master: CreateDummyBlock4Master);
       } else if (planeType == EPlane.Top) {
-         Utils.RapidPosition (
-             sw, mcCoordsStPoint.X, OrdinateAxis.Y, mcCoordsStPoint.Y,
-             comment,
-             (UsePingPong && usePingPongOption) ? "M1014" : "",
-             createDummyBlock4Master: CreateDummyBlock4Master);
+         if (featType != EKind.Mark )
+            Utils.RapidPosition (
+                sw, mcCoordsStPoint.X, OrdinateAxis.Y, mcCoordsStPoint.Y,
+                comment,
+                (UsePingPong && usePingPongOption) ? "M1014" : "",
+                createDummyBlock4Master: CreateDummyBlock4Master);
       }
       if (usePingPongOption)
-         IsRapidMoveToPiercingPositionWithPingPong = true;
+         RapidMoveToPiercingPositionWithPingPong = true;
       else
-         IsRapidMoveToPiercingPositionWithPingPong = false;
+         RapidMoveToPiercingPositionWithPingPong = false;
    }
 
    /// <summary>
