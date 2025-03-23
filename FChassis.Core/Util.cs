@@ -166,12 +166,6 @@ public enum EMove {
    None
 }
 
-public enum EFeatureType {
-   Hole,
-   Notch,
-   Cutout,
-   None
-}
 /// <summary>
 /// Represents the drawable information of a G-Code segment, 
 /// which is used for simulation purposes.
@@ -784,7 +778,7 @@ public static class Utils {
       return new (newToolingEntryPoint, scrapSideDirection);
    }
 
-   public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EFeatureType featType, ECutKind profileKind = ECutKind.None) {
+   public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EKind featType, ECutKind profileKind = ECutKind.None) {
       var toolingPlaneNormal = ts.Vec0;
       if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal))
          throw new Exception ("In GetMaterialRemovalSideDirection: The given point is not on the Tool Segment's Curve");
@@ -808,14 +802,14 @@ public static class Utils {
       var biNormal = Geom.Cross (toolingDir, toolingPlaneNormal).Normalized ();
       Vector3 scrapSideDirection = biNormal.Normalized ();
 
-      if (featType == EFeatureType.Notch) {
+      if (featType == EKind.Notch) {
          // The profile is clockwise
          if (profileKind == ECutKind.Top2YNeg && Geom.Cross (toolingDir, biNormal).IsSameSense (toolingPlaneNormal))
             scrapSideDirection = -biNormal;
          // The profile is counter-clockwise
          else if ((profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top) && Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
             scrapSideDirection = -biNormal;
-      } else if (featType == EFeatureType.Cutout) {
+      } else if (featType == EKind.Cutout) {
          // The profile is always counter-clockwise
          scrapSideDirection = -biNormal;
       }
@@ -1117,7 +1111,7 @@ public static class Utils {
          );
 
          if (twoFlangeNotchStartAndEndOnSameSideFlange)
-            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EFeatureType.Notch, toolingItem.ProfileKind);
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EKind.Notch, toolingItem.ProfileKind);
          else
             scrapsideMaterialDir = vectorOutwardAtSpecPoint;
 
@@ -1175,7 +1169,7 @@ public static class Utils {
          );
 
          if (twoFlangeNotchStartAndEndOnSameSideFlange)
-            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EFeatureType.Notch, toolingItem.ProfileKind);
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EKind.Notch, toolingItem.ProfileKind);
          else
             scrapsideMaterialDir = vectorOutwardAtSpecPoint;
 
@@ -2323,6 +2317,15 @@ public static class Utils {
                           Path.GetFileNameWithoutExtension (filePath));
    }
 
+   /// <summary>
+   /// This method is a helper one to figure out if the notch happens at the center of the 
+   /// part and if it is split. This may happen the LH and RH components are merged into a single component.
+   /// As part of the initial implementation strategy, a notch shall have "Split" key word 
+   /// int its name and shall have the parent unsplit notch
+   /// </summary>
+   /// <param name="toolingItem">Input tooling Item</param>
+   /// <param name="segs">Tooling Segments</param>
+   /// <returns></returns>
    public static bool IsDualFlangeSameSideNotch (Tooling toolingItem, List<ToolingSegment> segs) {
       if (toolingItem.NotchKind == ECutKind.Top2YNeg || toolingItem.NotchKind == ECutKind.Top2YPos) {
          if (segs[0].Vec0.Normalized ().EQ (segs[^1].Vec1.Normalized ()) &&
@@ -2337,5 +2340,23 @@ public static class Utils {
          }
       }
       return false;
+   }
+
+   /// <summary>
+   /// This method returns the length of the tooling segments specified from
+   /// start and end index. If they are specified as -1, this returns the 
+   /// length of all the segments
+   /// </summary>
+   /// <param name="toolingItem">The Tooling item whose length is to be measured</param>
+   /// <param name="startIndex"></param>
+   /// <param name="endIndex"></param>
+   /// <returns></returns>
+   public static double GetToolingLength (Tooling toolingItem, int startIndex = -1, int endIndex = -1) {
+      if (startIndex == -1 && endIndex == -1) return toolingItem.Perimeter;
+      if (startIndex == -1 || endIndex == -1) throw new Exception ("Start and End indices should be valid index");
+      double len = 0;
+      for (int ii = startIndex; ii <= endIndex; ii++)
+         len += toolingItem.Segs[startIndex].Curve.Length;
+      return len;
    }
 }

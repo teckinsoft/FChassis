@@ -562,7 +562,7 @@ public class CutOut : ToolingFeature {
             case NotchSectionType.WireJointTraceJumpForwardOnFlex:
                if (ii == 0) throw new Exception ("CutOut writing starts from Wire Joint Jump Trace, which is wrong");
                Vector3 scrapSideNormal = Utils.GetMaterialRemovalSideDirection (ToolingSegments[cutoutSequence.StartIndex],
-                  ToolingSegments[cutoutSequence.StartIndex].Curve.End, EFeatureType.Cutout, ToolingItem.ProfileKind);
+                  ToolingSegments[cutoutSequence.StartIndex].Curve.End, EKind.Cutout, ToolingItem.ProfileKind);
                string comment;
                if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForward)
                   comment = "(( ** CutOut: Wire Joint Jump Trace Forward Direction ** ))";
@@ -631,8 +631,8 @@ public class CutOut : ToolingFeature {
                      cutoutEntry = Tuple.Create (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0);
                      GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, PreviousToolingSegment, mPrevToolingItem,
                         mPrevToolingSegs, mIsFirstTooling, isValidNotch: false, cutoutEntry);
-                     if (!GCGen.IsRapidMoveToPiercingPositionWithPingPong)
-                        GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: true);
+                     if (!GCGen.RapidMoveToPiercingPositionWithPingPong)
+                        GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Cutout, usePingPongOption: true);
                   }
                   if (!continueMachining) {
                      if (ii == 0) {
@@ -642,7 +642,7 @@ public class CutOut : ToolingFeature {
                      var isFromWebFlange = Utils.IsMachiningFromWebFlange (ToolingSegments, cutoutSequence.StartIndex);
                      GCGen.WriteToolCorrectionData (ToolingItem, isFromWebFlange, isFlexTooling: false);
                      GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
-                           ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: false);
+                           ToolingSegments[cutoutSequence.StartIndex].Vec0, EKind.Cutout, usePingPongOption: false);
                      GCGen.EnableMachiningDirective ();
                   }
                   for (int jj = cutoutSequence.StartIndex; jj <= cutoutSequence.EndIndex; jj++) {
@@ -673,10 +673,10 @@ public class CutOut : ToolingFeature {
                      if (!continueMachining) {
                         var isFromWebFlange = Utils.IsMachiningFromWebFlange (ToolingSegments, cutoutSequence.StartIndex);
                         GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
-                           ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: true);
+                           ToolingSegments[cutoutSequence.StartIndex].Vec0, EKind.Cutout, usePingPongOption: true);
                         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebFlange, isFlexTooling: true);
                         GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
-                           ToolingSegments[cutoutSequence.StartIndex].Vec0, usePingPongOption: false);
+                           ToolingSegments[cutoutSequence.StartIndex].Vec0, EKind.Cutout, usePingPongOption: false);
                         GCGen.EnableMachiningDirective ();
                      }
                      GCGen.WriteLineStatement (GCodeGenerator.GetGCodeComment ("CutOutSequence: Machining in Flex in Forward Direction"));
