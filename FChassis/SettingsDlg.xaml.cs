@@ -91,32 +91,21 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       cbCutNotches.Bind (() => Settings.CutNotches, b => { Settings.CutNotches = b; IsModified = true; });
       cbCutCutouts.Bind (() => Settings.CutCutouts, b => { Settings.CutCutouts = b; IsModified = true; });
       cbCutMarks.Bind (() => Settings.CutMarks, b => { Settings.CutMarks = b; IsModified = true; });
-      cbRotate180AbZ.Bind (() => Settings.RotateX180, b => { Settings.RotateX180 = b; IsModified = true; });
       cbShowTlgNames.Bind (() => Settings.ShowToolingNames, b => { Settings.ShowToolingNames = b; IsModified = true; });
       cbShowTlgExtents.Bind (() => Settings.ShowToolingExtents, b => { Settings.ShowToolingExtents = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
 
-      //tbWJTPreFlexMcToken.Bind (() => Settings.WJTPreFlexMcToken, b => { Settings.WJTPreFlexMcToken = b; IsModified = true; });
-      //tbWJTPostFlexMcToken.Bind (() => Settings.WJTPostFlexMcToken, b => { Settings.WJTPostFlexMcToken = b; IsModified = true; });
-
       chbMPC.Bind (() => {
-         tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
-         rbMinNotchCuts.IsEnabled = Settings.EnableMultipassCut;
          return Settings.EnableMultipassCut;
       },
        b => {
-          Settings.EnableMultipassCut = b; // Update the value
-          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled = rbMinNotchCuts.IsEnabled = b; // Enable/disable based on the value
+          Settings.EnableMultipassCut = b;
           IsModified = true;
        });
 
       tbMaxFrameLength.Bind (() => Settings.MaxFrameLength, b => { Settings.MaxFrameLength = b; IsModified = true; });
       tbDeadBandWidth.Bind (() => Settings.DeadbandWidth, b => { Settings.DeadbandWidth = b; IsModified = true; });
-      rbMaxFrameLength.Bind (() => Settings.MaximizeFrameLengthInMultipass,
-         () => { Settings.MaximizeFrameLengthInMultipass = true; IsModified = true; });
-      rbMinNotchCuts.Bind (() => !Settings.MaximizeFrameLengthInMultipass,
-         () => { Settings.MaximizeFrameLengthInMultipass = false; IsModified = true; });
       tbDirectoryPath.Bind (() => {
          return Settings.NCFilePath;
       }, b => {
@@ -125,13 +114,9 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       });
       cbLCMMachine.ItemsSource = Enum.GetValues (typeof (MachineType)).Cast<MachineType> ();
       cbLCMMachine.Bind (() => {
-         chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
-            rbMinNotchCuts.IsEnabled = (Settings.Machine == MachineType.LCMMultipass2H);
          return Settings.Machine;
       },
          (MachineType selectedType) => {
-            chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
-            rbMinNotchCuts.IsEnabled = Settings.EnableMultipassCut = (selectedType == MachineType.LCMMultipass2H);
             Settings.Machine = selectedType;
             IsModified = true;
          });
