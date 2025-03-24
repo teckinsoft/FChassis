@@ -792,12 +792,12 @@ void IGESNative::handleIntersectingBoundingCurves(TopoDS_Shape& shape, double to
    fuse.Build();
    cpShape = fuse.Shape();
 
-   // Step 3: Refine the shape to remove small edges
-   ShapeUpgrade_UnifySameDomain unify(cpShape, Standard_True, Standard_True, Standard_False);
-   unify.Build();
-   cpShape = unify.Shape();
-   if (!OCCTUtils::IsShapeValid(cpShape))
-      return;
+   //// Step 3: Refine the shape to remove small edges
+   //ShapeUpgrade_UnifySameDomain unify(cpShape, Standard_True, Standard_True, Standard_False);
+   //unify.Build();
+   //cpShape = unify.Shape();
+   //if (!OCCTUtils::IsShapeValid(cpShape))
+   //   return;
 
    // Step 1: Heal the shape to fix gaps and ensure continuity
    Handle(ShapeFix_Shape) shapeFix = new ShapeFix_Shape(cpShape);
@@ -805,11 +805,12 @@ void IGESNative::handleIntersectingBoundingCurves(TopoDS_Shape& shape, double to
    shapeFix->Perform(); // Perform the healing operation
    TopoDS_Shape healedShape = shapeFix->Shape();
 
-   // Step 2: Refine the healed shape
-   unify = ShapeUpgrade_UnifySameDomain(healedShape, Standard_True, Standard_True, Standard_False);
-   unify.Build();
+   //// Step 2: Refine the healed shape
+   //unify = ShapeUpgrade_UnifySameDomain(healedShape, Standard_True, Standard_True, Standard_False);
+   //unify.Build();
 
-   shape = unify.Shape();
+   //shape = unify.Shape();
+   shape = healedShape;
 }
 
 // Function to compute the bounding box dimensions of a face

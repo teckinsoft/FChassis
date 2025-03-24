@@ -41,7 +41,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       DataContext = this;
       
 #if DEBUG || TESTRELEASE
-       IsRestrictedSettingsVisible = true;
+      IsRestrictedSettingsVisible = true;
 #else
       IsRestrictedSettingsVisible = false;
 #endif
@@ -97,10 +97,12 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
 
       chbMPC.Bind (() => {
+         tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = Settings.EnableMultipassCut;
          return Settings.EnableMultipassCut;
       },
        b => {
-          Settings.EnableMultipassCut = b;
+          Settings.EnableMultipassCut = b; // Update the value
+          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = b; // Enable/disable based on the value
           IsModified = true;
        });
 
@@ -114,9 +116,11 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       });
       cbLCMMachine.ItemsSource = Enum.GetValues (typeof (MachineType)).Cast<MachineType> ();
       cbLCMMachine.Bind (() => {
+         chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = (Settings.Machine == MachineType.LCMMultipass2H);
          return Settings.Machine;
       },
          (MachineType selectedType) => {
+            chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = Settings.EnableMultipassCut = (selectedType == MachineType.LCMMultipass2H);
             Settings.Machine = selectedType;
             IsModified = true;
          });
@@ -177,7 +181,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       }
    }
    void TbNotchWireJointDistanceValueChanged (object sender, TextChangedEventArgs e) {
-      if (double.TryParse (tbNotchWireJointDistance.Text, out double value) && ( value.SGT(5) || value.SLT(0) )) {
+      if (double.TryParse (tbNotchWireJointDistance.Text, out double value) && (value.SGT (5) || value.SLT (0))) {
          // Show an error message
          MessageBox.Show ("Notch Wire Joint Distance should lie betweem 0 and 5 mm", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
