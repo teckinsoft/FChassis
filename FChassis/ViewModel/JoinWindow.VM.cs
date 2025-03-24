@@ -20,29 +20,32 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
 
    #region Properties
    [ObservableProperty]
-   private string _part1FileName = "";
+   string _part1FileName = "";
 
    [ObservableProperty]
-   private string _part2FileName = "";
+   string _part2FileName = "";
 
    [ObservableProperty]
-   private string _joinedFileName = "";
+   string _joinedFileName = "";
 
    [ObservableProperty]
-   private BitmapImage _thumbnailBitmap;
+   BitmapImage _thumbnailBitmap;
    #endregion
 
    #region Fields
-   private IGES.IGES _iges;
-   private bool _disposed = false;
-   private JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
+   IGES.IGES _iges;
+   bool _disposed = false;
+   JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
+   string _initialDirectory = @"W:\FChassis\Sample";
    #endregion
 
    #region Commands
    [RelayCommand]
-   private void LoadPart1 () {
+   void LoadPart1 () {
       var fileName = GetFilename (Part1FileName, "Select a Part File",
-                                "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*");
+                                "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
+                                multiselect:false, _initialDirectory);
+      _initialDirectory = Path.GetDirectoryName (fileName);
       if (fileName == null) return;
 
       Part1FileName = fileName;
@@ -50,9 +53,11 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    [RelayCommand]
-   private void LoadPart2 () {
+   void LoadPart2 () {
       var fileName = GetFilename (Part2FileName, "Select a Part File",
-                                "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*");
+                                "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
+                                multiselect: false, _initialDirectory);
+      _initialDirectory = Path.GetDirectoryName (fileName);
       if (fileName == null) return;
 
       Part2FileName = fileName;
@@ -60,19 +65,19 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    [RelayCommand]
-   private void YawPart1By180 () => Action (() => YawBy180Internal (0)).GetAwaiter ();
+   void YawPart1By180 () => Action (() => YawBy180Internal (0)).GetAwaiter ();
 
    [RelayCommand]
-   private void YawPart2By180 () => Action (() => YawBy180Internal (1)).GetAwaiter ();
+   void YawPart2By180 () => Action (() => YawBy180Internal (1)).GetAwaiter ();
 
    [RelayCommand]
-   private void RollPart1By180 () => Action (() => RollBy180Internal (0)).GetAwaiter ();
+   void RollPart1By180 () => Action (() => RollBy180Internal (0)).GetAwaiter ();
 
    [RelayCommand]
-   private void RollPart2By180 () => Action (() => RollBy180Internal (1)).GetAwaiter ();
+   void RollPart2By180 () => Action (() => RollBy180Internal (1)).GetAwaiter ();
 
    [RelayCommand]
-   private async Task Join (object parameter) {
+   async Task Join (object parameter) {
       await Action (Join); // Ensure Join() completes before checking the result
 
       if (parameter is Window currentWindow && (_joinResOpt == JoinResultVM.JoinResultOption.SaveAndOpen ||
@@ -137,7 +142,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return errorNo;
    }
 
-   private int YawBy180Internal (int pno) {
+   int YawBy180Internal (int pno) {
       if (_iges == null) return -1;
       int errorNo;
       try {
@@ -151,7 +156,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return errorNo;
    }
 
-   private int RollBy180Internal (int pno) {
+   int RollBy180Internal (int pno) {
       if (_iges == null) return -1;
       int errorNo;
       try {
@@ -165,14 +170,14 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return errorNo;
    }
 
-   private int UndoJoin () {
+   int UndoJoin () {
       int errorNo = 0;
       if (_iges == null) return -1;
       _iges.UndoJoin ();
       return errorNo;
    }
 
-   private int Join () {
+   int Join () {
       if (_iges == null) return -1;
       int errorNo;
       try {
@@ -217,7 +222,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return resVal;
    }
 
-   private void OpenSavedFile () {
+   void OpenSavedFile () {
       if (!string.IsNullOrEmpty (JoinedFileName)) {
          try {
             EvLoadPart?.Invoke (JoinedFileName);
@@ -227,13 +232,13 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       }
    }
 
-   private int JoinSave () {
+   int JoinSave () {
       if (_iges == null) return -1;
       int errorNo = 0;
 
       JoinedFileName = SaveFilename (Part1FileName, "Select a Part File",
           "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
-          @"W:\FChassis\Sample");
+          _initialDirectory);
 
       if (!string.IsNullOrEmpty (JoinedFileName)) {
          errorNo = _iges.SaveIGES (JoinedFileName, 2);
@@ -245,7 +250,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    #endregion
 
    #region Helper Methods
-   private async Task Action (Func<int> func) {
+   async Task Action (Func<int> func) {
       Mouse.OverrideCursor = Cursors.Wait;
       int errorNo = 0;
 
@@ -255,7 +260,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       Mouse.OverrideCursor = null;
    }
 
-   private bool HandleIGESError (int errorNo) {
+   bool HandleIGESError (int errorNo) {
       if (errorNo == 0 || _iges == null) return false;
       return true;
    }
@@ -277,7 +282,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       UpdateImage (width, height, imageData);
    }
 
-   private void UpdateImage (int width, int height, byte[] imageStream) {
+   void UpdateImage (int width, int height, byte[] imageStream) {
       if (imageStream == null || imageStream.Length == 0) return;
 
       WriteableBitmap bitmap = new (width, height, 96, 96, PixelFormats.Rgb24, null);
@@ -292,7 +297,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       ThumbnailBitmap = ConvertWriteableBitmapToBitmapImage (bitmap);
    }
 
-   private BitmapImage ConvertWriteableBitmapToBitmapImage (WriteableBitmap wbm) {
+   BitmapImage ConvertWriteableBitmapToBitmapImage (WriteableBitmap wbm) {
       BitmapImage bmImage = new ();
       using (MemoryStream stream = new ()) {
          PngBitmapEncoder encoder = new ();
@@ -307,8 +312,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return bmImage;
    }
 
-   private string GetFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
-                              bool multiselect = false, string initialFolder = null) {
+   string GetFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
+                             bool multiselect = false, string initialFolder = null) {
       OpenFileDialog openDlg = new () {
          Title = title,
          Filter = filter,
@@ -319,8 +324,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return openDlg.ShowDialog () == true ? openDlg.FileName : null;
    }
 
-   private string SaveFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
-                               string initialFolder = null) {
+   string SaveFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
+                              string initialFolder = null) {
       SaveFileDialog saveDlg = new () {
          Title = title,
          Filter = filter,
