@@ -68,6 +68,6 @@ for %%D in (%DLLS%) do (
 )
 
 echo.
-echo All operations completed successfully.
+echo ENvironment set
 endlocal
 pause
