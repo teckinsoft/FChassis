@@ -1,15 +1,13 @@
 ﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-
 using FChassis.Draw;
 
-namespace FChassis;
+namespace FChassis.VisibilityConverters;
 
 public class SimulationStatusToVisibilityConverter : IValueConverter {
    public object Convert (object value, Type targetType, object parameter, CultureInfo culture) {
-      if (value is ProcessSimulator.ESimulationStatus status) {
-         switch (status) {
+      if (value is ProcessSimulator.ESimulationStatus status)          switch (status) {
             case ProcessSimulator.ESimulationStatus.Running:
                if ((string)parameter == "Pause" || (string)parameter == "Stop")
                   return Visibility.Visible;
@@ -23,7 +21,6 @@ public class SimulationStatusToVisibilityConverter : IValueConverter {
                   return Visibility.Visible;
                break;
          }
-      }
 
       return Visibility.Collapsed;
    }

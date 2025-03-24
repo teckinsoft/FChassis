@@ -13,6 +13,7 @@ using FChassis.Core.Processes;
 using SPath = System.IO.Path;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using FChassis.Core.AssemblyUtils;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
@@ -44,6 +45,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
 
       Sys.SelectionChanged += OnSelectionChanged;
+#if DEBUG
+      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("igesd");
+#else
+      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("iges");
+#endif
 
 #if DEBUG
       IsSanityCheckVisible = true;
@@ -105,7 +111,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       // Assign the combined collection to ItemsSource
       UpdateInputFilesList (allFiles);
    }
-   #endregion
+#endregion
 
    #region Event handlers
    void TriggerRedraw ()
@@ -171,7 +177,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnMirrorAndJoin (object sender, RoutedEventArgs e) {
+   void OnJoin (object sender, RoutedEventArgs e) {
       JoinWindow joinWindow = new ();
 
       // Subscribe to the FileSaved event
@@ -277,6 +283,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Properties
+   public bool IsIgesAvailable { get; }
    public ProcessSimulator.ESimulationStatus SimulationStatus {
       get => mSimulationStatus;
       set {
