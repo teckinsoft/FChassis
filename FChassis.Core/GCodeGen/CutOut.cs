@@ -1,6 +1,6 @@
 ﻿using Flux.API;
 using static FChassis.Core.Utils;
-
+using FChassis.Core.Geometries;
 namespace FChassis.Core.GCodeGen;
 
 /// <summary>
@@ -583,12 +583,12 @@ public class CutOut : ToolingFeature {
                // Here it is assumed that if the next sequence block is machining on flex, in which case,
                // the current sequence type is WireJointTraceJumpForwardOnFlex, the tooling block 
                // shall be completed and so toCompleteToolingBlock is true, false otherwise
-               Point3? prevRapidPos = null;
+               Point3? prevRapidPos;
                if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex) {
                   GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                      mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                      ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                        isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out prevRapidPos,
+                        isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out _,
                         toCompleteToolingBlock: true, comment);
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
@@ -601,13 +601,13 @@ public class CutOut : ToolingFeature {
                   GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                         mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                           isFlexCut: true, isValidNotch: false, flexRefTS: mFlexStartRef, out prevRapidPos, toCompleteToolingBlock: false, comment);
+                           isFlexCut: true, isValidNotch: false, flexRefTS: mFlexStartRef, out _, toCompleteToolingBlock: false, comment);
 
                } else {
                   GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                         mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                           isFlexCut: false, isValidNotch: false, flexRefTS: null, out prevRapidPos, toCompleteToolingBlock: false, comment);
+                           isFlexCut: false, isValidNotch: false, flexRefTS: null, out _, toCompleteToolingBlock: false, comment);
                }
                PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;

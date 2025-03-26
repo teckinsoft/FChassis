@@ -7,13 +7,13 @@ namespace FChassis.VisibilityConverters;
 
 public class SimulationStatusToVisibilityConverter : IValueConverter {
    public object Convert (object value, Type targetType, object parameter, CultureInfo culture) {
-      if (value is ProcessSimulator.ESimulationStatus status)          switch (status) {
+      if (value is ProcessSimulator.ESimulationStatus status) switch (status) {
             case ProcessSimulator.ESimulationStatus.Running:
                if ((string)parameter == "Pause" || (string)parameter == "Stop")
                   return Visibility.Visible;
                break;
             case ProcessSimulator.ESimulationStatus.Paused:
-               if ((string)parameter == "Stop" || (string)parameter == "Simulate")  
+               if ((string)parameter == "Stop" || (string)parameter == "Simulate")
                   return Visibility.Visible;
                break;
             case ProcessSimulator.ESimulationStatus.NotRunning:

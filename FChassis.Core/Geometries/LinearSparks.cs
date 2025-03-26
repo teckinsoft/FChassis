@@ -1,8 +1,8 @@
 ﻿using FChassis.Core;
 using Flux.API;
-using static FChassis.Core.Geom;
+using static FChassis.Core.Geometries.Geom;
 
-namespace FChassis;
+namespace FChassis.Core.Geometries;
 
 /// <summary>
 /// The LinearSparks class is to represent the sparks that emanate 

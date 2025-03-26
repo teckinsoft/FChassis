@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Windows.Controls;
-using static FChassis.Core.DoubleExtensions;
-using static FChassis.Core.IntExtensions;
+using static FChassis.Core.Geometries.DoubleExtensions;
+using static FChassis.Core.Geometries.IntExtensions;
 namespace FChassis;
 
 static class WPFUtil {
@@ -40,7 +40,7 @@ static class WPFUtil {
       up.Bind (() => _shuffle (lb, -1, setter));
       down.Bind (() => _shuffle (lb, 1, setter));
 
-      void _shuffle (ListBox lb, int delta, Action<IEnumerable> setter) {
+      static void _shuffle (ListBox lb, int delta, Action<IEnumerable> setter) {
          int n = lb.SelectedIndex;
          if (n == -1)
             return;

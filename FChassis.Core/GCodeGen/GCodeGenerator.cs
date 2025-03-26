@@ -7,7 +7,7 @@ using Flux.API;
 using static FChassis.Core.MCSettings;
 using static FChassis.Core.Utils;
 using FChassis.Core.Processes;
-using System.Net;
+using FChassis.Core.Geometries;
 
 namespace FChassis.Core.GCodeGen;
 

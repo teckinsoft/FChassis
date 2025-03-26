@@ -7,6 +7,7 @@ using FChassis.Core;
 using FChassis.Core.Tools;
 using FChassis.Core.Processes;
 using FChassis.Core.GCodeGen;
+using FChassis.Core.Geometries;
 
 namespace FChassis.Draw;
 
@@ -139,7 +140,7 @@ public class ProcessSimulator (GenesysHub gHub, Dispatcher dsp) : INotifyPropert
          GenesysHub.Traces[1] = GenesysHub.CutScopeTraces[0][1];
       }
    }
-   
+
    void DrawToolSim (int head) {
       var mcCss = GenesysHub.GCodeGen.MachinableCutScopes;
       Bound3 bound = new ();

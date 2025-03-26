@@ -1,4 +1,5 @@
 ﻿using Flux.API;
+using FChassis.Core.Geometries;
 
 namespace FChassis.Core.GCodeGen;
 
@@ -558,7 +559,7 @@ public class CutScope {
             ts1.Tooling.FeatType = ts.Tooling.FeatType + "-Split-1";
 
             // Split segments of ts1.Tooling
-            ts1.Tooling.Segs = Utils.SplitNotchToScope (ts1, ts1.mIsLeftToRight, bound, 1e-4);
+            ts1.Tooling.Segs = Utils.SplitNotchToScope (ts1, ts1.mIsLeftToRight, 1e-4);
             ts1.Tooling.Bound3 = Utils.CalculateBound3 (ts1.Tooling.Segs, bound);
             ts1.Tooling.NotchKind = Tooling.GetCutKind (ts1.Tooling, gcGen.GetXForm ());
             ts1.Tooling.ProfileKind = Tooling.GetCutKind (ts1.Tooling, XForm4.IdentityXfm);
@@ -573,7 +574,7 @@ public class CutScope {
             ts2.Tooling.RefTooling = ts.Tooling;
 
             // Split segments of ts2.Tooling
-            ts2.Tooling.Segs = Utils.SplitNotchToScope (ts2, ts2.mIsLeftToRight, bound, 1e-4);
+            ts2.Tooling.Segs = Utils.SplitNotchToScope (ts2, ts2.mIsLeftToRight, 1e-4);
             ts2.Tooling.Bound3 = Utils.CalculateBound3 (ts2.Tooling.Segs, bound);
             ts2.Tooling.NotchKind = Tooling.GetCutKind (ts2.Tooling, gcGen.GetXForm ());
             ts2.Tooling.ProfileKind = Tooling.GetCutKind (ts2.Tooling, XForm4.IdentityXfm);

@@ -1,15 +1,18 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Microsoft.Win32;
-using FChassis.Core;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Win32;
+
+using FChassis.Core;
+using FChassis.Core.Geometries;
+
 
 
 namespace FChassis;
-using static FChassis.Core.DoubleExtensions;
-using static FChassis.Core.IntExtensions;
+using static FChassis.Core.Geometries.DoubleExtensions;
+using static FChassis.Core.Geometries.IntExtensions;
 using static FChassis.Core.MCSettings.EHeads;
 
 

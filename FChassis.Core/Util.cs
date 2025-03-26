@@ -2,6 +2,7 @@ using System.Text;
 using static System.Math;
 using Flux.API;
 using FChassis.Core.GCodeGen;
+using FChassis.Core.Geometries;
 
 namespace FChassis.Core;
 
@@ -94,7 +95,7 @@ internal static class Extensions {
       Point3 pt = new (val.X - sub.X, val.Y - sub.Y, val.Z - sub.Z);
       return pt;
    }
-   public static Vector3 ToVector (this Point3 val) => new Vector3 (val.X, val.Y, val.Z);
+   public static Vector3 ToVector (this Point3 val) => new (val.X, val.Y, val.Z);
    public static Point2 Subtract (this Point2 val, Point2 sub) {
       Point2 pt = new (val.X - sub.X, val.Y - sub.Y);
       return pt;
@@ -1294,8 +1295,6 @@ public static class Utils {
                                                     ref List<NotchPointInfo> notchPtsInfo,
                                                     double[] percentPos,
                                                     int[] segIndices,
-                                                    double curveLeastLength,
-                                                    bool wireJointCuts,
                                                     double tolerance = 1e-6) {
       List<Point3> nptInterestPts = [], nptPts = [];
       int[] newSegIndices = [.. segIndices];
@@ -1591,7 +1590,7 @@ public static class Utils {
    /// <returns>List of tooling segments, split.</returns>
    /// <exception cref="Exception">This exception is thrown if the tooling does not intersect
    /// between the X values stored in the tooling scope.</exception>
-   public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight, Bound3 bound, double tolerance = 1e-6) {
+   public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight, double tolerance = 1e-6) {
       var segs = ts.Tooling.Segs; var toolingItem = ts.Tooling;
       List<ToolingSegment> resSegs = [];
       if (segs[^1].Curve.End.X < segs[0].Curve.Start.X && (ts.Tooling.ProfileKind == ECutKind.YPos || ts.Tooling.ProfileKind == ECutKind.YNeg))
