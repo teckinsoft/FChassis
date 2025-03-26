@@ -112,7 +112,7 @@ namespace FChassis::IGES {
          throw gcnew System::Exception(gcnew System::String(ex.what()));
       }
       catch (...) {
-         throw gcnew System::Exception("An unknown error occurred while rotating the part.");
+         throw gcnew System::Exception("An unknown error occurred while fusing the parts.");
       }
       return 0;
    }

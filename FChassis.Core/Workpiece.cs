@@ -4,6 +4,7 @@ using System.Diagnostics;
 
 using Flux.API;
 using FChassis.Core.GCodeGen;
+using FChassis.Core.Geometries;
 using static FChassis.Core.MCSettings;
 
 namespace FChassis.Core;
@@ -395,7 +396,7 @@ public class Workpiece : INotifyPropertyChanged {
                double[] percentLengths = [0.25, 0.5, 0.75];
                double mCurveLeastLength = 0.5;
                if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
-                   mCurveLeastLength, !MCSettings.It.NotchWireJointDistance.EQ (0)))
+                   mCurveLeastLength))
                   cut.EdgeNotch = true;
                cutSegs = [.. cut.Segs];
             }

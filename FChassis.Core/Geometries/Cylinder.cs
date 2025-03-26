@@ -1,6 +1,6 @@
 ﻿using Flux.API;
-using static FChassis.Core.Geom;
-namespace FChassis;
+using static FChassis.Core.Geometries.Geom;
+namespace FChassis.Core.Geometries;
 
 /// <summary>
 /// The Cylinder class represents the laser cutting tool ( excluding tip)
@@ -36,16 +36,12 @@ public class Cylinder {
       // Create triangles for the bottom base
       int bottomCenterIndex = Points.Count;
       Points.Add (new Point3 (0, 0, startZ)); // Center of the bottom base
-      for (int i = 0; i < mSegments; i++) {
-         Triangles.Add (new Triangle3D (bottomCenterIndex, i, (i + 1) % mSegments));
-      }
+      for (int i = 0; i < mSegments; i++)          Triangles.Add (new Triangle3D (bottomCenterIndex, i, (i + 1) % mSegments));
 
       // Create triangles for the top base
       int topCenterIndex = Points.Count;
       Points.Add (new Point3 (0, 0, startZ + mHeight)); // Center of the top base
-      for (int i = 0; i < mSegments; i++) {
-         Triangles.Add (new Triangle3D (topCenterIndex, mSegments + ((i + 1) % mSegments), mSegments + i));
-      }
+      for (int i = 0; i < mSegments; i++)          Triangles.Add (new Triangle3D (topCenterIndex, mSegments + (i + 1) % mSegments, mSegments + i));
 
       // Create triangles for the lateral surface
       for (int i = 0; i < mSegments; i++) {

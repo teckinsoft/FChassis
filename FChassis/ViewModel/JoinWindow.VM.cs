@@ -44,7 +44,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    void LoadPart1 () {
       var fileName = GetFilename (Part1FileName, "Select a Part File",
                                 "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
-                                multiselect:false, _initialDirectory);
+                                multiselect: false, _initialDirectory);
       _initialDirectory = Path.GetDirectoryName (fileName);
       if (fileName == null) return;
 

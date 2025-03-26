@@ -1,5 +1,6 @@
 ﻿using Flux.API;
 using static FChassis.Core.Utils;
+using FChassis.Core.Geometries;
 
 namespace FChassis.Core.GCodeGen;
 
@@ -1416,8 +1417,7 @@ public class Notch : ToolingFeature {
       // Split the curves and modify the indices and segments in segments and
       // in mNotchPointsInfo
       SplitToolingSegmentsAtPoints (ref mSegments, ref mNotchPointsInfo, mPercentLength,
-         [.. mSegIndices.Select (v => v ?? -1)], mCurveLeastLength,
-         mIsWireJointsNeeded, mSplit ? 1e-4 : 1e-6);
+         [.. mSegIndices.Select (v => v ?? -1)], mSplit ? 1e-4 : 1e-6);
       mFlexIndices = GetFlexSegmentIndices (mSegments);
       int ix = 0;
       for (int ii = 0; ii < mNotchPointsInfo.Count; ii++) {
@@ -2401,9 +2401,9 @@ public class Notch : ToolingFeature {
    /// </param>
    public static bool IsEdgeNotch (Bound3 bound, Tooling toolingItem,
       double[] percentPos,
-      double leastCurveLength, bool isWireJointCutsNeeded) {
+      double leastCurveLength) {
       var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
-         leastCurveLength, isWireJointCutsNeeded);
+         leastCurveLength);
       if (toolingItem.IsNotch () && attrs.Count == 0) return true;
 
       // If a notch should have start and endx at XMin, or XMax or ZMin
@@ -2479,7 +2479,7 @@ public class Notch : ToolingFeature {
    public static double GetTotalNotchToolingLength (Bound3 bound, Tooling toolingItem,
       double[] percentPos, double notchWireJointDistance, double notchApproachLength, double leastCurveLength, bool isWireJointCutsNeeded) {
       var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
-         leastCurveLength, isWireJointCutsNeeded);
+         leastCurveLength);
 
       double totalMachiningLength = 0;
       if (attrs.Count == 0) {
@@ -2560,7 +2560,7 @@ public class Notch : ToolingFeature {
    /// from the approximate mid point of the segment FROM 50% distance of the tooling segments TO
    /// the nearest boundary on the flange. The vector is the flamnge normal at the above point</returns>
    public static ValueTuple<Point3, Vector3> GetNotchEntry (Bound3 bound, Tooling toolingItem,
-      double[] percentPos, double notchApproachLength, double wireJointDistance, bool wireJointCutsNeeded, double curveLeastLength = 0.5,
+      double[] percentPos, double notchApproachLength, double wireJointDistance, double curveLeastLength = 0.5,
       double tolerance = 1e-6) {
       List<Tuple<Point3, Vector3, Vector3>> attrs = [];
       var segs = toolingItem.Segs.ToList ();
@@ -2576,7 +2576,7 @@ public class Notch : ToolingFeature {
 
       // Split the curves and modify the indices and segments in segments and
       // in notchPointsInfo
-      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices, curveLeastLength, wireJointCutsNeeded, tolerance);
+      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices, tolerance);
       var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem);
       foreach (var notchAttr in notchAttrs) {
          var approachEndPoint = notchAttr.Curve.End;
@@ -2627,7 +2627,7 @@ public class Notch : ToolingFeature {
          return new ValueTuple<Point3, Vector3> (curve.Start, stNoral);
       } else
          return Notch.GetNotchEntry (mFullPartBound, mToolingItem, mPercentLength, mNotchApproachLength,
-            mNotchWireJointDistance, mIsWireJointsNeeded, mCurveLeastLength);
+            mNotchWireJointDistance, mCurveLeastLength);
    }
 
    /// <summary>
@@ -2675,7 +2675,7 @@ public class Notch : ToolingFeature {
    /// <returns>A list of tuples that contain the notch point, normal at the point
    /// and the direction to the nearest boundary</returns>
    public static List<Tuple<Point3, Vector3, Vector3>> GetNotchApproachParams (Bound3 bound, Tooling toolingItem,
-      double[] percentPos, double curveLeastLength, bool isWireJointCutsNeeded) {
+      double[] percentPos, double curveLeastLength) {
       List<Tuple<Point3, Vector3, Vector3>> attrs = [];
       var segs = toolingItem.Segs.ToList ();
       if (!toolingItem.IsNotch ()) return attrs;
@@ -2686,8 +2686,8 @@ public class Notch : ToolingFeature {
 
       // Split the curves and modify the indices and segments in segments and
       // in notchPointsInfo
-      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices, curveLeastLength,
-         isWireJointCutsNeeded, toolingItem.FeatType.Contains ("split", StringComparison.CurrentCultureIgnoreCase) ? 1e-4 : 1e-6);
+      SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices, 
+         toolingItem.FeatType.Contains ("split", StringComparison.CurrentCultureIgnoreCase) ? 1e-4 : 1e-6);
       var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem);
       foreach (var notchAttr in notchAttrs) {
          var approachEndPoint = notchAttr.Curve.End;
