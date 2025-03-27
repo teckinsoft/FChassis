@@ -29,6 +29,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FChassis.Core", "FChassis.C
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FChassisMap.Insaller", "FChassisMap.Installer\FChassisMap.Insaller.vcxproj", "{36170F65-4468-47A3-8EEB-725952D4C70F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.Installer", "FChassis.Installer\FChassis.Installer.csproj", "{2CFF4093-649F-4F26-BAB9-882D9876C7DA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -131,6 +133,24 @@ Global
 		{36170F65-4468-47A3-8EEB-725952D4C70F}.TestRelease|x64.Build.0 = Release|x64
 		{36170F65-4468-47A3-8EEB-725952D4C70F}.TestRelease|x86.ActiveCfg = Release|Win32
 		{36170F65-4468-47A3-8EEB-725952D4C70F}.TestRelease|x86.Build.0 = Release|Win32
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Debug|x64.Build.0 = Debug|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Debug|x86.Build.0 = Debug|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Release|x64.ActiveCfg = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Release|x64.Build.0 = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Release|x86.ActiveCfg = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.Release|x86.Build.0 = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.TestRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.TestRelease|Any CPU.Build.0 = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.TestRelease|x64.ActiveCfg = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.TestRelease|x64.Build.0 = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.TestRelease|x86.ActiveCfg = Release|Any CPU
+		{2CFF4093-649F-4F26-BAB9-882D9876C7DA}.TestRelease|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

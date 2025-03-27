@@ -71,6 +71,26 @@ SectionGroup /e "Installation"
         Call CheckAndRun
     SectionEnd
 
+    Section "OpenCascade 7.5.0 Setup" SecOpenCascadeSetup
+        ; Define download URL and file name
+        !define OCCT_URL "https://dev.opencascade.org/system/files/occt/OCC_7.5.0_release/opencascade-7.5.0-vc14-64.exe"
+        !define OCCT_INSTALLER "$TEMP\opencascade-7.5.0-vc14-64.exe"
+        !define OCCT_INSTALLDIR "C:\OpenCASCADE"
+        !define OCCT_BINDIR "C:\OCCT\OpenCASCADE-7.5.0-vc14-64\opencascade-7.5.0\win64\vc14\bin"
+
+        DetailPrint "Downloading OpenCascade 7.5.0..."
+        NSISdl::download "${OCCT_URL}" "${OCCT_INSTALLER}"
+        Pop $0
+        StrCmp $0 "success" +2
+        MessageBox MB_OK "Failed to download OpenCascade!" IDOK
+
+        DetailPrint "Installing OpenCascade 7.5.0..."
+        ExecWait '"${OCCT_INSTALLER}" /silent /verysilent /suppressmsgboxes /norestart /dir=${OCCT_INSTALLDIR}'
+
+        DetailPrint "Cleaning up..."
+        Delete "${OCCT_INSTALLER}"
+    SectionEnd
+
     Section "FChassis Installation" SecInstallation
         Call CopyProgramFiles
     SectionEnd
