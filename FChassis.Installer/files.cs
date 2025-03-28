@@ -1,8 +1,7 @@
-﻿using System.Diagnostics;
-
-namespace FChassis.Installer;
+﻿namespace FChassis.Installer;
 internal class Files {
    static internal string[] programFiles = [
+      "uninstall.exe",
       "FChassis.exe",
       "FChassis.dll",
       "FChassis.deps.json",

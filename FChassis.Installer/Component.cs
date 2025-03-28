@@ -15,6 +15,7 @@ public class Component () {
 
       string downloadFilePath = Path.Combine (randomTempFolderPath, downloadFileName);
       await this.downloadLargeFileWithProgressAsync (url, downloadFilePath, progressIndicator);
+      
       this.installDependSetup (downloadFilePath, installPath, name);
 
       Directory.Delete (randomTempFolderPath, true);  // Delete Temp Folder
@@ -50,8 +51,12 @@ public class Component () {
    }
 
    protected void installDependSetup (string filePath, string installPath, string name) {
-      Process.Start (filePath, $"/silent /verysilent /suppressmsgboxes /norestart /dir={installPath}")?.WaitForExit ();
+      Process process = Process.Start (filePath, $"/silent /verysilent /suppressmsgboxes /norestart /dir={installPath}");
+      process.WaitForExit ();
+      if (process.ExitCode == 0)
       MessageBox.Show ($"{name} Installation Completed!");
+      else
+         MessageBox.Show ($"{name} Installation Failed!");
    }
    #endregion Protected Implementations
 

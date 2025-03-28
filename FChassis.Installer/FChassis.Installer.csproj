@@ -6,7 +6,7 @@
 
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<OutDir>$(SolutionDir)/../FChassis-Installer/output/bin/$(MSBuildProjectName)</OutDir>
+		<OutDir>$(SolutionDir)output/bin/$(MSBuildProjectName)</OutDir>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -24,4 +24,25 @@
 		</EmbeddedResource>
 	</ItemGroup>
 
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">		
+		<Exec Command="copy $(SolutionDir)output\bin\$(MSBuildProjectName) $(SolutionDir)..\FChassis-Installer\installer" />
+		
+		<Exec Command="copy C:\FluxSDK\bin\FChassis.exe $(SolutionDir)..\FChassis-Installer\files\bin" />
+		<Exec Command="copy C:\FluxSDK\bin\FChassis.dll $(SolutionDir)..\FChassis-Installer\files\bin" />
+		<Exec Command="copy C:\FluxSDK\bin\FChassis.runtimeconfig.json $(SolutionDir)..\FChassis-Installer\files\bin" />
+		<Exec Command="copy C:\FluxSDK\bin\FChassis.deps.json $(SolutionDir)..\FChassis-Installer\files\bin" />
+	</Target>
+
+	<ItemGroup>
+		<PackageReference Remove="CommunityToolkit.Mvvm" />
+		<PackageReference Remove="MathNet.Numerics" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<PublishSingleFile>true</PublishSingleFile>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<!-- specify appropriate runtime -->
+		<SelfContained>true</SelfContained>
+		<AssemblyName>setup</AssemblyName>
+	</PropertyGroup>
 </Project>
