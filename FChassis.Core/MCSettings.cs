@@ -75,6 +75,11 @@ public partial class MCSettings : INotifyPropertyChanged {
       LHComponent,
       RHComponent
    }
+
+   public enum EOptimize {
+      Spacial,
+      Time
+   }
    #endregion
 
    #region Helpers
@@ -594,6 +599,36 @@ public partial class MCSettings : INotifyPropertyChanged {
 
    [IgnoreMember] // Ignore this field for MessagePack serialization
    double mDeadbandWidth;
+
+   [JsonPropertyName ("movementSpeed")]
+   [Key (92)]
+   public double MovementSpeed {
+      get => mMovementSpeed;
+      set => SetProperty (ref mMovementSpeed, value);
+   }
+
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   double mMovementSpeed = 100;
+
+   [JsonPropertyName ("machiningSpeed")]
+   [Key (94)]
+   public double MachiningSpeed {
+      get => mMachiningSpeed;
+      set => SetProperty (ref mMachiningSpeed, value);
+   }
+
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   double mMachiningSpeed = 2.4;
+
+   [JsonPropertyName ("machiningSpeed")]
+   [Key (96)]
+   public EOptimize OptimizerType{
+      get => mOptimizerType;
+      set => SetProperty (ref mOptimizerType, value);
+   }
+
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   EOptimize mOptimizerType = EOptimize.Spacial;
    #endregion
 
    #region Data Members

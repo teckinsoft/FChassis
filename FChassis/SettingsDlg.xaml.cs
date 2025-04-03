@@ -135,6 +135,10 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
             IsModified = true;
          }
       });
+      rbSpacial.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Spacial, 
+         () => { Settings.OptimizerType = MCSettings.EOptimize.Spacial; IsModified = true; });
+      rbTime.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Time,
+         () => { Settings.OptimizerType = MCSettings.EOptimize.Time; IsModified = true; });
 
       btnOK.Bind (OnOk);
    }

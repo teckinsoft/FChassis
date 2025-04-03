@@ -87,6 +87,7 @@ public class ToolingScope {
          EndX = mT.Bound3.XMin;
       }
       Index = index;
+      Length = t.Perimeter;
    }
 
    /// <summary>
@@ -117,6 +118,7 @@ public class ToolingScope {
    public double Size { get => (mIsLeftToRight ? (EndX - StartX) : (StartX - EndX)); }
    public List<ToolingSegment> Segs { get => mT.Segs; }
    public int Index { get; set; }
+   public double Length { get; set; }
    #endregion
 
    #region Predicates
@@ -287,6 +289,8 @@ public class CutScope {
    #endregion
 
    #region Data Members
+   double deadZoneXmin;
+   double deadZoneXmax;
    double mMaxScopeLength;
    public bool mIsLeftToRight;
    Bound3 mBoundExtent;
@@ -390,6 +394,23 @@ public class CutScope {
          dbAssociatedCutScopes = MultiPassCuts.GetToolScopesFromIndices (DeadBandScopeToolingIndices, ToolingScopes, true);
       return dbAssociatedCutScopes;
    }
+   public CutScope (double xmin, double xmax, List<ToolingScope> tss, double deadZoneXmin, double deadZoneXmax, bool isBnb = true) {
+      StartX = xmin;
+      EndX = xmax;
+      UnTouchedToolingScopes = tss;
+      TSInScope1 = [];
+      TSInScope2 = [];
+
+      if (isBnb) SetRange (deadZoneXmin, deadZoneXmax);
+      else ArrangeSpacially (deadZoneXmin, deadZoneXmax);
+   }
+   public CutScope (double xmin, double xmax, List<int> tss1, List<int> tss2, double time) {
+      StartX = xmin;
+      EndX = xmax;
+      TSInScope1 = tss1;
+      TSInScope2 = tss2;
+      ProcessTime = time;
+   }
    #endregion
 
    #region Properties
@@ -411,7 +432,11 @@ public class CutScope {
    public bool IsPriority2Feasible { get => IsLengthFeasible && IsCutFeasible && !IsAllFeasible; }
    public double ScopeLength { get => Math.Abs (StartX - EndX); }
    public List<ToolingScope> ToolingScopes { get => mMPC.ToolingScopes; set => mMPC.ToolingScopes = value; }
+   public List<ToolingScope> UnTouchedToolingScopes { get; set; }
+   public List<int> TSInScope1 { get; set; }
+   public List<int> TSInScope2 { get; set; }
    public double DeadBandWidth { get; set; }
+   public double ProcessTime { get; set; }
    public List<int> DeadBandScopeToolingIndices { get; set; } = [];
    public List<int> DeadBandScopeFwdIxnToolingIndices { get; set; } = [];
    public List<int> DeadBandScopeFwdIxnHolesIndices { get; set; } = [];
@@ -431,6 +456,26 @@ public class CutScope {
    public void ComputeBound () {
       var associatedFeats = MultiPassCuts.GetToolScopesFromIndices (AssociatedFeatures (),
          ToolingScopes).OrderBy (f => f.StartX).ToList ();
+      var allSPoints = associatedFeats
+         .SelectMany (scope => scope.Tooling.Segs)
+         .Select (seg => seg.Curve.Start).ToList ();
+      var allEPoints = associatedFeats
+         .SelectMany (scope => scope.Tooling.Segs)
+         .Select (seg => seg.Curve.End).ToList ();
+      List<Point3> allPoints = [.. allSPoints, .. allEPoints];
+
+      // Min Y, Max Y, Min Z, Max Z
+      if (allPoints.Count > 0) {
+         double minY = allPoints.Min (point => point.Y);
+         double maxY = allPoints.Max (point => point.Y);
+         double minZ = allPoints.Min (point => point.Z);
+         double maxZ = allPoints.Max (point => point.Z);
+         mBound = new Bound3 (StartX, minY, minZ, EndX, maxY, maxZ);
+      } else
+         mBound = new Bound3 ();
+   }
+   public void ComputeBoundForMachinableTS () {
+      var associatedFeats = MachinableToolingScopes.OrderBy (f => f.StartX).ToList ();
       var allSPoints = associatedFeats
          .SelectMany (scope => scope.Tooling.Segs)
          .Select (seg => seg.Curve.Start).ToList ();
@@ -609,6 +654,120 @@ public class CutScope {
       }
    }
    #endregion
+
+   #region Branch and Bound Cutscope Methods
+   private void ArrangeSpacially (double deadZoneXmin, double deadZoneXmax) {
+      if (UnTouchedToolingScopes.LastOrDefault ().StartX <= StartX + deadZoneXmax) {
+         TSInScope2 = UnTouchedToolingScopes.Where (ts => ts.EndX < StartX + deadZoneXmin).Select (t => t.Index).ToList ();
+         return;
+      }
+
+      double deadBandWidth = deadZoneXmax - deadZoneXmin;
+      double deadMin = StartX + deadZoneXmin;
+      double deadMax = StartX + deadZoneXmax;
+      var endTSList = UnTouchedToolingScopes.OrderBy (x => x.EndX).ToList ();
+
+      int h1Index = 0, h2Index = 0;
+      for (int i = 0; i < UnTouchedToolingScopes.Count; i++) {
+         if (UnTouchedToolingScopes[i].StartX >= deadMax) {
+            h2Index = i;
+            break;
+         }
+      }
+
+      double h1Len = 0, h2Len = 0;
+
+      while (true) {
+         if (h1Index >= UnTouchedToolingScopes.Count
+            || h2Index >= UnTouchedToolingScopes.Count) break;
+         var h1 = endTSList[h1Index];
+         var h2 = UnTouchedToolingScopes[h2Index];
+
+         if (h1Len <= h2Len && h1.EndX <= deadMin) {
+            TSInScope1.Add (h1.Index);
+            h1Len += h1.Length;
+            h1Index++;
+         } else if (h2Len <= h1Len && h2.StartX >= deadMax && h2.EndX < EndX) {
+            TSInScope2.Add (h2.Index);
+            h2Len += h2.Length;
+            h2Index++;
+         } else break;
+      }
+   }
+   private void SetRange (double deadZoneXmin, double deadZoneXmax) {
+      double deadBandWidth = deadZoneXmax - deadZoneXmin;
+      double deadMin = Math.Min (EndX, StartX + deadZoneXmin);
+      double deadMax = Math.Min (EndX, StartX + deadZoneXmax);
+
+      var startTSList = UnTouchedToolingScopes.OrderBy (x => x.StartX).ToList ();
+      int h1Index = 0, h2Index = -1;
+      for (int i = 0; i < startTSList.Count; i++)
+         if (startTSList[i].StartX >= deadMax) {
+            h2Index = i;
+            break;
+         }
+
+      //double preH1 = StartX, preH2 = EndX;
+      double h1Len = 0, h2Len = 0;
+
+      if (h2Index == -1) {
+         foreach (var ts in UnTouchedToolingScopes)
+            if (ts.EndX < deadMin) TSInScope2.Add (ts.Index);
+         return;
+      }
+
+      while (true) {
+         if (h2Index == startTSList.Count) break;
+
+         var h1 = UnTouchedToolingScopes[h1Index];
+         var h2 = startTSList[h2Index];
+
+         if (h1Len <= h2Len && h1.EndX <= deadMin) {
+            TSInScope1.Add (h1.Index);
+            h1Len += h1.Length;
+            h1Index++;
+         } else if (h2Len <= h1Len && h2.EndX <= EndX) {
+            TSInScope2.Add (h2.Index);
+            h2Len += h2.Length;
+            h2Index++;
+         } else break;
+      }
+   }
+
+   private void SegregateToolingScopes () {
+      foreach (var ts in UnTouchedToolingScopes) {
+         if (ts.EndX <= deadZoneXmin) {
+            TSInScope1.Add (ts.Index);
+         } else if (ts.StartX >= deadZoneXmax && ts.EndX <= EndX) {
+            TSInScope2.Add (ts.Index);
+         }
+      }
+   }
+
+   public void UpdateMachiningTime (double initiationTime, double machiningTime, double movementTime) {
+      var ts1 = UnTouchedToolingScopes.Where (ts => TSInScope1.Contains (ts.Index)).ToList ();
+      var ts2 = UnTouchedToolingScopes.Where (ts => TSInScope2.Contains (ts.Index)).ToList ();
+
+      GetTimes (ts1, machiningTime, movementTime, out double machiningTime1, out double movingTime1);
+      GetTimes (ts2, machiningTime, movementTime, out double machiningTime2, out double movingTime2);
+
+      ProcessTime = Math.Max (machiningTime1 + movingTime1, machiningTime2 + movingTime2) + initiationTime;
+   }
+
+   private void GetTimes (List<ToolingScope> ts, double machiningTF, double movingTF, out double machiningTime, out double movingTime) {
+      machiningTime = 0;
+      movingTime = 0;
+
+      if (ts.Count == 0) return;
+
+      for (int i = 0; i < ts.Count - 1; i++) {
+         //machiningTime += (ts[i].EndX - ts[i].StartX) * machiningTF;
+         machiningTime += ts[i].Length * machiningTF;
+         movingTime += (ts[i + 1].StartX - ts[i].StartX) * movingTF;
+      }
+      machiningTime += (ts.Last ().Length) * machiningTF;
+   }
+   #endregion Branch and Bound Cutscope Methods
 }
 
 /// <summary>
@@ -659,9 +818,12 @@ public class MultiPassCuts {
    List<ToolingScope> mTStarts, mTEnds;
    List<ToolingScope> mTscs;
    bool mIsLeftToRight;
-   public List<CutScope> MachinableCutScopes;
+   int mBestSeqCount = short.MaxValue;
+   List<CutScope> mMachinableCutScopes;
    List<ToolingScope> mToolScopes = [];
    List<ToolingCutScope> mOrderedToolScopes = [];
+   double mBestSeqTime = int.MaxValue;
+   Dictionary<string, (double Time, List<CutScope> Seq)> mSubsequences = [];
    #endregion
 
    #region Properties
@@ -678,6 +840,9 @@ public class MultiPassCuts {
    public Model3 Model { get; set; }
    public static double Tolerance { get; } = 1e-4;
    public double DeadBandWidth { get; set; }
+   public double MachiningTime { get; set; }
+   public double MovementTime { get; set; }
+   public double InitiationTime { get; set; }
    #endregion
 
    #region Data Processors
@@ -708,6 +873,9 @@ public class MultiPassCuts {
       mIsLeftToRight = isLeftToRight;
       MaximumWorkpieceLength = XMax - XMin;
       DeadBandWidth = deadbandWidth;
+      InitiationTime = 20;
+      MachiningTime = 60 / (MCSettings.It.MachiningSpeed * 1000);
+      MovementTime = 60 / (MCSettings.It.MovementSpeed * 1000);
       ToolingScopes = ToolingScope.CreateToolingScopes (ts, mIsLeftToRight);
       if (mIsLeftToRight) {
          ToolingScopes = [.. ToolingScopes.OrderBy (ts => ts.StartX)];
@@ -777,16 +945,38 @@ public class MultiPassCuts {
    /// criteria compete with each other and one or more tool scopes is left out without consideration.</exception>
    public void ComputeQuasiOptimalCutScopes () {
       var mpc = this;
-      MachinableCutScopes = MultiPassCuts.GetQuasiOptimalCutScopes (ref mpc, mIsLeftToRight, mpc.MaximumScopeLength,
+      mMachinableCutScopes = MultiPassCuts.GetQuasiOptimalCutScopes (ref mpc, mIsLeftToRight, mpc.MaximumScopeLength,
             this.XMin, this.XMax, MaximizeFrameLengthInMultipass, MinimumThresholdNotchLength);
 
       // Intentionally throw exception if even one of the Toolscopes is not accommodated in one of the 
       // cutscopes. This is set as IsProcessed flag on the ToolScope
-      for (int ii = 0; ii < MachinableCutScopes.Count; ii++) {
-         for (int jj = 0; jj < MachinableCutScopes[ii].MachinableToolingScopes.Count; jj++)
-            if (!MachinableCutScopes[ii].MachinableToolingScopes[jj].IsProcessed)
+      for (int ii = 0; ii < mMachinableCutScopes.Count; ii++) {
+         for (int jj = 0; jj < mMachinableCutScopes[ii].MachinableToolingScopes.Count; jj++)
+            if (!mMachinableCutScopes[ii].MachinableToolingScopes[jj].IsProcessed)
                throw new Exception ("One or more ToolScopes have not been processed.");
       }
+   }
+
+   /// <summary>
+   /// This method sets the Machinable Cutscopes with a Branch and Bound Algorithm.
+   /// Using this the overall Processing time of the machining can be reduced to an extent.
+   /// </summary>
+   public void ComputeBranchAndBoundCutscopes () {
+      var mpc = this;
+      mMachinableCutScopes = GetBranchAndBoundCutscopes (ref mpc, mIsLeftToRight, mpc.MaximumScopeLength,
+            this.XMin, this.XMax, Bound, MaximizeFrameLengthInMultipass, MinimumThresholdNotchLength);
+      mMachinableCutScopes.ForEach (cs => cs.ComputeBoundForMachinableTS ());
+   }
+
+   /// <summary>
+   /// This method sets the Machinable Cutscopes using spacial optimization.
+   /// Using this the overall Processing time of the machining can be reduced to an extent.
+   /// </summary>
+   public void ComputeSpacialOptimizationCutscopes () {
+      var mpc = this;
+      mMachinableCutScopes = GetSpacialOptimizationCutscopes (ref mpc, mIsLeftToRight, mpc.MaximumScopeLength,
+            this.XMin, this.XMax, Bound, MaximizeFrameLengthInMultipass, MinimumThresholdNotchLength);
+      mMachinableCutScopes.ForEach (cs => cs.ComputeBoundForMachinableTS ());
    }
 
    /// <summary>
@@ -1350,14 +1540,194 @@ public class MultiPassCuts {
       return resCSS;
    }
 
+   private List<CutScope> GetBranchAndBoundCutscopes (ref MultiPassCuts mpc, bool isLeftToRight,
+   double maxScopeLength, double minXWorkPiece, double maxXWorkPiece,
+   Bound3 bbox, bool maximizeScopeLength, double minimumThresholdNotchLength) {
+      (double Time, List<CutScope> Seq) bestCutScopeSeq = (0, []);
+      double deadZoneXmin = maxScopeLength / 2 - (MCSettings.It.DeadbandWidth / 2);
+      double deadZoneXmax = maxScopeLength / 2 + (MCSettings.It.DeadbandWidth / 2);
+
+      List<ToolingScope> unProcessedTS = mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.EndX).ToList ();
+
+      double start = unProcessedTS.Min (ts => ts.StartX);
+      FindBestSequence (mpc, unProcessedTS, (0, []), start, maxScopeLength, deadZoneXmin, deadZoneXmax, out bestCutScopeSeq);
+
+      foreach (var cs in bestCutScopeSeq.Seq) {
+         cs.MachinableToolingScopes = [];
+
+         foreach (var tsi in cs.TSInScope1)
+            foreach (var ts in mpc.ToolingScopes)
+               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
+
+
+         foreach (var tsi in cs.TSInScope2)
+            foreach (var ts in mpc.ToolingScopes)
+               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
+      }
+
+      return bestCutScopeSeq.Seq;
+   }
+
+   private void FindBestSequence (MultiPassCuts mpc, List<ToolingScope> tss, (double Time, List<CutScope> Seq) cutSequence,
+      double start, double maxScopeLength, double deadZoneXmin, double deadZoneXmax, out (double Time, List<CutScope> Seq) bestSubSeq) {
+      bestSubSeq = (0, []);
+      if (cutSequence.Seq.Count > mBestSeqCount) return;
+      if (cutSequence.Time > mBestSeqTime) return;
+
+      double deadMin = start + deadZoneXmin;
+      double deadMax = start + deadZoneXmax;
+      double scopeMax = start + maxScopeLength;
+      int endIndex = tss.FindLastIndex (ts => ts.EndX <= scopeMax);
+
+      List<ToolingScope> processedTS = [];
+      List<double> processTimes = [];
+      List<bool> tracker = [];
+      double end = tss[endIndex].EndX;
+
+      (var splitTSS, _) = CutScope.SplitToolingScopesAtIxn (tss.GetRange (0, endIndex + 1), deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+      (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+      (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, end, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+
+      List<int> tss1 = [], tss2 = [];
+      List<ToolingScope> tssH1 = [];
+      List<ToolingScope> tssH2 = [];
+
+      for (int i = 0; i < tss.Count && tss[i].EndX <= scopeMax; i++) {
+         if (start <= tss[i].StartX && tss[i].EndX <= deadMin)
+            tssH1.Add (tss[i]);
+         else if (deadMax <= tss[i].StartX && tss[i].EndX <= scopeMax)
+            tssH2.Add (tss[i]);
+      }
+
+      Point3 preH1 = Point3.Nil, preH2 = Point3.Nil;
+      double timeH1 = 0, timeH2 = 0;
+      double h1Len = 0, h2Len = 0;
+      int h1Index = 0, h2Index = 0;
+
+      while (true) {
+         int head = 0;
+         if (h1Index < tssH1.Count && h1Len <= h2Len) head = 1;
+         else if (h2Index < tssH2.Count && h1Len > h2Len) head = 2;
+         else if (h1Index < tssH1.Count) head = 1;
+         else if (h2Index < tssH2.Count) head = 2;
+         else break;
+
+         if (head == 1) {
+            tss1.Add (tssH1[h1Index].Index);
+            processedTS.Add (tssH1[h1Index]);
+            var pt = tssH1[h1Index].Tooling.Segs.FirstOrDefault ().Curve.Start;
+            if (timeH1 != 0) {
+               double dist = preH1.DistTo (pt);
+               timeH1 += dist * MovementTime;
+            }
+            double len = tssH1[h1Index].Length;
+            timeH1 += len * MachiningTime;
+            tracker.Add (true);
+
+            preH1 = pt;
+            h1Len += len;
+            h1Index++;
+         } else if (head == 2) {
+            tss2.Add (tssH2[h2Index].Index);
+            processedTS.Add (tssH2[h2Index]);
+
+            var pt = tssH2[h2Index].Tooling.Segs.FirstOrDefault ().Curve.Start;
+            if (timeH2 != 0) {
+               double dist = preH2.DistTo (pt);
+               timeH2 += dist * MovementTime;
+            }
+            double len = tssH2[h2Index].Length;
+            timeH2 += len * MachiningTime;
+            tracker.Add (false);
+
+            preH2 = pt;
+            h2Len += len;
+            h2Index++;
+         }
+
+         processTimes.Add (Math.Max (timeH1, timeH2) + InitiationTime);
+      }
+
+      h1Index--;
+      h2Index--;
+      for (int i = processedTS.Count - 1; i >= 0; i--) {
+         double endx = h2Index >= 0 ? tssH2[h2Index].EndX : tssH1[h1Index].EndX;
+         CutScope cutscope = new (start, endx, [.. tss1], [.. tss2], processTimes[i]);
+         if (tracker[i]) tss1.RemoveAt (h1Index--);
+         else tss2.RemoveAt (h2Index--);
+
+         List<ToolingScope> newUnProcessedTS = [.. tss];
+         processedTS.GetRange (0, i + 1).ForEach (ts => newUnProcessedTS.Remove (ts));
+         (double Time, List<CutScope> Seq) newCutSeq = (cutSequence.Time + cutscope.ProcessTime, [.. cutSequence.Seq, cutscope]);
+
+         if (newUnProcessedTS.Count == 0) {
+            if (bestSubSeq.Seq.Count == 0 || cutscope.ProcessTime < bestSubSeq.Time) {
+               bestSubSeq = (cutscope.ProcessTime, [cutscope]);
+               double seqTime = bestSubSeq.Time + cutSequence.Time;
+               if (mBestSeqTime > seqTime) mBestSeqTime = seqTime;
+               if (mBestSeqCount > cutSequence.Seq.Count) mBestSeqCount = cutSequence.Seq.Count;
+               break;
+            }
+         }
+
+         double startx = newUnProcessedTS.Min (ts => ts.StartX);
+         string seqKey = $"S : {startx}, uts : {string.Join (",", newUnProcessedTS.Select (ts => ts.Index)).GetHashCode ()}";
+
+         (double Time, List<CutScope> Seq) subSeq = (0, []);
+         if (!mSubsequences.TryGetValue (seqKey, out subSeq!)) {
+            FindBestSequence (mpc, newUnProcessedTS, newCutSeq, startx, maxScopeLength, deadZoneXmin, deadZoneXmax, out subSeq);
+            mSubsequences[seqKey] = subSeq;
+         }
+
+         if (subSeq.Seq.Count == 0) continue;
+         if (bestSubSeq.Seq.Count == 0 || cutscope.ProcessTime + subSeq.Time < bestSubSeq.Time) {
+            bestSubSeq = (cutscope.ProcessTime + subSeq.Time, [cutscope, .. subSeq.Seq]);
+         }
+      }
+   }
+
+   private List<CutScope> GetSpacialOptimizationCutscopes (ref MultiPassCuts mpc, bool isLeftToRight,
+   double maxScopeLength, double minXWorkPiece, double maxXWorkPiece,
+   Bound3 bbox, bool maximizeScopeLength, double minimumThresholdNotchLength) {
+      List<CutScope> cutScopeSeq = [];
+      double deadZoneXmin = maxScopeLength / 2 - (MCSettings.It.DeadbandWidth / 2);
+      double deadZoneXmax = maxScopeLength / 2 + (MCSettings.It.DeadbandWidth / 2);
+
+      var remainingTS = mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.StartX).ToList ();
+      while (remainingTS.Count > 0) {
+         double start = remainingTS.First ().StartX;
+         double end = start + maxScopeLength;
+         CutScope cutscope = new CutScope (start, end, remainingTS, deadZoneXmin, deadZoneXmax, false);
+
+         remainingTS = remainingTS.Where (cs => !cutscope.TSInScope1.Contains (cs.Index) &&
+                                                !cutscope.TSInScope2.Contains (cs.Index)).ToList ();
+
+         cutScopeSeq.Add (cutscope);
+      }
+
+      foreach (var cs in cutScopeSeq) {
+         cs.MachinableToolingScopes = [];
+
+         foreach (var tsi in cs.TSInScope1)
+            foreach (var ts in mpc.ToolingScopes)
+               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
+
+         foreach (var tsi in cs.TSInScope2)
+            foreach (var ts in mpc.ToolingScopes)
+               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
+      }
+
+      return cutScopeSeq;
+   }
+
    /// <summary>
    /// This method writes the G Code for the multipass case of sheet metal feeding in LCM. 
    /// The WriteTooling method should not be direcltly called if the machine is multipass 2H 
    /// </summary>
    public void GenerateGCode () {
       // Allocate for CutscopeTraces
-      mGC.AllocateCutScopeTraces (MachinableCutScopes.Count);
-      var mcCutScopes = MachinableCutScope.CreateMachinableCutScopes (MachinableCutScopes, mGC);
+      mGC.AllocateCutScopeTraces (mMachinableCutScopes.Count);
+      var mcCutScopes = MachinableCutScope.CreateMachinableCutScopes (mMachinableCutScopes, mGC);
       var prevPartRatio = mGC.PartitionRatio;
       if (!mGC.OptimizePartition) mGC.PartitionRatio = 0.5;
       if (mGC.Heads == MCSettings.EHeads.Left || mGC.Heads == MCSettings.EHeads.Right) mGC.PartitionRatio = 1.0;

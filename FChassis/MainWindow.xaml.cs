@@ -503,8 +503,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece() && Work.Dirty) {
-#if DEBUG
+#if DEBUG || TESTRELEASE
          GenesysHub.ComputeGCode ();
+         string jsonPath1 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_Spacial_TimeStats.json";
+         var timeStats1 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath1);
+         string jsonPath2 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_TimeOptimal_TimeStats.json";
+         var timeStats2 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath2);
+         string message =
+         $"{"Metric(Secs)",-35} {"Spacial",15} {"TimeOptimal",15}\n" +
+         new string ('-', 70) + "\n" +
+         $"{"Total Time",-30} {timeStats1["TotalTime"],15:F2} {timeStats2["TotalTime"],15:F2}     \n" +
+         $"{"Total Idle Time",-25} {timeStats1["TotalIdleTime"],15:F2} {timeStats2["TotalIdleTime"],15:F2}     \n" +
+         $"{"Total Machining Time",-15} {timeStats1["TotalMachiningTime"],15:F2} {timeStats2["TotalMachiningTime"],15:F2}     \n" +
+         $"{"Total Movement Time",-15} {timeStats1["TotalMovementTime"],15:F2} {timeStats2["TotalMovementTime"],15:F2}     \n\n" +
+         $"{"Machining Time (Head 1)",-15} {timeStats1["MachiningTimeHead1"],15:F2} {timeStats2["MachiningTimeHead1"],15:F2}     \n" +
+         $"{"Movement Time (Head 1)",-15} {timeStats1["MovementTimeHead1"],15:F2} {timeStats2["MovementTimeHead1"],15:F2}     \n" +
+         $"{"Idle Time (Head 1)",-25} {timeStats1["IdleTimeHead1"],15:F2} {timeStats2["IdleTimeHead1"],15:F2}     \n\n" +
+         $"{"Machining Time (Head 2)",-15} {timeStats1["MachiningTimeHead2"],15:F2} {timeStats2["MachiningTimeHead2"],15:F2}     \n" +
+         $"{"Movement Time (Head 2)",-15} {timeStats1["MovementTimeHead2"],15:F2} {timeStats2["MovementTimeHead2"],15:F2}     \n" +
+         $"{"Idle Time (Head 2)",-25} {timeStats1["IdleTimeHead2"],15:F2} {timeStats2["IdleTimeHead2"],15:F2}     ";
+
+         MessageBox.Show (message, "Time Stats Comparison", MessageBoxButton.OK, MessageBoxImage.Information);
          Work.Dirty = false;
 #else
          try {

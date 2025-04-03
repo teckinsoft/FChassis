@@ -9,7 +9,7 @@ namespace FChassis {
          InitializeComponent ();
          DataContext = this;
       }
-      public string Version { get; } = "63";
+      public string Version { get; } = "64";
       void OnAboutCloseClick (object sender, RoutedEventArgs e) => this.Close (); 
    }
 }
