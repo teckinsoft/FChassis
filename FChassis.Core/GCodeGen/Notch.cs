@@ -1798,8 +1798,8 @@ public class Notch : ToolingFeature {
          return;
       }
       var segs = mSegments;
-      if (mTwoFlangeNotchStartAndEndOnSameSideFlange)
-         segs = [.. mSegments.Where (s => (s.Vec1.EQ (XForm4.mZAxis) && s.Vec0.EQ (XForm4.mZAxis)))];
+      //if (mTwoFlangeNotchStartAndEndOnSameSideFlange)
+      //   segs = [.. mSegments.Where (s => (s.Vec1.EQ (XForm4.mZAxis) && s.Vec0.EQ (XForm4.mZAxis)))];
 
       var (n1, nMid1, flangeEnd, n2, nMid2, notchPointAtApproachpc) = GetNotchApproachPositions (mToolingItem, segs, mNotchAttrs,
          mFullPartBound, mApproachIndex, mNotchWireJointDistance);

@@ -33,7 +33,7 @@ public partial class MCSettings : INotifyPropertyChanged {
       NotchWireJointDistance = 2.0;
       NotchApproachLength = 5.0;
       mEnableMultipassCut = true;
-      mMaxFrameLength = 3500;
+      mMaxFrameLength = 4075;
       MaximizeFrameLengthInMultipass = true;
       mCutHoles = true;
       mCutNotches = true;
@@ -51,7 +51,7 @@ public partial class MCSettings : INotifyPropertyChanged {
       NotchCutStartToken = "NCutStart";
       NotchCutEndToken = "NCutEnd";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
-      DeadbandWidth = 600.0;
+      DeadbandWidth = 980.0;
    }
    #endregion
 

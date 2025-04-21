@@ -1128,8 +1128,6 @@ public class Geom {
             return Clamp (minP, maxP, partBBox);
          }
       } else {
-         // Line
-         //var line = curve as Line3;
          List<Point3> points = [];
          points.Add (curve.Start); points.Add (curve.End);
          Bound3 bbox = new (points);

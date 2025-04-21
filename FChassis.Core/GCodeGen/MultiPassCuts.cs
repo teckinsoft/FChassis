@@ -1554,11 +1554,19 @@ public class MultiPassCuts {
 
       foreach (var cs in bestCutScopeSeq.Seq) {
          cs.MachinableToolingScopes = [];
-
+         double deadMin = cs.StartX + deadZoneXmin;
+         double deadMax = cs.StartX + deadZoneXmax;
+         List<ToolingScope> splitTSS = [];
+         if (deadMax < cs.EndX) {
+            (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+            (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+            (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+         }
+         else (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+         mpc.ToolingScopes = splitTSS;
          foreach (var tsi in cs.TSInScope1)
             foreach (var ts in mpc.ToolingScopes)
                if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
-
 
          foreach (var tsi in cs.TSInScope2)
             foreach (var ts in mpc.ToolingScopes)
@@ -1587,7 +1595,8 @@ public class MultiPassCuts {
       (var splitTSS, _) = CutScope.SplitToolingScopesAtIxn (tss.GetRange (0, endIndex + 1), deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, end, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
-
+      tss = splitTSS;
+      
       List<int> tss1 = [], tss2 = [];
       List<ToolingScope> tssH1 = [];
       List<ToolingScope> tssH2 = [];

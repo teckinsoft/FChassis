@@ -2213,9 +2213,13 @@ public static class Utils {
 #else
             var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
                gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-            mpc.ComputeQuasiOptimalCutScopes ();
-            mpc.GenerateGCode ();
-            double quasi_time = GuageTime ("Spacial", mpc);
+            if (mpc.ToolingScopes.Count < 300) {
+               mpc.ComputeBranchAndBoundCutscopes ();
+               mpc.GenerateGCode ();
+            } else {
+               mpc.ComputeSpacialOptimizationCutscopes ();
+               mpc.GenerateGCode ();
+            }
 #endif
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
