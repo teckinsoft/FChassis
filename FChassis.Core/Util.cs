@@ -140,6 +140,20 @@ public class NotchCreationFailedException : Exception {
    public NotchCreationFailedException (string message, Exception innerException)
        : base (message, innerException) { }
 }
+
+public class InfeasibleCutoutException : Exception {
+   // Parameterless constructor
+   public InfeasibleCutoutException () { }
+
+   // Constructor with a message
+   public InfeasibleCutoutException (string message)
+       : base (message) { }
+
+   // Constructor with a message and an inner exception
+   public InfeasibleCutoutException (string message, Exception innerException)
+       : base (message, innerException) { }
+}
+
 public enum OrdinateAxis {
    Y, Z
 }
@@ -2174,10 +2188,10 @@ public static class Utils {
 #if DEBUG || TESTRELEASE
          var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
                gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-         if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Spacial) {
+         if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Spatial) {
             mpc.ComputeQuasiOptimalCutScopes ();
             mpc.GenerateGCode ();
-            double quasi_time = GuageTime ("Spacial", mpc);
+            double quasi_time = GuageTime ("Spatial", mpc);
 
             if (mpc.ToolingScopes.Count < 300) {
                mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
@@ -2188,7 +2202,7 @@ public static class Utils {
             } else {
                mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
                gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-               mpc.ComputeSpacialOptimizationCutscopes ();
+               mpc.ComputeSpatialOptimizationCutscopes ();
                mpc.GenerateGCode ();
                double space_time = GuageTime ("TimeOptimal", mpc);
             }
@@ -2199,7 +2213,7 @@ public static class Utils {
                mpc.GenerateGCode ();
                double bnb_time = GuageTime ("TimeOptimal", mpc);
             } else {
-               mpc.ComputeSpacialOptimizationCutscopes ();
+               mpc.ComputeSpatialOptimizationCutscopes ();
                mpc.GenerateGCode ();
                double space_time = GuageTime ("TimeOptimal", mpc);
             }
@@ -2208,7 +2222,7 @@ public static class Utils {
               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
             mpc.ComputeQuasiOptimalCutScopes ();
             mpc.GenerateGCode ();
-            double quasi_time = GuageTime ("Spacial", mpc);
+            double quasi_time = GuageTime ("Spatial", mpc);
          }
 #else
             var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
@@ -2217,7 +2231,7 @@ public static class Utils {
                mpc.ComputeBranchAndBoundCutscopes ();
                mpc.GenerateGCode ();
             } else {
-               mpc.ComputeSpacialOptimizationCutscopes ();
+               mpc.ComputeSpatialOptimizationCutscopes ();
                mpc.GenerateGCode ();
             }
 #endif

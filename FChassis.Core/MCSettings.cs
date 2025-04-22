@@ -77,7 +77,7 @@ public partial class MCSettings : INotifyPropertyChanged {
    }
 
    public enum EOptimize {
-      Spacial,
+      Spatial,
       Time
    }
    #endregion
@@ -628,7 +628,7 @@ public partial class MCSettings : INotifyPropertyChanged {
    }
 
    [IgnoreMember] // Ignore this field for MessagePack serialization
-   EOptimize mOptimizerType = EOptimize.Spacial;
+   EOptimize mOptimizerType = EOptimize.Spatial;
    #endregion
 
    #region Data Members

@@ -502,15 +502,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece() && Work.Dirty) {
+      if (!HandleNoWorkpiece () && Work.Dirty) {
 #if DEBUG || TESTRELEASE
          GenesysHub.ComputeGCode ();
-         string jsonPath1 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_Spacial_TimeStats.json";
+         string jsonPath1 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_Spatial_TimeStats.json";
          var timeStats1 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath1);
          string jsonPath2 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_TimeOptimal_TimeStats.json";
          var timeStats2 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath2);
          string message =
-         $"{"Metric(Secs)",-35} {"Spacial",15} {"TimeOptimal",15}\n" +
+         $"{"Metric(Secs)",-35} {"Spatial",15} {"TimeOptimal",15}\n" +
          new string ('-', 70) + "\n" +
          $"{"Total Time",-30} {timeStats1["TotalTime"],15:F2} {timeStats2["TotalTime"],15:F2}     \n" +
          $"{"Total Idle Time",-25} {timeStats1["TotalIdleTime"],15:F2} {timeStats2["TotalIdleTime"],15:F2}     \n" +
@@ -529,17 +529,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          try {
             GenesysHub.ComputeGCode ();
             Work.Dirty = false; // This line is optional here since it will be set in finally
+         } catch (InfeasibleCutoutException ex) {
+            MessageBox.Show (ex.Message, "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
          } catch (Exception ex) {
-            if (ex is NegZException) {
+            if (ex is NegZException)
                MessageBox.Show ("Part might not be aligned", "Error",
-                               MessageBoxButton.OK, MessageBoxImage.Error);
-            } else if (ex is NotchCreationFailedException ex1) {
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            else if (ex is NotchCreationFailedException ex1)
                MessageBox.Show (ex1.Message, "Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
-            } else {
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            else
                MessageBox.Show ("G Code generation failed", "Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+                              MessageBoxButton.OK, MessageBoxImage.Error);
          } finally {
             Work.Dirty = false; // This will always execute
          }
