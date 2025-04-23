@@ -2,7 +2,7 @@
 
 namespace FChassis.Installer;
 public class Component () {
-   virtual public void Method () { }
+   virtual public void Install () { }
 
    #region Protected Implementations
    protected async Task installDependSetupFromURL (string url, string name,

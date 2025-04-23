@@ -3,16 +3,16 @@ using System.Diagnostics;
 
 namespace FChassis.Installer.Components;
 public class DataFolderMapping : Component {
-   override public void Method () {
+   override public void Install () {
       Directory.CreateDirectory (mapPath);
-      copysubDirectories__l (Path.Combine (Application.StartupPath, "files", "map"), this.mapPath, true);
+      copysubDirectories_ (Path.Combine (Application.StartupPath, "files", "map"), this.mapPath, true);
       Process.Start ("cmd.exe", "/c " + $"subst {this.mapDrive} \"{this.mapPath}\"")?.WaitForExit ();
 
       using (RegistryKey key = Registry.CurrentUser.CreateSubKey (@"Software\Microsoft\Windows\CurrentVersion\Run")) {
          key?.SetValue ("TIS_FChassisMapDrive", $"subst {this.mapDrive} \"{this.mapPath}\""); }
 
-      #region Local Funtion
-      void copysubDirectories__l (string sourceDir, string destinationDir, bool recursive) {
+      #region local
+      void copysubDirectories_ (string sourceDir, string destinationDir, bool recursive) {
          var dir = new DirectoryInfo (sourceDir);
          if (!dir.Exists)
             throw new DirectoryNotFoundException ($"Source directory not found: {dir.FullName}");
@@ -31,7 +31,7 @@ public class DataFolderMapping : Component {
          if (recursive) {
             foreach (DirectoryInfo subDir in dirs) {
                string newDestinationDir = Path.Combine (destinationDir, subDir.Name);
-               copysubDirectories__l (subDir.FullName, newDestinationDir, true);
+               copysubDirectories_ (subDir.FullName, newDestinationDir, true);
             }
          }
       }

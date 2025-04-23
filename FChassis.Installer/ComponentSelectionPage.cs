@@ -16,7 +16,7 @@ public partial class ComponentSelectionPage : ComponentPage {
           .ToList ();
 
       foreach (var component in components)
-         component.Method ();
+         component.Install ();
    }
    #endregion Methods
 

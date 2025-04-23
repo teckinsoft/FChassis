@@ -1,6 +1,6 @@
 ﻿namespace FChassis.Installer.Components;
 public class InstallOpenCascade : Component {
-   override public async void Method ()
+   override public async void Install ()
       => await this.installDependSetupFromURL (this.downloadURL, "Open Cascade", this.installPath, this.downloadFileName);
 
    // #region Fields

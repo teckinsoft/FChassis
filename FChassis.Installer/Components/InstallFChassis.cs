@@ -1,6 +1,6 @@
 ﻿namespace FChassis.Installer.Components;
 public class InstallFChassis : Component {
-   override public void Method () { 
+   override public void Install () { 
       Directory.CreateDirectory (this.fluxSDKBinPath);
       string sourcePath = Path.Combine (this.installExePath, "files", "bin");
       this.copyFiles (sourcePath, this.fluxSDKBinPath, Files.programFiles);
