@@ -2,7 +2,7 @@
 
 namespace FChassis.Installer;
 public class Component () {
-   virtual public void method () { }
+   virtual public void Method () { }
 
    #region Protected Implementations
    protected async Task installDependSetupFromURL (string url, string name,
@@ -53,16 +53,15 @@ public class Component () {
    protected void installDependSetup (string filePath, string installPath, string name) {
       Process process = Process.Start (filePath, $"/silent /verysilent /suppressmsgboxes /norestart /dir={installPath}");
       process.WaitForExit ();
-      if (process.ExitCode == 0)
-      MessageBox.Show ($"{name} Installation Completed!");
-      else
-         MessageBox.Show ($"{name} Installation Failed!");
+
+      string success = process.ExitCode == 0 ?"Completed" :"Failed";
+      MessageBox.Show ($"{name} Installation {success}!");
    }
    #endregion Protected Implementations
 
    #region Fields
    public bool selected = true;
-   public UserControl page = null!;
+   public ComponentPage page = null!;
 
    protected string fluxSDKPath = @"C:\FluxSDK";
    protected string fluxSDKBinPath => Path.Combine (this.fluxSDKPath, "bin");

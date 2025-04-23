@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace FChassis.Installer.Components;
 public class DataFolderMapping : Component {
-   override public void method () {
+   override public void Method () {
       Directory.CreateDirectory (mapPath);
       copysubDirectories__l (Path.Combine (Application.StartupPath, "files", "map"), this.mapPath, true);
       Process.Start ("cmd.exe", "/c " + $"subst {this.mapDrive} \"{this.mapPath}\"")?.WaitForExit ();
@@ -39,6 +39,6 @@ public class DataFolderMapping : Component {
    }
 
    // #region Fields
-   readonly string mapPath = @"C:\FluxSDK\map";
+   public string mapPath = @"C:\FluxSDK\map";
    readonly string mapDrive = "W:";
 }

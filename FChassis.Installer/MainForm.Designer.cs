@@ -23,7 +23,8 @@
       ///  the contents of this method with the code editor.
       /// </summary>
       private void InitializeComponent () {
-         ComponentPage = new ComponentPage ();
+         System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager (typeof (MainForm));
+         ComponentSelectionPage = new ComponentSelectionPage ();
          Content = new Panel ();
          NextBtn = new Button ();
          CancelBtn = new Button ();
@@ -31,16 +32,16 @@
          Content.SuspendLayout ();
          SuspendLayout ();
          // 
-         // ComponentPage
+         // ComponentSelectionPage
          // 
-         ComponentPage.Location = new Point (0, 0);
-         ComponentPage.Name = "ComponentPage";
-         ComponentPage.Size = new Size (550, 280);
-         ComponentPage.TabIndex = 0;
+         ComponentSelectionPage.Location = new Point (0, 0);
+         ComponentSelectionPage.Name = "ComponentSelectionPage";
+         ComponentSelectionPage.Size = new Size (550, 280);
+         ComponentSelectionPage.TabIndex = 0;
          // 
          // Content
          // 
-         Content.Controls.Add (ComponentPage);
+         Content.Controls.Add (ComponentSelectionPage);
          Content.Location = new Point (9, 8);
          Content.Name = "Content";
          Content.Size = new Size (550, 280);
@@ -49,7 +50,7 @@
          // NextBtn
          // 
          NextBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-         NextBtn.Location = new Point (373, 303);
+         NextBtn.Location = new Point (383, 303);
          NextBtn.Name = "NextBtn";
          NextBtn.Size = new Size (75, 23);
          NextBtn.TabIndex = 13;
@@ -61,7 +62,7 @@
          // 
          CancelBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
          CancelBtn.DialogResult = DialogResult.Cancel;
-         CancelBtn.Location = new Point (482, 303);
+         CancelBtn.Location = new Point (484, 303);
          CancelBtn.Name = "CancelBtn";
          CancelBtn.Size = new Size (75, 23);
          CancelBtn.TabIndex = 14;
@@ -72,7 +73,7 @@
          // BackBtn
          // 
          BackBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-         BackBtn.Location = new Point (292, 303);
+         BackBtn.Location = new Point (302, 303);
          BackBtn.Name = "BackBtn";
          BackBtn.Size = new Size (75, 23);
          BackBtn.TabIndex = 15;
@@ -91,6 +92,7 @@
          Controls.Add (CancelBtn);
          Controls.Add (Content);
          FormBorderStyle = FormBorderStyle.FixedDialog;
+         Icon = (Icon)resources.GetObject ("$this.Icon");
          Name = "MainForm";
          Text = "FChassis Installer";
          Content.ResumeLayout (false);
@@ -99,7 +101,7 @@
 
       #endregion
 
-      private ComponentPage ComponentPage;
+      private ComponentSelectionPage ComponentSelectionPage;
       private Panel Content;
       private Button NextBtn;
       private Button CancelBtn;

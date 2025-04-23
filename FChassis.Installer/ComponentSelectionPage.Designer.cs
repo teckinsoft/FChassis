@@ -1,5 +1,5 @@
 ﻿namespace FChassis.Installer {
-   partial class ComponentPage {
+   partial class ComponentSelectionPage {
       /// <summary> 
       /// Required designer variable.
       /// </summary>
@@ -23,6 +23,7 @@
       /// the contents of this method with the code editor.
       /// </summary>
       private void InitializeComponent () {
+         System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager (typeof (ComponentSelectionPage));
          ComponentTV = new TreeView ();
          SelectLB = new Label ();
          AppIcoSEP = new GroupBox ();
@@ -72,14 +73,15 @@
          // 
          // AppICO
          // 
-         AppICO.Image = Properties.Resources.FChassis;
+         AppICO.Image = (Image)resources.GetObject ("AppICO.Image");
          AppICO.Location = new Point (519, -1);
          AppICO.Name = "AppICO";
          AppICO.Size = new Size (32, 32);
+         AppICO.SizeMode = PictureBoxSizeMode.StretchImage;
          AppICO.TabIndex = 11;
          AppICO.TabStop = false;
          // 
-         // ComponentPage
+         // ComponentSelectionPage
          // 
          AutoScaleDimensions = new SizeF (7F, 15F);
          AutoScaleMode = AutoScaleMode.Font;
@@ -88,7 +90,7 @@
          Controls.Add (SelectLB);
          Controls.Add (AppIcoSEP);
          Controls.Add (ComponentDescTB);
-         Name = "ComponentPage";
+         Name = "ComponentSelectionPage";
          Size = new Size (550, 280);
          ((System.ComponentModel.ISupportInitialize)AppICO).EndInit ();
          ResumeLayout (false);

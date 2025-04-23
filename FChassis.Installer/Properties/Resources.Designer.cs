@@ -9,7 +9,8 @@
 //------------------------------------------------------------------------------
 
 namespace FChassis.Installer.Properties {
-    using System;    
+    using System;
+    
     
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
@@ -56,16 +57,6 @@ namespace FChassis.Installer.Properties {
             }
             set {
                 resourceCulture = value;
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap FChassis {
-            get {
-                object obj = ResourceManager.GetObject("FChassis", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
             }
         }
     }

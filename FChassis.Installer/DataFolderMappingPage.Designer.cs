@@ -52,15 +52,16 @@
          BrowseBtn.TabIndex = 2;
          BrowseBtn.Text = "Browse";
          BrowseBtn.UseVisualStyleBackColor = true;
+         BrowseBtn.Click += BrowseBtn_Click;
          // 
-         // DotNetInstall
+         // DataFolderMappingPage
          // 
          AutoScaleDimensions = new SizeF (7F, 15F);
          AutoScaleMode = AutoScaleMode.Font;
          Controls.Add (BrowseBtn);
          Controls.Add (MapFolderTB);
          Controls.Add (MapFolderLB);
-         Name = "DotNetInstall";
+         Name = "DataFolderMappingPage";
          Size = new Size (545, 275);
          ResumeLayout (false);
          PerformLayout ();

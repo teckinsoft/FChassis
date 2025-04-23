@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FChassis.IGES;
 
 namespace FChassis.VM;
 

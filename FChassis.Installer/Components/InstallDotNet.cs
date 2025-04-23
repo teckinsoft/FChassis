@@ -1,6 +1,6 @@
 ﻿namespace FChassis.Installer.Components;
 public class InstallDotNet : Component {
-   override public void method () {
+   override public void Method () {
       string installPath = @$"{installExePath}\files";
       string dotNetSetupFilePath = @$"{installPath}\{this.dotNetSetupFile}.exe";
       this.installDependSetup (dotNetSetupFilePath, installPath, this.dotNetSetupFile);
