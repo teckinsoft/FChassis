@@ -8,7 +8,6 @@ using System.Windows.Media;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using FChassis.IGES;
 
 namespace FChassis.VM;
 
@@ -17,6 +16,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    public event Action<string> EvMirrorAndJoinedFileSaved; // Event to notify MainWindow when a file is saved
    public event Action<string> EvLoadPart;
    public event Action EvRequestCloseWindow;
+   public Action Redraw;
    #endregion
 
    #region Properties
@@ -34,7 +34,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    #endregion
 
    #region Fields
-   private IGES.IGES _iges;
+   public IGES.IGES Iges;
    private bool _disposed = false;
    private JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
    #endregion
@@ -84,17 +84,17 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
 
    #region Initialization & Cleanup
    public bool Initialize () {
-      Debug.Assert (_iges == null);
-      _iges = new IGES.IGES ();
-      _iges.Initialize ();
+      Debug.Assert (Iges == null);
+      Iges = new IGES.IGES ();
+      Iges.Initialize ();
       return true;
    }
 
    public bool Uninitialize () {
-      if (_iges != null) {
-         _iges.Uninitialize ();
-         _iges.Dispose ();
-         _iges = null;
+      if (Iges != null) {
+         Iges.Uninitialize ();
+         Iges.Dispose ();
+         Iges = null;
          GC.Collect ();  // Force garbage collection
          GC.WaitForPendingFinalizers ();
       }
@@ -114,24 +114,25 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
 
    #region Methods
    int LoadPart (int pNo) {
-      if (_iges == null) return -1; // Ensure _iges is initialized
+      if (Iges == null) return -1; // Ensure _iges is initialized
 
       int errorNo = 1;
       do {
          //int shapeType = 0;
 
          if (pNo == 0) {
-            if ((errorNo = _iges.LoadIGES (Part1FileName, pNo)) != 0)
+            if ((errorNo = Iges.LoadIGES (Part1FileName, pNo)) != 0)
                break;
-            if ((errorNo = _iges.AlignToXYPlane (pNo)) != 0)
+            if ((errorNo = Iges.AlignToXYPlane (pNo)) != 0)
                break;
          } else if (pNo == 1) {
-            if ((errorNo = _iges.LoadIGES (Part2FileName, pNo)) != 0)
+            if ((errorNo = Iges.LoadIGES (Part2FileName, pNo)) != 0)
                break;
-            if ((errorNo = _iges.AlignToXYPlane (pNo)) != 0)
+            if ((errorNo = Iges.AlignToXYPlane (pNo)) != 0)
                break;
          } else break;
 
+         Redraw?.Invoke ();
          ConvertCadToImage (false);
       } while (false);
       if (errorNo != 0) HandleIGESError (errorNo);
@@ -139,10 +140,10 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    private int YawBy180Internal (int pno) {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo;
       try {
-         errorNo = _iges.YawPartBy180 (pno);
+         errorNo = Iges.YawPartBy180 (pno);
       } catch (Exception ex) {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
@@ -153,10 +154,10 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    private int RollBy180Internal (int pno) {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo;
       try {
-         errorNo = _iges.RollPartBy180 (pno);
+         errorNo = Iges.RollPartBy180 (pno);
       } catch (Exception ex) {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
@@ -168,16 +169,16 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
 
    private int UndoJoin () {
       int errorNo = 0;
-      if (_iges == null) return -1;
-      _iges.UndoJoin ();
+      if (Iges == null) return -1;
+      Iges.UndoJoin ();
       return errorNo;
    }
 
    private int Join () {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo;
       try {
-         errorNo = _iges.UnionShapes ();
+         errorNo = Iges.UnionShapes ();
       } catch (Exception ex) {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
@@ -229,7 +230,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    private int JoinSave () {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo = 0;
 
       JoinedFileName = SaveFilename (Part1FileName, "Select a Part File",
@@ -237,7 +238,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
           @"W:\FChassis\Sample");
 
       if (!string.IsNullOrEmpty (JoinedFileName)) {
-         errorNo = _iges.SaveIGES (JoinedFileName, 2);
+         errorNo = Iges.SaveIGES (JoinedFileName, 2);
 
          EvMirrorAndJoinedFileSaved?.Invoke (Path.GetDirectoryName (JoinedFileName));
       }
@@ -257,19 +258,19 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    private bool HandleIGESError (int errorNo) {
-      if (errorNo == 0 || _iges == null) return false;
+      if (errorNo == 0 || Iges == null) return false;
       return true;
    }
 
    void ConvertCadToImage (bool fused) {
-      if (_iges == null) return;
+      if (Iges == null) return;
       int width = 1000, height = 1000;
       byte[] imageData = null!;
       int errorNoFused = 0, errorNoP1 = 0, errorNoP2 = 0;
       if (fused)
-         errorNoFused = _iges.GetShape (2, width, height, ref imageData);
+         errorNoFused = Iges.GetShape (2, width, height, ref imageData);
       else
-         errorNoP1 = _iges.GetShape (-1, width, height, ref imageData);
+         errorNoP1 = Iges.GetShape (-1, width, height, ref imageData);
 
       if (errorNoP1 == 0 && errorNoP2 == 0 && errorNoFused != 0) {
          if (HandleIGESError (errorNoFused))

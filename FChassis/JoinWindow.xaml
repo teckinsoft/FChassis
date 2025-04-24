@@ -1,6 +1,7 @@
-﻿<Window x:Class="FChassis.JoinWindow"
+﻿<Window
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:Windows="clr-namespace:FChassis.Windows;assembly=FChassis.Core" x:Class="FChassis.JoinWindow"
         Title="Join" Height="800" Width="1800">
     <Grid>
         <!-- Define Rows and Columns -->
@@ -13,6 +14,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="180"/>
             <!-- Left panel (for buttons) -->
+            <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
             <!-- Main workspace -->
         </Grid.ColumnDefinitions>
@@ -66,12 +68,12 @@
             <Button Content="Rotate Part-2 About X-180" Width="150" Height="35" Margin="5"
                     Command="{Binding RollPart2By180Command}" Grid.Row="3"/>
             <Button Content="Join" Width="150" Height="35" Margin="5"
-                    Command="{Binding JoinCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" Grid.Row="4"/>
+                    Command="{Binding JoinCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}}" Grid.Row="4"/>
         </Grid>
 
-        <!-- Main Bordered Area -->
-        <Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="2" Margin="5">
-            <Image x:Name="ThumbnailImage" Margin="1" Source="{Binding ThumbnailBitmap}"/>
+        <Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="2" Margin="5,5,0,5">
+            <Image x:Name="ThumbnailImage" Margin="1,1,5,4" Source="{Binding ThumbnailBitmap}"/>
         </Border>
+        <Windows:Win32Host x:Name="OCCHostWnd" Grid.Row="1" Grid.Column="2"  Margin="0,5,0,5"/>
     </Grid>
 </Window>

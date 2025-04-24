@@ -11,6 +11,9 @@ namespace FChassis::IGES {
       void Initialize();
       void Uninitialize();
 
+      void InitView(System::IntPtr parentWnd);
+      void ResizeView();
+
       void ZoomIn();
       void ZoomOut();
 

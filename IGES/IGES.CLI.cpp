@@ -52,6 +52,18 @@ namespace FChassis::IGES {
       CleanupOCCT();
    }
 
+   void IGES::ResizeView() {
+      assert(this->pPriv);
+      this->pPriv->ResizeView();
+   }
+
+
+   void IGES::InitView(System::IntPtr parentWnd) {
+      assert(this->pPriv);
+      HWND parentHwnd = reinterpret_cast<HWND>(parentWnd.ToPointer());
+      this->pPriv->InitView(parentHwnd);
+   }
+
    void IGES::GetErrorMessage([System::Runtime::InteropServices::Out] System::String^% message) {
       message = gcnew String(g_Status.error.data());
    }

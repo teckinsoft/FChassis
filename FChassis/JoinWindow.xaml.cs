@@ -9,6 +9,13 @@ public partial class JoinWindow : Window, IDisposable {
       joinWndVM.Initialize ();
       this.DataContext = joinWndVM;
 
+      this.Loaded += (sender, e) => this.joinWndVM.Iges.InitView (this.OCCHostWnd.childHwnd);
+
+      this.OCCHostWnd.Redraw = () => this.joinWndVM.Iges.ResizeView ();
+      this.joinWndVM.Redraw += () => 
+         // this.OCCHostWnd.InvalidateChildWindow ();
+          this.joinWndVM.Iges.ResizeView ();
+
       this.Closing += JoinWindow_Closing;
       joinWndVM.EvRequestCloseWindow += () => this.Close ();
    }

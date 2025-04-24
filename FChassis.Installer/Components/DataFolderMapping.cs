@@ -12,17 +12,17 @@ public class DataFolderMapping : Component {
          key?.SetValue ("TIS_FChassisMapDrive", $"subst {this.mapDrive} \"{this.mapPath}\""); }
 
       #region local
-      void copysubDirectories_ (string sourceDir, string destinationDir, bool recursive) {
-         var dir = new DirectoryInfo (sourceDir);
+      void copysubDirectories_ (string sourcePath, string destPath, bool recursive) {
+         var dir = new DirectoryInfo (sourcePath);
          if (!dir.Exists)
             throw new DirectoryNotFoundException ($"Source directory not found: {dir.FullName}");
 
          DirectoryInfo[] dirs = dir.GetDirectories ();
-         Directory.CreateDirectory (destinationDir);
+         Directory.CreateDirectory (destPath);
 
          // Get the files in the source directory and copy to the destination directory
          foreach (FileInfo file in dir.GetFiles ()) {
-            string targetFilePath = Path.Combine (destinationDir, file.Name);
+            string targetFilePath = Path.Combine (destPath, file.Name);
             if (!File.Exists (targetFilePath))
                file.CopyTo (targetFilePath);
          }
@@ -30,7 +30,7 @@ public class DataFolderMapping : Component {
          // If recursive and copying subdirectories, recursively call this method
          if (recursive) {
             foreach (DirectoryInfo subDir in dirs) {
-               string newDestinationDir = Path.Combine (destinationDir, subDir.Name);
+               string newDestinationDir = Path.Combine (destPath, subDir.Name);
                copysubDirectories_ (subDir.FullName, newDestinationDir, true);
             }
          }
@@ -38,7 +38,7 @@ public class DataFolderMapping : Component {
       #endregion
    }
 
-   // #region Fields
+   // Fields
    public string mapPath = @"C:\FluxSDK\map";
    readonly string mapDrive = "W:";
 }

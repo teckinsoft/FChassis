@@ -106,6 +106,9 @@ class IGESNative {
    ~IGESNative();
    void Cleanup();
 
+   void InitView(HWND parentHwnd);
+   void ResizeView();
+
    // File handling
    int LoadIGES(const std::string& filePath, int shapeType = 0);
    int SaveIGES(const std::string& filePath, int shapeType = 0);
@@ -128,6 +131,9 @@ class IGESNative {
    int GetShape(std::vector<unsigned char>& data, int shapeType,
       int width, int height, bool save = false);
 
+   int GetShape_old(std::vector<unsigned char>& data, int shapeType,
+      int width, int height, bool save = false);
+
    private:
    int getShape(TopoDS_Shape& shape, int shapeType);
 
@@ -139,8 +145,7 @@ class IGESNative {
    // Predicates
    bool hasMultipleConnectedComponents(const TopoDS_Shape& shape);
    bool isPointOnAnySurface(const TopoDS_Shape& shape, const gp_Pnt& point, double tolerance);
-   bool doesVectorIntersectShape(const TopoDS_Shape& shape, const gp_Pnt& point, const gp_Dir& direction, gp_Pnt& intersectionPoint);
-
+   bool doesVectorIntersectShape(const TopoDS_Shape& shape, const gp_Pnt& point, const gp_Dir& direction, gp_Pnt& intersectionPoint);   
 
    private:
    IGESShapePimpl* pShape = nullptr;
