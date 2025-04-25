@@ -12,33 +12,6 @@ using CommunityToolkit.Mvvm.Input;
 namespace FChassis.VM;
 
 public partial class JoinWindowVM : ObservableObject, IDisposable {
-   #region Events
-   public event Action<string> EvMirrorAndJoinedFileSaved; // Event to notify MainWindow when a file is saved
-   public event Action<string> EvLoadPart;
-   public event Action EvRequestCloseWindow;
-   public Action Redraw;
-   #endregion
-
-   #region Properties
-   [ObservableProperty]
-   private string _part1FileName = "";
-
-   [ObservableProperty]
-   private string _part2FileName = "";
-
-   [ObservableProperty]
-   private string _joinedFileName = "";
-
-   [ObservableProperty]
-   private BitmapImage _thumbnailBitmap;
-   #endregion
-
-   #region Fields
-   public IGES.IGES Iges;
-   private bool _disposed = false;
-   private JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
-   #endregion
-
    #region Commands
    [RelayCommand]
    private void LoadPart1 () {
@@ -133,7 +106,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
          } else break;
 
          Redraw?.Invoke ();
-         ConvertCadToImage (false);
+         //ConvertCadToImage (false);
       } while (false);
       if (errorNo != 0) HandleIGESError (errorNo);
       return errorNo;
@@ -148,8 +121,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
       }
-      if (errorNo == 0)
-         ConvertCadToImage (false);
+      //if (errorNo == 0)
+      //   ConvertCadToImage (false);
       return errorNo;
    }
 
@@ -162,8 +135,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
       }
-      if (errorNo == 0)
-         ConvertCadToImage (false);
+      //if (errorNo == 0)
+      //   ConvertCadToImage (false);
       return errorNo;
    }
 
@@ -183,8 +156,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
       }
-      if (errorNo == 0)
-         ConvertCadToImage (true);
+      //if (errorNo == 0)
+      //   ConvertCadToImage (true);
 
       // Ensure the dialog is opened on the UI thread
       int resVal = Application.Current.Dispatcher.Invoke (() => {
@@ -262,7 +235,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       return true;
    }
 
-   void ConvertCadToImage (bool fused) {
+   /*void ConvertCadToImage (bool fused) {
       if (Iges == null) return;
       int width = 1000, height = 1000;
       byte[] imageData = null!;
@@ -307,7 +280,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
          bmImage.Freeze ();
       }
       return bmImage;
-   }
+   }*/
 
    private string GetFilename (string fileName, string title, string filter = "All files (*.*)|*.*",
                               bool multiselect = false, string initialFolder = null) {
@@ -331,5 +304,32 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       };
       return saveDlg.ShowDialog () == true ? saveDlg.FileName : null;
    }
+   #endregion
+
+   #region Events
+   public event Action<string> EvMirrorAndJoinedFileSaved; // Event to notify MainWindow when a file is saved
+   public event Action<string> EvLoadPart;
+   public event Action EvRequestCloseWindow;
+   public Action Redraw;
+   #endregion
+
+   #region Properties
+   [ObservableProperty]
+   private string _part1FileName = "";
+
+   [ObservableProperty]
+   private string _part2FileName = "";
+
+   [ObservableProperty]
+   private string _joinedFileName = "";
+
+   [ObservableProperty]
+   private BitmapImage _thumbnailBitmap;
+   #endregion
+
+   #region Fields
+   public IGES.IGES Iges;
+   private bool _disposed = false;
+   private JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
    #endregion
 }

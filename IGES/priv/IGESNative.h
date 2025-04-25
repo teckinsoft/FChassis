@@ -122,10 +122,8 @@ class IGESNative {
    int RollBy180(int shapeType);
    void RotatePartByAxis(TopoDS_Shape& shape, double deg, EAxis axis);
    int UndoJoin();
-   void PerformZoomAndRender(bool zoomIn);
 
-   void ZoomIn();
-   void ZoomOut();
+   void Zoom(bool zoomIn);
    void Redraw();
 
    int GetShape(std::vector<unsigned char>& data, int shapeType,

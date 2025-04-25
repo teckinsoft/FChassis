@@ -452,6 +452,7 @@ int IGESNative::LoadIGES(const std::string& filePath, int pNo /*= 0*/) {
    shape = OCCTUtils::FixShape(shape);
    this->pShape->SetShape((IGESShapePimpl::ShapeType)pNo, shape);
 
+
    auto viewer = pShape->GetViewer();
    auto context = pShape->GetContext();
    if (!context.IsNull())
@@ -462,7 +463,6 @@ int IGESNative::LoadIGES(const std::string& filePath, int pNo /*= 0*/) {
    this->pShape->SetShape((IGESShapePimpl::ShapeType::Fused), shape);
 
    auto view = pShape->GetView();
-   if (!view.IsNull()) {
    if (!view.IsNull()) {
       view->MustBeResized();
       view->FitAll(0.01, Standard_True);
@@ -740,12 +740,6 @@ int IGESNative::screwRotationAboutMidPart(TopoDS_Shape& shape, const gp_Pnt& pt,
    return g_Status.errorNo;
 }
 
-// Redraw and capture the updated image
-void IGESNative::PerformZoomAndRender(bool zoomIn) {
-   if (zoomIn) ZoomIn();
-   else ZoomOut();
-}
-
 int IGESNative::mirror(TopoDS_Shape leftShape) {
    // Compute the bounding box of the left shape
    auto [xmin, ymin, zmin, xmax, ymax, zmax] = this->pShape->GetBBoxComp(leftShape);
@@ -936,8 +930,7 @@ void IGESNative::Redraw() {
    view->Redraw();
 }
 
-void IGESNative::ZoomIn()
-{
+void IGESNative::Zoom(bool ZoomIn) {
    assert(pShape);
    if (this->pShape->GetViewer().IsNull()) {
       throw std::runtime_error("Viewer is not set in the viewer implementation.");
@@ -956,36 +949,10 @@ void IGESNative::ZoomIn()
    Standard_Integer centerY = height / 2;
    Standard_Integer delta = 20; // Adjust for zoom intensity
 
-   // Perform zoom in
-   view->Zoom(centerX - delta, centerY - delta, centerX + delta, centerY + delta);
-
-   // Refresh the viewer to update changes
-   view->Redraw();
-}
-
-void IGESNative::ZoomOut()
-{
-   assert(pShape);
-   if (this->pShape->GetViewer().IsNull()) {
-      throw std::runtime_error("Viewer is not set in the viewer implementation.");
-   }
-
-   Handle(V3d_View) view = this->pShape->GetActiveViews().First();
-   if (view.IsNull()) {
-      throw std::runtime_error("Active view is not initialized.");
-   }
-
-   // Get the view dimensions
-   Standard_Integer width, height;
-   view->Window()->Size(width, height);
-
-   // Define zoom rectangle near the center
-   Standard_Integer centerX = width / 2;
-   Standard_Integer centerY = height / 2;
-   Standard_Integer delta = 20; // Adjust for zoom intensity
-
-   // Perform zoom out (larger rectangle)
-   view->Zoom(centerX - delta * 2, centerY - delta * 2, centerX + delta * 2, centerY + delta * 2);
+   if (ZoomIn)
+      view->Zoom(centerX - delta, centerY - delta, centerX + delta, centerY + delta);
+   else
+      view->Zoom(centerX - delta * 2, centerY - delta * 2, centerX + delta * 2, centerY + delta * 2); // larger rectangle
 
    // Refresh the viewer to update changes
    view->Redraw();
@@ -1003,8 +970,9 @@ int IGESNative::GetShape(std::vector<unsigned char>& rData, int pNo, int width, 
 
    if (pNo == (int)IGESShapePimpl::ShapeType::Fused) {
       this->getShape(targetShape, (int)IGESShapePimpl::ShapeType::Fused);
-      if (targetShape.IsNull())
+      if (targetShape.IsNull()) {
          return g_Status.SetError(IGESStatus::FuseError, "No fused shapes. Fuse left and right shapes first");
+      }
    }
    else {
       TopoDS_Shape leftShape, rightShape;

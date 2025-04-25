@@ -12,9 +12,7 @@ public partial class JoinWindow : Window, IDisposable {
       this.Loaded += (sender, e) => this.joinWndVM.Iges.InitView (this.OCCHostWnd.childHwnd);
 
       this.OCCHostWnd.Redraw = () => this.joinWndVM.Iges.ResizeView ();
-      this.joinWndVM.Redraw += () => 
-         // this.OCCHostWnd.InvalidateChildWindow ();
-          this.joinWndVM.Iges.ResizeView ();
+      this.joinWndVM.Redraw += () => this.OCCHostWnd.InvalidateChildWindow ();
 
       this.Closing += JoinWindow_Closing;
       joinWndVM.EvRequestCloseWindow += () => this.Close ();
@@ -31,6 +29,7 @@ public partial class JoinWindow : Window, IDisposable {
          joinWndVM.Uninitialize ();
          joinWndVM = null;
       }
+
       GC.SuppressFinalize (this);
    }
 

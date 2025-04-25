@@ -1,4 +1,5 @@
-using Flux.API;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -25,9 +26,10 @@ public class Win32Host : HwndHost {
    }
 
    IntPtr CustomWndProc (IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam) {
-      if (msg == WM_PAINT)
-         OnPaint (); // Handle WM_PAINT here (optional: use BeginPaint/EndPaint if needed)
+      if (msg == WM_PAINT && !DesignerProperties.GetIsInDesignMode (this))
+         OnPaint ();
 
+      Debug.Assert (oldWndProc != IntPtr.Zero);
       return CallWindowProc (oldWndProc, hWnd, msg, wParam, lParam); // Call original window procedure for default handling
    }
 
@@ -37,8 +39,11 @@ public class Win32Host : HwndHost {
    }
 
    protected override void DestroyWindowCore (HandleRef hwnd) {
-      if (hwnd.Handle != IntPtr.Zero)
+      if (hwnd.Handle != IntPtr.Zero) {
          DestroyWindow (hwnd.Handle);
+         childHwnd = IntPtr.Zero;
+         oldWndProc = IntPtr.Zero;
+      }
    }
 
    protected override Size MeasureOverride (Size constraint)

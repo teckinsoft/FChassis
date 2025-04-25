@@ -70,12 +70,12 @@ namespace FChassis::IGES {
 
    void IGES::ZoomIn() {
       assert(this->pPriv);
-      this->pPriv->PerformZoomAndRender(true);
+      this->pPriv->Zoom(true);
    }
 
    void IGES::ZoomOut() {
       assert(this->pPriv);
-      this->pPriv->PerformZoomAndRender(false);
+      this->pPriv->Zoom(false);
    }
 
    int IGES::LoadIGES(System::String^ filePath, int order) {
