@@ -1,96 +1,56 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.ComponentModel;
 
-namespace FChassis.Windows;
+namespace FChassis.Core.Windows;
 public class Win32Host : HwndHost {
    protected override HandleRef BuildWindowCore (HandleRef hwndParent) {
-      childHwnd = CreateWindowEx (
-          0, "static", "",
-          WS_CHILD | WS_VISIBLE,
-          0, 0,
-          (int)ActualWidth, (int)ActualHeight,
-          hwndParent.Handle,
-          IntPtr.Zero,
-          IntPtr.Zero,
-          IntPtr.Zero);
+      #region For Designer
+      if (DesignerProperties.GetIsInDesignMode (this)) {
+         var placeholder = new System.Windows.Controls.Label { // Create a dummy control (label, etc.) for the Designer
+            Content = "OCCTHost Placeholder",
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            VerticalAlignment = System.Windows.VerticalAlignment.Center
+         };
 
-      // Subclass the window procedure
-      newWndProcDelegate = CustomWndProc;
-      nint childWndProc = Marshal.GetFunctionPointerForDelegate (newWndProcDelegate);
-      oldWndProc = SetWindowLongPtr (childHwnd, GWLP_WNDPROC, childWndProc);
+         var hwndSource = (HwndSource)PresentationSource.FromVisual (placeholder);
+         return hwndSource?.Handle != null ? new HandleRef (this, hwndSource.Handle) : new HandleRef (this, IntPtr.Zero);
+      }
+      #endregion For Designer
+
+      childHwnd = CreateWindowEx (
+          0, "STATIC", "", WS_CHILD | WS_VISIBLE | WS_TABSTOP | SS_NOTIFY,
+          0, 0, (int)ActualWidth, (int)ActualHeight,
+          hwndParent.Handle, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
 
       return new HandleRef (this, childHwnd);
-   }
-
-   IntPtr CustomWndProc (IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam) {
-      if (msg == WM_PAINT && !DesignerProperties.GetIsInDesignMode (this))
-         OnPaint ();
-
-      Debug.Assert (oldWndProc != IntPtr.Zero);
-      return CallWindowProc (oldWndProc, hWnd, msg, wParam, lParam); // Call original window procedure for default handling
-   }
-
-   void OnPaint () {
-      ValidateRect (childHwnd, IntPtr.Zero);
-      Redraw?.Invoke ();
    }
 
    protected override void DestroyWindowCore (HandleRef hwnd) {
       if (hwnd.Handle != IntPtr.Zero) {
          DestroyWindow (hwnd.Handle);
          childHwnd = IntPtr.Zero;
-         oldWndProc = IntPtr.Zero;
       }
-   }
-
-   protected override Size MeasureOverride (Size constraint)
-      => constraint;  
-
-   protected override Size ArrangeOverride (Size finalSize) {
-      MoveWindow (childHwnd, 0, 0, (int)finalSize.Width, (int)finalSize.Height, true);
-      return finalSize;
-   }
-
-   protected override void OnRenderSizeChanged (SizeChangedInfo sizeInfo) {
-      base.OnRenderSizeChanged (sizeInfo);
-
-      if (childHwnd != IntPtr.Zero) {
-         int width = (int)(sizeInfo.NewSize.Width - 200);
-         int height = (int)sizeInfo.NewSize.Height;
-         MoveWindow (childHwnd, 0, 0, width, height, true);
-      }
-
-      Redraw?.Invoke ();
    }
 
    public void InvalidateChildWindow ()
-      => InvalidateRect(childHwnd, IntPtr.Zero, false);
+      => InvalidateRect (childHwnd, IntPtr.Zero, false);
 
-   public Action Redraw;
    public IntPtr childHwnd;
-   IntPtr oldWndProc = IntPtr.Zero;
-   WndProc1 newWndProcDelegate;
-
-   #region Delegate Declarations
-   public delegate void DGOnResize ();
-   public delegate IntPtr WndProc1 (IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-   #endregion Delegate Declarations
 
    #region PInvoke declarations
    [DllImport ("user32.dll", SetLastError = true)]
-   static extern IntPtr CallWindowProc (IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+   public static extern IntPtr CallWindowProc (IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
    [DllImport ("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-   static extern IntPtr CreateWindowEx (
+   public static extern IntPtr CreateWindowEx (
        int dwExStyle, string lpszClassName, string lpszWindowName,
        int style, int x, int y, int width, int height,
        IntPtr hwndParent, IntPtr hMenu, IntPtr hInst, IntPtr pvParam);
 
    [DllImport ("user32.dll", SetLastError = true)]
-   static extern bool DestroyWindow (IntPtr hwnd);
+   public static extern bool DestroyWindow (IntPtr hwnd);
 
    [DllImport ("user32.dll", SetLastError = true)]
    public static extern bool MoveWindow (IntPtr hwnd, int x, int y, int width, int height, bool repaint);
@@ -100,23 +60,41 @@ public class Win32Host : HwndHost {
                                            int X, int Y, int cx, int cy, uint uFlags);
 
    [DllImport ("user32.dll", SetLastError = true)]
-   static extern bool ValidateRect (IntPtr hWnd, IntPtr lpRect); // lpRect = IntPtr.Zero validates entire client area
+   public static extern bool ValidateRect (IntPtr hWnd, IntPtr lpRect); // lpRect = IntPtr.Zero validates entire client area
 
    [DllImport ("user32.dll", SetLastError = true)]
-   static extern bool InvalidateRect (IntPtr hWnd, IntPtr lpRect, bool bErase); // lpRect = IntPtr.Zero validates entire client area
+   public static extern bool InvalidateRect (IntPtr hWnd, IntPtr lpRect, bool bErase); // lpRect = IntPtr.Zero validates entire client area
 
    [DllImport ("user32.dll", SetLastError = true)]
-   static extern IntPtr SetWindowLongPtr (IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+   public static extern IntPtr SetWindowLongPtr (IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
    [DllImport ("user32.dll", SetLastError = true)]
-   static extern IntPtr GetWindowLongPtr (IntPtr hWnd, int nIndex);
+   public static extern IntPtr GetWindowLongPtr (IntPtr hWnd, int nIndex);
+
+   [DllImport ("user32.dll")]
+   public static extern IntPtr SetFocus (IntPtr hWnd);
+
+   [DllImport ("user32.dll")]
+   public static extern bool ScreenToClient (IntPtr hWnd, ref POINT lpPoint);
    #endregion PInvoke declarations
 
    #region PInvoke constant declarations
-   const int WS_CHILD = 0x40000000;
-   const int WS_VISIBLE = 0x10000000;   
+   [StructLayout (LayoutKind.Sequential)]
+   public struct POINT {
+      public int X;
+      public int Y;
+   }
 
-   const int GWLP_WNDPROC = -4;
-   const int WM_PAINT = 0x000F;
+   public const int WS_CHILD = 0x40000000;
+   public const int WS_VISIBLE = 0x10000000;
+   public const int WS_TABSTOP = 0x00010000;
+   public const int SS_NOTIFY = 0x00000100;
+
+   public const int GWLP_WNDPROC = -4;
+   public const int WM_PAINT = 0x000F;
+   public const int WM_MOUSEWHEEL = 0x020A;
+   public const int WM_LBUTTONDOWN = 0x0201;
+   public const int WM_LBUTTONUP = 0x0202;
+   public const int WM_MOUSEMOVE = 0x0200;
    #endregion PInvoke constant declarations
 }

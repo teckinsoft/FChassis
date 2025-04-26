@@ -117,6 +117,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       int errorNo;
       try {
          errorNo = Iges.YawPartBy180 (pno);
+         Redraw?.Invoke ();
       } catch (Exception ex) {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
@@ -131,6 +132,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       int errorNo;
       try {
          errorNo = Iges.RollPartBy180 (pno);
+         Redraw?.Invoke ();
       } catch (Exception ex) {
          MessageBox.Show (ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return 1;
@@ -144,6 +146,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
       int errorNo = 0;
       if (Iges == null) return -1;
       Iges.UndoJoin ();
+      Redraw?.Invoke ();
       return errorNo;
    }
 
