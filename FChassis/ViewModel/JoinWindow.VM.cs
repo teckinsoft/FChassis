@@ -4,8 +4,6 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
 using System.IO;
-using System.Windows.Media;
-using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -18,8 +16,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    void LoadPart1 () {
       var fileName = GetFilename (Part1FileName, "Select a Part File",
                                 "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
-                                multiselect: false, _initialDirectory);
-      _initialDirectory = Path.GetDirectoryName (fileName);
+                                multiselect: false, initialDirectory);
+      initialDirectory = Path.GetDirectoryName (fileName);
       if (fileName == null) return;
 
       Part1FileName = fileName;
@@ -30,8 +28,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    void LoadPart2 () {
       var fileName = GetFilename (Part2FileName, "Select a Part File",
                                 "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
-                                multiselect: false, _initialDirectory);
-      _initialDirectory = Path.GetDirectoryName (fileName);
+                                multiselect: false, initialDirectory);
+      initialDirectory = Path.GetDirectoryName (fileName);
       if (fileName == null) return;
 
       Part2FileName = fileName;
@@ -216,7 +214,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
 
       JoinedFileName = SaveFilename (Part1FileName, "Select a Part File",
           "CAD Files (*.iges;*.igs;*.stp;*.step)|*.iges;*.igs;*.stp;*.step|All Files (*.*)|*.*",
-          _initialDirectory);
+          initialDirectory);
 
       if (!string.IsNullOrEmpty (JoinedFileName)) {
          errorNo = Iges.SaveIGES (JoinedFileName, 2);
@@ -239,7 +237,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    bool HandleIGESError (int errorNo) {
-      if (errorNo == 0 || _iges == null) return false;
+      if (errorNo == 0 || Iges == null) return false;
       return true;
    }
 
@@ -337,7 +335,8 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
 
    #region Fields
    public IGES.IGES Iges;
-   private bool _disposed = false;
-   private JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
+   bool _disposed = false;
+   JoinResultVM.JoinResultOption _joinResOpt = JoinResultVM.JoinResultOption.None;
+   string initialDirectory = "W:\\FChassis\\TData";
    #endregion
 }
