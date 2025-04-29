@@ -106,6 +106,9 @@ class IGESNative {
    ~IGESNative();
    void Cleanup();
 
+   void InitView(HWND parentHwnd);
+   void ResizeView();
+
    // File handling
    int LoadIGES(const std::string& filePath, int shapeType = 0);
    int SaveIGES(const std::string& filePath, int shapeType = 0);
@@ -117,19 +120,20 @@ class IGESNative {
    int RotatePartBy180AboutZAxis(int shapeType);
    int YawBy180(int shapeType);
    int RollBy180(int shapeType);
+   int RotatePartByAxis(int shapeType, double deg, EAxis axis);
    void RotatePartByAxis(TopoDS_Shape& shape, double deg, EAxis axis);
    int UndoJoin();
-   void PerformZoomAndRender(bool zoomIn);
 
-   void ZoomIn();
-   void ZoomOut();
+   void Zoom(bool zoomIn, int x, int y);
+   void Pan(int dx, int dy);
    void Redraw();
 
-   int GetShape(std::vector<unsigned char>& data, int shapeType,
-      int width, int height, bool save = false);
+   /*int GetShape(std::vector<unsigned char>& data, int shapeType,
+      int width, int height, bool save = false);*/
 
    private:
    int getShape(TopoDS_Shape& shape, int shapeType);
    int mirror(TopoDS_Shape leftShape);
+
    IGESShapePimpl* pShape = nullptr;
 };

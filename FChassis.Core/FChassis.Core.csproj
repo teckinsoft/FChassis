@@ -51,10 +51,10 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Reference Include="Flux.API">
-			<HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>
+			<HintPath>c:\FluxSDK\Bin\Flux.API.dll</HintPath>
 		</Reference>
 		<Reference Include="Flux.Base">
-			<HintPath>C:\FluxSDK\Bin\Flux.Base.dll</HintPath>
+			<HintPath>c:\FluxSDK\Bin\Flux.Base.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	<ItemGroup>
@@ -62,8 +62,9 @@
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>
+
 	<ItemGroup>
-		<Reference Include="WindowsBase, Version=6.0.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
+		<FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
 	</ItemGroup>
 </Project>
 

@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<AssemblyName>FChassis</AssemblyName>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
@@ -55,7 +56,7 @@
 
 	<ItemGroup>
 		<Reference Include="FChassis.Core">
-		  <HintPath>..\..\..\..\..\..\..\FluxSDK\Bin\FChassis.Core.dll</HintPath>
+		  <HintPath>c:\FluxSDK\Bin\FChassis.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="Flux.API">
 			<HintPath>$(OutDir)Flux.API.dll</HintPath>

@@ -358,10 +358,13 @@ class IGESShapePimpl {
    private:
    TopoDS_Shape shapes[ShapeCount];
 
+   Handle(Aspect_DisplayConnection) displayConnection;
+   Handle(OpenGl_GraphicDriver) graphicDriver;
    Handle(V3d_Viewer) viewer; // Open CASCADE viewer
+   Handle(V3d_View) view; 
+   Handle(WNT_Window) viewWindow;
    Handle(AIS_InteractiveContext) context; // AIS Context14
    BRepAlgoAPI_Fuse fuser;
-
 
    public:
    IGESShapePimpl() = default;
@@ -370,6 +373,9 @@ class IGESShapePimpl {
          // Ensure OCCT handles are released before exiting
          context.Nullify();
          viewer.Nullify();
+         view.Nullify();
+         displayConnection.Nullify();
+         graphicDriver.Nullify();
 
          // Clear fuser object
          fuser = BRepAlgoAPI_Fuse(); // Reset to default
@@ -389,6 +395,23 @@ class IGESShapePimpl {
 
    void SetViewer(const Handle(V3d_Viewer)& viewer) {
       this->viewer = viewer;
+   }
+
+   void SetView() {
+      
+   }
+
+   void SetDispObject(Handle(Aspect_DisplayConnection) displayConnection, 
+                      Handle(OpenGl_GraphicDriver) graphicDriver, 
+                      Handle(V3d_View)& view, Handle(WNT_Window) viewWindow) {
+      this->displayConnection = displayConnection;
+      this->graphicDriver = graphicDriver;
+      this->view = view;
+      this->viewWindow = viewWindow;
+   }
+
+   Handle(V3d_View) GetView() {
+      return this->view;
    }
 
    void SetContext(const Handle(AIS_InteractiveContext)& context) {
@@ -490,6 +513,52 @@ void IGESNative::Cleanup() {
    }
 }
 
+void IGESNative::InitView(HWND parentHwnd) {
+   if (!this->pShape->GetViewer().IsNull())
+      return; // Already initialized
+
+   Handle(Aspect_DisplayConnection) displayConnection = new Aspect_DisplayConnection();
+   Handle(OpenGl_GraphicDriver) graphicDriver = new OpenGl_GraphicDriver(displayConnection);
+   Handle(V3d_Viewer) v3dViewer = new V3d_Viewer(graphicDriver);
+
+   v3dViewer->SetDefaultLights();
+   v3dViewer->SetLightOn();
+
+   Handle(WNT_Window) viewWindow = new WNT_Window(parentHwnd);
+
+   Handle(V3d_View) View = v3dViewer->CreateView();
+   View->SetWindow(viewWindow);
+   View->SetBackgroundColor(Quantity_NOC_GRAY90);
+   View->MustBeResized();
+   View->FitAll();
+
+   pShape->SetViewer(v3dViewer);
+   pShape->SetDispObject(displayConnection, graphicDriver, View, viewWindow);
+
+   Handle(AIS_InteractiveContext) context = new AIS_InteractiveContext(v3dViewer);
+   pShape->SetContext(context);
+}
+
+void IGESNative::ResizeView() {
+   auto view = this->pShape->GetView();
+   if (!view.IsNull()) {
+      view->MustBeResized();
+      view->Redraw();
+   }
+}
+
+void addOrReplaceShape_(Handle(AIS_InteractiveContext) context, const TopoDS_Shape& shape) {
+   // Clear existing shapes
+   context->RemoveAll(true);
+
+   if (shape.IsNull())
+      return;
+
+   Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
+   context->Display(aisShape, Standard_False);
+   context->SetDisplayMode(aisShape, AIS_Shaded, Standard_False);
+}
+
 // File handling
 int IGESNative::LoadIGES(const std::string& filePath, int pNo /*= 0*/) {
    g_Status.errorNo = IGESStatus::NoError;
@@ -503,9 +572,22 @@ int IGESNative::LoadIGES(const std::string& filePath, int pNo /*= 0*/) {
    shape = OCCTUtils::FixShape(shape);
    this->pShape->SetShape((IGESShapePimpl::ShapeType)pNo, shape);
 
+
+   auto viewer = pShape->GetViewer();
+   auto context = pShape->GetContext();
+   if (!context.IsNull())
+      addOrReplaceShape_(context, shape);
+
    // Any lew loading of Part 1 or 2, fused part should be set to null
    shape.Nullify();
    this->pShape->SetShape((IGESShapePimpl::ShapeType::Fused), shape);
+
+   auto view = pShape->GetView();
+   if (!view.IsNull()) {
+      view->MustBeResized();
+      view->FitAll(0.01, Standard_True);
+      view->Redraw();
+   }
 
    return g_Status.errorNo;
 }
@@ -755,12 +837,6 @@ int IGESNative::UnionShapes() {
 
 
 
-// Redraw and capture the updated image
-void IGESNative::PerformZoomAndRender(bool zoomIn) {
-   if (zoomIn) ZoomIn();
-   else ZoomOut();
-}
-
 int IGESNative::mirror(TopoDS_Shape leftShape) {
    // Compute the bounding box of the left shape
    auto [xmin, ymin, zmin, xmax, ymax, zmax] = this->pShape->GetBBoxComp(leftShape);
@@ -822,27 +898,13 @@ static int computeShortestDistance(const TopoDS_Face& face1, const TopoDS_Face& 
 }
 
 void IGESNative::Redraw() {
-   if (this->pShape->GetViewer().IsNull()) {
-      throw std::runtime_error("Viewer is not set in the viewer implementation.");
-   }
-
-   Handle(V3d_View) view = this->pShape->GetActiveViews().First();
-   if (view.IsNull()) {
-      throw std::runtime_error("Active view is not initialized.");
-   }
-
-   // Refresh the viewer to update changes
-   view->Redraw();
+   auto view = this->pShape->GetView();
+   if (!view.IsNull())
+      view->Redraw();
 }
 
-void IGESNative::ZoomIn()
-{
-   assert(pShape);
-   if (this->pShape->GetViewer().IsNull()) {
-      throw std::runtime_error("Viewer is not set in the viewer implementation.");
-   }
-
-   Handle(V3d_View) view = this->pShape->GetActiveViews().First();
+void IGESNative::Zoom(bool zoomIn, int mouseX, int mouseY) {
+   auto view = this->pShape->GetView();
    if (view.IsNull())
       throw std::runtime_error("Active view is not initialized.");
 
@@ -853,174 +915,152 @@ void IGESNative::ZoomIn()
    // Define zoom rectangle near the center
    Standard_Integer centerX = width / 2;
    Standard_Integer centerY = height / 2;
+
    Standard_Integer delta = 20; // Adjust for zoom intensity
+   if (zoomIn)
+      delta = -delta;
 
-   // Perform zoom in
-   view->Zoom(centerX - delta, centerY - delta, centerX + delta, centerY + delta);
-
-   // Refresh the viewer to update changes
+   //centerX = mouseX;
+   //centerY = mouseY;
+   view->Zoom(centerX + delta, centerY + delta, centerX - delta, centerY - delta);
    view->Redraw();
 }
 
-void IGESNative::ZoomOut()
-{
-   assert(pShape);
-   if (this->pShape->GetViewer().IsNull()) {
-      throw std::runtime_error("Viewer is not set in the viewer implementation.");
-   }
-
-   Handle(V3d_View) view = this->pShape->GetActiveViews().First();
-   if (view.IsNull()) {
-      throw std::runtime_error("Active view is not initialized.");
-   }
-
-   // Get the view dimensions
-   Standard_Integer width, height;
-   view->Window()->Size(width, height);
-
-   // Define zoom rectangle near the center
-   Standard_Integer centerX = width / 2;
-   Standard_Integer centerY = height / 2;
-   Standard_Integer delta = 20; // Adjust for zoom intensity
-
-   // Perform zoom out (larger rectangle)
-   view->Zoom(centerX - delta * 2, centerY - delta * 2, centerX + delta * 2, centerY + delta * 2);
-
-   // Refresh the viewer to update changes
+void IGESNative::Pan(int dx, int dy) {
+   auto view = this->pShape->GetView();
+   view->Pan(dx, -dy, 1.0, TRUE);
    view->Redraw();
 }
 
-static void _addShape(Handle(AIS_InteractiveContext) context,
-   Bnd_Box& combinedBoundingBox, TopoDS_Shape shape) {
-   Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
-   context->Display(aisShape, Standard_False);
-   context->SetDisplayMode(aisShape, AIS_Shaded, Standard_False);
-   BRepBndLib::Add(shape, combinedBoundingBox);
-}
-
-int IGESNative::GetShape(std::vector<unsigned char>& rData, int pNo,
-   int width, int height,
-   bool save /*= false*/)
-{
-   g_Status.errorNo = 0;
-
-   std::vector<unsigned char> res;
-
-   // Initialize viewer
-   Handle(Aspect_DisplayConnection) displayConnection = new Aspect_DisplayConnection();
-   Handle(OpenGl_GraphicDriver) graphicDriver = new OpenGl_GraphicDriver(displayConnection);
-   auto v3dViewer = (Handle(V3d_Viewer)(new V3d_Viewer(graphicDriver)));
-   this->pShape->SetViewer(v3dViewer);
-
-   this->pShape->GetViewer()->SetDefaultLights();
-   this->pShape->GetViewer()->SetLightOn();
-   Handle(AIS_InteractiveContext) context = new AIS_InteractiveContext(this->pShape->GetViewer());
-
-   // Prepare off-screen view
-   Handle(V3d_View) view = this->pShape->GetViewer()->CreateView();
-   Handle(Aspect_NeutralWindow) wnd = new Aspect_NeutralWindow();
-   wnd->SetSize(width, height);
-   wnd->SetVirtual(true);
-   view->SetWindow(wnd);
-   view->SetBackgroundColor(Quantity_Color(Quantity_NOC_WHITE));
-   view->MustBeResized();
-
-   // Prepare bounding box for fitting
-   Bnd_Box combinedBoundingBox;
-
-   TopoDS_Shape fusedShape;
-   if (pNo == (int)IGESShapePimpl::ShapeType::Fused) {
-      TopoDS_Shape fusedShape;
-      this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused);
-      if (fusedShape.IsNull()) {
-         g_Status.SetError(IGESStatus::FuseError, "No fused shapes. Fuse left and right shapes first");
-         return g_Status.errorNo;
-      }
-      _addShape(context, combinedBoundingBox, fusedShape);
-   }
-   else {
-      std::vector<unsigned char> res;
-      TopoDS_Shape leftShape, rightShape;
-      if (pNo == 2) {
-         this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused);
-         if (fusedShape.IsNull())
-            _addShape(context, combinedBoundingBox, fusedShape);
-         else {
-            g_Status.SetError(IGESStatus::FuseError, "fused shapes.Fuse left and right shapes first");
-            return g_Status.errorNo;
-         }
-      }
-      else {
-         this->getShape(leftShape, (int)IGESShapePimpl::ShapeType::Left);
-         if (!leftShape.IsNull())
-            _addShape(context, combinedBoundingBox, leftShape);
-         this->getShape(rightShape, (int)IGESShapePimpl::ShapeType::Right);
-         if (!rightShape.IsNull())
-            _addShape(context, combinedBoundingBox, rightShape);
-      }
-   }
-
-   // Check if the bounding box is valid
-   if (combinedBoundingBox.IsVoid())
-      return g_Status.SetError(IGESStatus::CalculationError,
-         "Bounding box of the shapes is void. Shapes might be empty.");
-
-   // Fit view and redraw
-   view->FitAll(0.01, Standard_True);
-   view->Redraw();
-
-   // Prepare pixmap image
-   Image_AlienPixMap img;
-   if (!view->ToPixMap(img, width, height))
-      return g_Status.SetError(IGESStatus::FileWriteFailed,
-         "Failed to render the view to pixmap");
-
-   TCollection_AsciiString filename = "C:\\temp\\~shape.png";
-   bool pixelBuffer = true;
-   if (pixelBuffer || save)
-      img.Save(filename);
-
-   if (pixelBuffer) {
-      const unsigned char* imgData = img.Data();
-      size_t imgSize = img.SizeRowBytes() * img.Height();
-      rData = std::vector<unsigned char>(imgData, imgData + imgSize);
-   }
-   else {
-      // Read the file content into memory
-      std::ifstream file(filename.ToCString(), std::ios::binary);
-      if (!file)
-         throw std::runtime_error("Failed to open saved PNG file.");
-
-      rData = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)),
-         std::istreambuf_iterator<char>());
-
-      // Delete the temporary If file is not to required
-      if (false == save)
-         std::remove(filename.ToCString());
-   }
-   return g_Status.errorNo;
-}
+//static void _addShape(Handle(AIS_InteractiveContext) context,
+//   Bnd_Box& combinedBoundingBox, TopoDS_Shape shape) {
+//   Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
+//   context->Display(aisShape, Standard_False);
+//   context->SetDisplayMode(aisShape, AIS_Shaded, Standard_False);
+//   BRepBndLib::Add(shape, combinedBoundingBox);
+//}
+//
+//int IGESNative::GetShape(std::vector<unsigned char>& rData, int pNo,
+//   int width, int height,
+//   bool save /*= false*/)
+//{
+//   g_Status.errorNo = 0;
+//
+//   std::vector<unsigned char> res;
+//   
+//   // Initialize viewer
+//   Handle(Aspect_DisplayConnection) displayConnection = new Aspect_DisplayConnection();
+//   Handle(OpenGl_GraphicDriver) graphicDriver = new OpenGl_GraphicDriver(displayConnection);
+//   auto v3dViewer = (Handle(V3d_Viewer)(new V3d_Viewer(graphicDriver)));
+//   this->pShape->SetViewer(v3dViewer);
+//
+//   this->pShape->GetViewer()->SetDefaultLights();
+//   this->pShape->GetViewer()->SetLightOn();
+//   Handle(AIS_InteractiveContext) context = new AIS_InteractiveContext(v3dViewer);
+//
+//   // Prepare off-screen view
+//   Handle(V3d_View) view = this->pShape->GetViewer()->CreateView();
+//   Handle(Aspect_NeutralWindow) wnd = new Aspect_NeutralWindow();
+//   wnd->SetSize(width, height);
+//   wnd->SetVirtual(true);
+//   view->SetWindow(wnd);
+//   view->SetBackgroundColor(Quantity_Color(Quantity_NOC_WHITE));
+//   view->MustBeResized();
+//
+//   // Prepare bounding box for fitting
+//   Bnd_Box combinedBoundingBox;
+//
+//   TopoDS_Shape fusedShape;
+//   if (pNo == (int)IGESShapePimpl::ShapeType::Fused) {
+//      TopoDS_Shape fusedShape;
+//      this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused);
+//      if (fusedShape.IsNull()) {
+//         g_Status.SetError(IGESStatus::FuseError, "No fused shapes. Fuse left and right shapes first");
+//         return g_Status.errorNo;
+//      }
+//      _addShape(context, combinedBoundingBox, fusedShape);
+//   }
+//   else {
+//      std::vector<unsigned char> res;
+//      TopoDS_Shape leftShape, rightShape;
+//      if (pNo == 2) {
+//         this->getShape(fusedShape, (int)IGESShapePimpl::ShapeType::Fused);
+//         if (fusedShape.IsNull())
+//            _addShape(context, combinedBoundingBox, fusedShape);
+//         else {
+//            g_Status.SetError(IGESStatus::FuseError, "fused shapes.Fuse left and right shapes first");
+//            return g_Status.errorNo;
+//         }
+//      }
+//      else {
+//         this->getShape(leftShape, (int)IGESShapePimpl::ShapeType::Left);
+//         if (!leftShape.IsNull())
+//            _addShape(context, combinedBoundingBox, leftShape);
+//         this->getShape(rightShape, (int)IGESShapePimpl::ShapeType::Right);
+//         if (!rightShape.IsNull())
+//            _addShape(context, combinedBoundingBox, rightShape);
+//      }
+//   }
+//
+//   // Check if the bounding box is valid
+//   if (combinedBoundingBox.IsVoid())
+//      return g_Status.SetError(IGESStatus::CalculationError,
+//         "Bounding box of the shapes is void. Shapes might be empty.");
+//
+//   // Fit view and redraw
+//   view->FitAll(0.01, Standard_True);
+//   view->Redraw();
+//
+//   // Prepare pixmap image
+//   Image_AlienPixMap img;
+//   if (!view->ToPixMap(img, width, height))
+//      return g_Status.SetError(IGESStatus::FileWriteFailed,
+//         "Failed to render the view to pixmap");
+//
+//   TCollection_AsciiString filename = "C:\\temp\\~shape.png";
+//   bool pixelBuffer = true;
+//   if (pixelBuffer || save)
+//      img.Save(filename);
+//
+//   if (pixelBuffer) {
+//      const unsigned char* imgData = img.Data();
+//      size_t imgSize = img.SizeRowBytes() * img.Height();
+//      rData = std::vector<unsigned char>(imgData, imgData + imgSize);
+//   }
+//   else {
+//      // Read the file content into memory
+//      std::ifstream file(filename.ToCString(), std::ios::binary);
+//      if (!file)
+//         throw std::runtime_error("Failed to open saved PNG file.");
+//
+//      rData = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)),
+//         std::istreambuf_iterator<char>());
+//
+//      // Delete the temporary If file is not to required
+//      if (false == save)
+//         std::remove(filename.ToCString());
+//   }
+//
+//   return g_Status.errorNo;
+//}
 
 // Rotate part about Z axis passing through center - Yaw 180
 int IGESNative::YawBy180(int shapeType) {
-   TopoDS_Shape shape;
-   this->getShape(shape, shapeType);
-   if (shape.IsNull()) {
-      throw NoPartLoadedException(shapeType);
-   }
-   RotatePartByAxis(shape, 180, EAxis::Z);
-   this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
-   return 0;
-}
+   return RotatePartByAxis(shapeType, 180, EAxis::Z); }
 
 int IGESNative::RollBy180(int shapeType) {
+   return RotatePartByAxis(shapeType, 180, EAxis::X);}
+
+int IGESNative::RotatePartByAxis(int shapeType, double deg, EAxis axis) {
    TopoDS_Shape shape;
    this->getShape(shape, shapeType);
-   if (shape.IsNull()) {
+   if (shape.IsNull())
       throw NoPartLoadedException(shapeType);
-   }
-   RotatePartByAxis(shape, 180, EAxis::X);
+
+   RotatePartByAxis(shape, 180, axis);
    this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
+   auto context = this->pShape->GetContext();
+   addOrReplaceShape_(context, shape);
    return 0;
 }
 

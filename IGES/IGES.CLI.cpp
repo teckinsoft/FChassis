@@ -52,19 +52,27 @@ namespace FChassis::IGES {
       CleanupOCCT();
    }
 
+   void IGES::ResizeView() {
+      assert(this->pPriv);
+      this->pPriv->ResizeView();
+   }
+
+
+   void IGES::InitView(System::IntPtr parentWnd) {
+      assert(this->pPriv);
+      HWND parentHwnd = reinterpret_cast<HWND>(parentWnd.ToPointer());
+      this->pPriv->InitView(parentHwnd);
+   }
+
    void IGES::GetErrorMessage([System::Runtime::InteropServices::Out] System::String^% message) {
       message = gcnew String(g_Status.error.data());
    }
 
-   void IGES::ZoomIn() {
-      assert(this->pPriv);
-      this->pPriv->PerformZoomAndRender(true);
-   }
+   void IGES::Zoom(bool zoomIn, int x, int y) {
+      this->pPriv->Zoom(zoomIn, x, y); }
 
-   void IGES::ZoomOut() {
-      assert(this->pPriv);
-      this->pPriv->PerformZoomAndRender(false);
-   }
+   void IGES::Pan(int dx, int dy) {
+      this->pPriv->Pan(dx, dy); }   
 
    int IGES::LoadIGES(System::String^ filePath, int order) {
       if (!pPriv)
@@ -177,29 +185,29 @@ namespace FChassis::IGES {
       return errorNo;
    }
 
-   int IGES::GetShape(int shapeType, int width, int height, array<unsigned char>^% rData) {
-      std::vector<unsigned char> pngData;
+   //int IGES::GetShape(int shapeType, int width, int height, array<unsigned char>^% rData) {
+   //   std::vector<unsigned char> pngData;
+   //
+   //   // Call the native method to populate pngData
+   //   int errorNo = pPriv->GetShape(pngData, shapeType, width, height);
+   //
+   //   // Handle errors
+   //   if (errorNo != 0 || pngData.empty()) {
+   //      return errorNo;
+   //   }
+   //
+   //   // Validate pngData size
+   //   size_t size = pngData.size();
+   //   if (size > static_cast<size_t>(std::numeric_limits<int>::max()))
+   //      throw gcnew ArgumentException("Data size is too large.");
+   //   
 
-      // Call the native method to populate pngData
-      int errorNo = pPriv->GetShape(pngData, shapeType, width, height);
+   //   // Allocate managed array to hold the image data
+   //   rData = gcnew array<unsigned char>(static_cast<int>(size));
 
-      // Handle errors
-      if (errorNo != 0 || pngData.empty()) {
-         return errorNo;
-      }
-
-      // Validate pngData size
-      size_t size = pngData.size();
-      if (size > static_cast<size_t>(std::numeric_limits<int>::max()))
-         throw gcnew ArgumentException("Data size is too large.");
-      
-
-      // Allocate managed array to hold the image data
-      rData = gcnew array<unsigned char>(static_cast<int>(size));
-
-      // Use Marshal::Copy to transfer data from native to managed memory
-      Marshal::Copy(static_cast<IntPtr>(pngData.data()), rData, 0, static_cast<int>(size));
-
-      return errorNo;
-   }
+   //   // Use Marshal::Copy to transfer data from native to managed memory
+   //   Marshal::Copy(static_cast<IntPtr>(pngData.data()), rData, 0, static_cast<int>(size));
+   //
+   //   return errorNo;
+   //}
 }

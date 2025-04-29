@@ -106,7 +106,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>igesd</TargetName>
     <OutDir>C:\FluxSDK\Bin\</OutDir>
-    <IntDir>$(SolutionDir)output\intermidate\$(MSBuildProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)output\intermediate\$(MSBuildProjectName)\$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -121,7 +121,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>iges</TargetName>
     <OutDir>C:\FluxSDK\Bin\</OutDir>
-    <IntDir>$(SolutionDir)output\intermidate\$(MSBuildProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)output\\intermediate\$(MSBuildProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='TestRelease|x64'">
     <TargetName>iges</TargetName>
