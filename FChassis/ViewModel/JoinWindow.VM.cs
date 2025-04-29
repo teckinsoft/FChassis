@@ -118,7 +118,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    int YawBy180Internal (int pno) {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo;
       try {
          errorNo = Iges.YawPartBy180 (pno);
@@ -133,7 +133,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    int RollBy180Internal (int pno) {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo;
       try {
          errorNo = Iges.RollPartBy180 (pno);
@@ -156,7 +156,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    int Join () {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo;
       try {
          errorNo = Iges.UnionShapes ();
@@ -211,7 +211,7 @@ public partial class JoinWindowVM : ObservableObject, IDisposable {
    }
 
    int JoinSave () {
-      if (_iges == null) return -1;
+      if (Iges == null) return -1;
       int errorNo = 0;
 
       JoinedFileName = SaveFilename (Part1FileName, "Select a Part File",
