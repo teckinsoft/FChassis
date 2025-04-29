@@ -19,6 +19,7 @@ set "NEW_PATHS=!NEW_PATHS!;C:\OCCT\OpenCASCADE-7.7.0-vc14-64\rapidjson-1.1.0\bin
 set "NEW_PATHS=!NEW_PATHS!;C:\OCCT\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin"
 set "NEW_PATHS=!NEW_PATHS!;C:\OCCT\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin"
 set "NEW_PATHS=!NEW_PATHS!;C:\OCCT\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
+set "NEW_PATHS=!NEW_PATHS!;C:\OCCT\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin"
 
 REM Append new paths only if they are not already present
 for %%P in (!NEW_PATHS!) do (

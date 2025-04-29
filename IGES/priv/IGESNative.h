@@ -20,10 +20,10 @@ class NoPartLoadedException : public std::exception {
    std::string _message;
 
    public:
-   NoPartLoadedException(int pno) noexcept : _pNo(pno+1) {
-      if (_pNo ==1 || _pNo == 2 )
+   NoPartLoadedException(int pno) noexcept : _pNo(pno + 1) {
+      if (_pNo == 1 || _pNo == 2)
          _message = "No Part " + std::to_string(_pNo) + " is loaded";
-      else if ( _pNo == 3 )
+      else if (_pNo == 3)
          _message = "No Parts loaded";
    }
 
@@ -39,7 +39,7 @@ class InputIGESFileCorruptException : public std::exception {
 
    public:
    InputIGESFileCorruptException(std::string filename) noexcept : _filename(filename) {
-      _message = "File " + _filename  + " is corrupt";
+      _message = "File " + _filename + " is corrupt";
    }
 
    const char* what() const noexcept override {
@@ -133,17 +133,7 @@ class IGESNative {
 
    private:
    int getShape(TopoDS_Shape& shape, int shapeType);
-
-   // Geometry Process
-   int screwRotationAboutMidPart(TopoDS_Shape& shape, const gp_Pnt& pt, const gp_Dir& axis, double angleDegrees);
    int mirror(TopoDS_Shape leftShape);
-   void handleIntersectingBoundingCurves(TopoDS_Shape& fusedShape, double tolerance);
 
-   // Predicates
-   bool hasMultipleConnectedComponents(const TopoDS_Shape& shape);
-   bool isPointOnAnySurface(const TopoDS_Shape& shape, const gp_Pnt& point, double tolerance);
-   bool doesVectorIntersectShape(const TopoDS_Shape& shape, const gp_Pnt& point, const gp_Dir& direction, gp_Pnt& intersectionPoint);   
-
-   private:
    IGESShapePimpl* pShape = nullptr;
 };

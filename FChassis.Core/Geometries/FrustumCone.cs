@@ -1,6 +1,6 @@
 ﻿using Flux.API;
-using static FChassis.Core.Geom;
-namespace FChassis;
+using static FChassis.Core.Geometries.Geom;
+namespace FChassis.Core.Geometries;
 public class FrustumCone {
    readonly double mBottomRadius, mTopRadius, mHeight;
    readonly int mSegments = 50; // Fixed discretization

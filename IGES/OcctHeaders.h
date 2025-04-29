@@ -17,6 +17,9 @@
 #include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepBuilderAPI_Sewing.hxx>
 #include <BRepBuilderAPI_Copy.hxx>
+#include <BRepLib.hxx>
+#include <BRepBuilderAPI_MakeShell.hxx>
+#include <BRepBuilderAPI_MakeSolid.hxx>
 
 #include <BOPAlgo_BOP.hxx>
 #include <BOPAlgo_Alerts.hxx>
@@ -37,6 +40,7 @@
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopExp.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Iterator.hxx>   // For iterating through compounds
 
 #include <Bnd_Box.hxx>
 #include <V3d_Viewer.hxx>

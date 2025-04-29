@@ -1,0 +1,13 @@
+﻿using System.Reflection;
+
+namespace FChassis.Core.AssemblyUtils;
+public static class AssemblyLoader {
+   public static bool IsAssemblyLoadable (string assemblyName) {
+      try {
+         Assembly.Load (assemblyName);
+         return true;
+      } catch {
+         return false;
+      }
+   }
+}

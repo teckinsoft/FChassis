@@ -1,15 +1,18 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Microsoft.Win32;
-using FChassis.Core;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Win32;
+
+using FChassis.Core;
+using FChassis.Core.Geometries;
+
 
 
 namespace FChassis;
-using static FChassis.Core.DoubleExtensions;
-using static FChassis.Core.IntExtensions;
+using static FChassis.Core.Geometries.DoubleExtensions;
+using static FChassis.Core.Geometries.IntExtensions;
 using static FChassis.Core.MCSettings.EHeads;
 
 
@@ -41,7 +44,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       DataContext = this;
       
 #if DEBUG || TESTRELEASE
-       IsRestrictedSettingsVisible = true;
+      IsRestrictedSettingsVisible = true;
 #else
       IsRestrictedSettingsVisible = false;
 #endif
@@ -91,32 +94,23 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       cbCutNotches.Bind (() => Settings.CutNotches, b => { Settings.CutNotches = b; IsModified = true; });
       cbCutCutouts.Bind (() => Settings.CutCutouts, b => { Settings.CutCutouts = b; IsModified = true; });
       cbCutMarks.Bind (() => Settings.CutMarks, b => { Settings.CutMarks = b; IsModified = true; });
-      cbRotate180AbZ.Bind (() => Settings.RotateX180, b => { Settings.RotateX180 = b; IsModified = true; });
       cbShowTlgNames.Bind (() => Settings.ShowToolingNames, b => { Settings.ShowToolingNames = b; IsModified = true; });
       cbShowTlgExtents.Bind (() => Settings.ShowToolingExtents, b => { Settings.ShowToolingExtents = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
       tbDinFilenameSuffix.Bind (() => Settings.DINFilenameSuffix, b => { Settings.DINFilenameSuffix = b; IsModified = true; });
 
-      //tbWJTPreFlexMcToken.Bind (() => Settings.WJTPreFlexMcToken, b => { Settings.WJTPreFlexMcToken = b; IsModified = true; });
-      //tbWJTPostFlexMcToken.Bind (() => Settings.WJTPostFlexMcToken, b => { Settings.WJTPostFlexMcToken = b; IsModified = true; });
-
       chbMPC.Bind (() => {
-         tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
-         rbMinNotchCuts.IsEnabled = Settings.EnableMultipassCut;
+         tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = Settings.EnableMultipassCut;
          return Settings.EnableMultipassCut;
       },
        b => {
           Settings.EnableMultipassCut = b; // Update the value
-          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled = rbMinNotchCuts.IsEnabled = b; // Enable/disable based on the value
+          tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = b; // Enable/disable based on the value
           IsModified = true;
        });
 
       tbMaxFrameLength.Bind (() => Settings.MaxFrameLength, b => { Settings.MaxFrameLength = b; IsModified = true; });
       tbDeadBandWidth.Bind (() => Settings.DeadbandWidth, b => { Settings.DeadbandWidth = b; IsModified = true; });
-      rbMaxFrameLength.Bind (() => Settings.MaximizeFrameLengthInMultipass,
-         () => { Settings.MaximizeFrameLengthInMultipass = true; IsModified = true; });
-      rbMinNotchCuts.Bind (() => !Settings.MaximizeFrameLengthInMultipass,
-         () => { Settings.MaximizeFrameLengthInMultipass = false; IsModified = true; });
       tbDirectoryPath.Bind (() => {
          return Settings.NCFilePath;
       }, b => {
@@ -125,13 +119,11 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       });
       cbLCMMachine.ItemsSource = Enum.GetValues (typeof (MachineType)).Cast<MachineType> ();
       cbLCMMachine.Bind (() => {
-         chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
-            rbMinNotchCuts.IsEnabled = (Settings.Machine == MachineType.LCMMultipass2H);
+         chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = (Settings.Machine == MachineType.LCMMultipass2H);
          return Settings.Machine;
       },
          (MachineType selectedType) => {
-            chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = rbMaxFrameLength.IsEnabled =
-            rbMinNotchCuts.IsEnabled = Settings.EnableMultipassCut = (selectedType == MachineType.LCMMultipass2H);
+            chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = Settings.EnableMultipassCut = (selectedType == MachineType.LCMMultipass2H);
             Settings.Machine = selectedType;
             IsModified = true;
          });
@@ -143,6 +135,10 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
             IsModified = true;
          }
       });
+      rbSpatial.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Spatial, 
+         () => { Settings.OptimizerType = MCSettings.EOptimize.Spatial; IsModified = true; });
+      rbTime.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Time,
+         () => { Settings.OptimizerType = MCSettings.EOptimize.Time; IsModified = true; });
 
       btnOK.Bind (OnOk);
    }
@@ -192,7 +188,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       }
    }
    void TbNotchWireJointDistanceValueChanged (object sender, TextChangedEventArgs e) {
-      if (double.TryParse (tbNotchWireJointDistance.Text, out double value) && ( value.SGT(5) || value.SLT(0) )) {
+      if (double.TryParse (tbNotchWireJointDistance.Text, out double value) && (value.SGT (5) || value.SLT (0))) {
          // Show an error message
          MessageBox.Show ("Notch Wire Joint Distance should lie betweem 0 and 5 mm", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
 

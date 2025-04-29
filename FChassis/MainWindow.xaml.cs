@@ -13,6 +13,7 @@ using FChassis.Core.Processes;
 using SPath = System.IO.Path;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using FChassis.Core.AssemblyUtils;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
@@ -44,6 +45,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
 
       Sys.SelectionChanged += OnSelectionChanged;
+#if DEBUG
+      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("igesd");
+#else
+      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("iges");
+#endif
 
 #if DEBUG
       IsSanityCheckVisible = true;
@@ -105,7 +111,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       // Assign the combined collection to ItemsSource
       UpdateInputFilesList (allFiles);
    }
-   #endregion
+#endregion
 
    #region Event handlers
    void TriggerRedraw ()
@@ -171,7 +177,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void OnMirrorAndJoin (object sender, RoutedEventArgs e) {
+   void OnJoin (object sender, RoutedEventArgs e) {
       JoinWindow joinWindow = new ();
 
       // Subscribe to the FileSaved event
@@ -277,6 +283,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Properties
+   public bool IsIgesAvailable { get; }
    public ProcessSimulator.ESimulationStatus SimulationStatus {
       get => mSimulationStatus;
       set {
@@ -444,39 +451,45 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       // Clear the zombies if any
       GenesysHub?.ClearZombies ();
    }
-
+   bool _cutHoles = false, _cutNotches = false, _cutMarks = false;
    void DoAlign (object sender, RoutedEventArgs e) {
       if (!HandleNoWorkpiece ()) {
          Work.Align ();
          mScene.Bound3 = Work.Model.Bound;
          GenesysHub?.ClearZombies ();
-         if (MCSettings.It.RotateX180)
+         if (Work.Dirty) {
             Work.DeleteCuts ();
+            _cutHoles = false; _cutNotches = false;
+            _cutMarks = false;
+         }
          mOverlay.Redraw ();
          GCodeGenerator.EvaluateToolConfigXForms (Work);
       }
    }
 
    void DoAddHoles (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
+      if (!HandleNoWorkpiece () && !_cutHoles) {
          if (Work.DoAddHoles ())
             GenesysHub?.ClearZombies ();
+         _cutHoles = true;
          mOverlay.Redraw ();
       }
    }
 
    void DoTextMarking (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
+      if (!HandleNoWorkpiece () && !_cutMarks) {
          if (Work.DoTextMarking (MCSettings.It))
             GenesysHub?.ClearZombies ();
+         _cutMarks = true;
          mOverlay.Redraw ();
       }
    }
 
    void DoCutNotches (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
+      if (!HandleNoWorkpiece() && !_cutNotches) {
          if (Work.DoCutNotchesAndCutouts ())
             GenesysHub?.ClearZombies ();
+         _cutNotches = true;
          mOverlay.Redraw ();
       }
    }
@@ -489,22 +502,48 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece ()) {
-#if DEBUG
+      if (!HandleNoWorkpiece () && Work.Dirty) {
+#if DEBUG || TESTRELEASE
          GenesysHub.ComputeGCode ();
+         string jsonPath1 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_Spatial_TimeStats.json";
+         var timeStats1 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath1);
+         string jsonPath2 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_TimeOptimal_TimeStats.json";
+         var timeStats2 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath2);
+         string message =
+         $"{"Metric(Secs)",-35} {"Spatial",15} {"TimeOptimal",15}\n" +
+         new string ('-', 70) + "\n" +
+         $"{"Total Time",-30} {timeStats1["TotalTime"],15:F2} {timeStats2["TotalTime"],15:F2}     \n" +
+         $"{"Total Idle Time",-25} {timeStats1["TotalIdleTime"],15:F2} {timeStats2["TotalIdleTime"],15:F2}     \n" +
+         $"{"Total Machining Time",-15} {timeStats1["TotalMachiningTime"],15:F2} {timeStats2["TotalMachiningTime"],15:F2}     \n" +
+         $"{"Total Movement Time",-15} {timeStats1["TotalMovementTime"],15:F2} {timeStats2["TotalMovementTime"],15:F2}     \n\n" +
+         $"{"Machining Time (Head 1)",-15} {timeStats1["MachiningTimeHead1"],15:F2} {timeStats2["MachiningTimeHead1"],15:F2}     \n" +
+         $"{"Movement Time (Head 1)",-15} {timeStats1["MovementTimeHead1"],15:F2} {timeStats2["MovementTimeHead1"],15:F2}     \n" +
+         $"{"Idle Time (Head 1)",-25} {timeStats1["IdleTimeHead1"],15:F2} {timeStats2["IdleTimeHead1"],15:F2}     \n\n" +
+         $"{"Machining Time (Head 2)",-15} {timeStats1["MachiningTimeHead2"],15:F2} {timeStats2["MachiningTimeHead2"],15:F2}     \n" +
+         $"{"Movement Time (Head 2)",-15} {timeStats1["MovementTimeHead2"],15:F2} {timeStats2["MovementTimeHead2"],15:F2}     \n" +
+         $"{"Idle Time (Head 2)",-25} {timeStats1["IdleTimeHead2"],15:F2} {timeStats2["IdleTimeHead2"],15:F2}     ";
+
+         MessageBox.Show (message, "Time Stats Comparison", MessageBoxButton.OK, MessageBoxImage.Information);
+         Work.Dirty = false;
 #else
          try {
             GenesysHub.ComputeGCode ();
+            Work.Dirty = false; // This line is optional here since it will be set in finally
+         } catch (InfeasibleCutoutException ex) {
+            MessageBox.Show (ex.Message, "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
          } catch (Exception ex) {
-            if (ex is NegZException) 
-               MessageBox.Show ("Part might not be aligned", "Error", 
-                                 MessageBoxButton.OK, MessageBoxImage.Error);
-            else if (ex is NotchCreationFailedException ex1) 
-                  MessageBox.Show (ex1.Message, "Error", 
-                                   MessageBoxButton.OK, MessageBoxImage.Error);
-            else 
-               MessageBox.Show ("G Code generation failed", "Error", 
-                                MessageBoxButton.OK, MessageBoxImage.Error);
+            if (ex is NegZException)
+               MessageBox.Show ("Part might not be aligned", "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            else if (ex is NotchCreationFailedException ex1)
+               MessageBox.Show (ex1.Message, "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            else
+               MessageBox.Show ("G Code generation failed", "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+         } finally {
+            Work.Dirty = false; // This will always execute
          }
 #endif
          mOverlay.Redraw ();

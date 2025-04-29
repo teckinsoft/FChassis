@@ -4,14 +4,16 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FChassis"
+        xmlns:converters="clr-namespace:FChassis.VisibilityConverters"
         mc:Ignorable="d"
         WindowState="Maximized"
         Title="FChassis" Height="450" Width="800" 
         Loaded="OnWindowLoaded">
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="DebugModeVisibilityConverter" />
-        <BooleanToVisibilityConverter x:Key="DebugTestModeVisibilityConverter" />
-        <local:SimulationStatusToVisibilityConverter x:Key="SimulationStatusToVisibilityConverter" />
+        <converters:DbgToVisibilityConverter x:Key="DebugModeVisibilityConverter" />
+        <converters:DbgToVisibilityConverter x:Key="DebugTestModeVisibilityConverter" />
+        <converters:SimulationStatusToVisibilityConverter x:Key="SimulationStatusToVisibilityConverter" />
+        <converters:JoinMenuItemVisibilityConverter x:Key="JoinMenuItemVisibilityConverter" />
 
         <Style x:Key="FilesListBoxItemContextMenuStyle" TargetType="ListBoxItem">
             <Setter Property="ContextMenu">
@@ -35,7 +37,7 @@
             <MenuItem Header="Files">
                 <MenuItem Header="Open File" Click="OnMenuFileOpen"/>
                 <MenuItem Header="Open Folder" Click="OnMenuDirOpen"/>
-                <MenuItem Header="Join" Click="OnMirrorAndJoin"/>
+                <MenuItem Header="Join" Click="OnJoin" Visibility="{Binding IsIgesAvailable, Converter={StaticResource JoinMenuItemVisibilityConverter}}" />
                 <MenuItem Header="Save" Click= "OnMenuFileSave"/>
                 <MenuItem Header="Close" Click="OnFileClose"/>
             </MenuItem>

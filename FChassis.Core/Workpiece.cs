@@ -4,6 +4,7 @@ using System.Diagnostics;
 
 using Flux.API;
 using FChassis.Core.GCodeGen;
+using FChassis.Core.Geometries;
 using static FChassis.Core.MCSettings;
 
 namespace FChassis.Core;
@@ -15,7 +16,7 @@ public class Workpiece : INotifyPropertyChanged {
 
    public List<Tooling> Cuts => mCuts;
    List<Tooling> mCuts = [];
-
+   public bool Dirty { get; set; } = false;
    public Workpiece (Model3 model, Part part) {
       mBound = (mModel = model).Bound;
       mNCFileName = Path.GetFileNameWithoutExtension (part.Info.FileName);
@@ -37,31 +38,35 @@ public class Workpiece : INotifyPropertyChanged {
 
    public bool SortingComplete => sortingComplete;
    bool sortingComplete = false;
-   double mRotTimes = 1;
+   int mRotToggle = 1;
    /// <summary>Align the model for processing</summary>
    public void Align () {
       // First, align the baseplane so that it is aligned with the XY plane
-      Apply (Matrix3.Between (mModel.Baseplane.Xfm.ToCS (), CoordSystem.World));
+      var modelCS = mModel.Baseplane.Xfm.ToCS ();
+      if (!modelCS.Equals (CoordSystem.World)) {
+         var xfm = Matrix3.Between (mModel.Baseplane.Xfm.ToCS (), CoordSystem.World);
+         Apply (xfm);
+         Dirty = true;
+      }
 
       // The baseplane should have the maximum extent in X - if that is in Y instead,
       // rotate it 90 degrees about the Z axis. Model extrusion is now in the X direction
       var size = mModel.Baseplane.Bound.Size;
-      if (size.Y > size.X)
-         Apply (Matrix3.Rotation (EAxis.Z, Geo.HalfPI * mRotTimes));
+      if (size.Y > size.X) {
+         Apply (Matrix3.Rotation (EAxis.Z, Geo.HalfPI ));
+         Dirty = true;
+      }
 
-      //if ( (mModel.Bound.YMax - mModel.Bound.YMin).SGT(mModel.Bound.YMax - mModel.Bound.YMin)) {
-      //   Apply (Matrix3.Rotation (EAxis.X, Geo.PI*0.5));
-      //}
       // If the flanges are protruding 'downward', then rotate the model by 180 
       // degrees about the X axis
-      if (-mModel.Bound.ZMin < mModel.Bound.ZMax)
+      if (-mModel.Bound.ZMin < mModel.Bound.ZMax) {
          Apply (Matrix3.Rotation (EAxis.X, Geo.PI));
-
-      // Additional 180 degrees rotation if the user has prescribed
-      if (It.RotateX180) {
-         Apply (Matrix3.Rotation (EAxis.Z, Geo.PI * mRotTimes));
-         mRotTimes += 2;
+         Dirty = true;
       }
+
+      Apply (Matrix3.Rotation (EAxis.Z, Geo.PI * mRotToggle));
+      if (mRotToggle == 1) mRotToggle = 0;
+      else mRotToggle = 1;
 
       // Now shift the origin:
       var (mbound, pbound) = (mModel.Bound, mModel.Baseplane.Bound);
@@ -168,7 +173,7 @@ public class Workpiece : INotifyPropertyChanged {
          swCalcBound.Stop ();
          tsCalcBound += swCalcBound.Elapsed;
       }
-      Dirty ();
+      Dirty = true;
       return true;
    }
 
@@ -210,7 +215,7 @@ public class Workpiece : INotifyPropertyChanged {
          Cuts[^1].Bound3 = Utils.CalculateBound3 ([.. Cuts[^1].Segs], Model.Bound);
       }
 
-      Dirty ();
+      Dirty = true;
       return true;
    }
 
@@ -391,7 +396,7 @@ public class Workpiece : INotifyPropertyChanged {
                double[] percentLengths = [0.25, 0.5, 0.75];
                double mCurveLeastLength = 0.5;
                if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
-                   mCurveLeastLength, !MCSettings.It.NotchWireJointDistance.EQ (0)))
+                   mCurveLeastLength))
                   cut.EdgeNotch = true;
                cutSegs = [.. cut.Segs];
             }
@@ -401,19 +406,19 @@ public class Workpiece : INotifyPropertyChanged {
             mCuts.Add (cut);
          }
 
-      Dirty ();
+      Dirty = true;
 
       return true;
    }
    #endregion
 
    #region Implementation ----------------------------------------------------------------
-   void Dirty () {
-      foreach (var cut in mCuts) {
-         cut.PostRoute.Clear ();
-         cut.SeqNo = -1;
-      }
-   }
+   //void Dirty () {
+   //   foreach (var cut in mCuts) {
+   //      cut.PostRoute.Clear ();
+   //      cut.SeqNo = -1;
+   //   }
+   //}
 
    public static EType Classify (Vector3 vec) {
       if (Abs (vec.Z) > Abs (vec.Y))

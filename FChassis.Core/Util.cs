@@ -2,6 +2,8 @@ using System.Text;
 using static System.Math;
 using Flux.API;
 using FChassis.Core.GCodeGen;
+using FChassis.Core.Geometries;
+using System.Text.Json;
 
 namespace FChassis.Core;
 
@@ -94,7 +96,7 @@ internal static class Extensions {
       Point3 pt = new (val.X - sub.X, val.Y - sub.Y, val.Z - sub.Z);
       return pt;
    }
-   public static Vector3 ToVector (this Point3 val) => new Vector3 (val.X, val.Y, val.Z);
+   public static Vector3 ToVector (this Point3 val) => new (val.X, val.Y, val.Z);
    public static Point2 Subtract (this Point2 val, Point2 sub) {
       Point2 pt = new (val.X - sub.X, val.Y - sub.Y);
       return pt;
@@ -138,6 +140,20 @@ public class NotchCreationFailedException : Exception {
    public NotchCreationFailedException (string message, Exception innerException)
        : base (message, innerException) { }
 }
+
+public class InfeasibleCutoutException : Exception {
+   // Parameterless constructor
+   public InfeasibleCutoutException () { }
+
+   // Constructor with a message
+   public InfeasibleCutoutException (string message)
+       : base (message) { }
+
+   // Constructor with a message and an inner exception
+   public InfeasibleCutoutException (string message, Exception innerException)
+       : base (message, innerException) { }
+}
+
 public enum OrdinateAxis {
    Y, Z
 }
@@ -166,12 +182,6 @@ public enum EMove {
    None
 }
 
-public enum EFeatureType {
-   Hole,
-   Notch,
-   Cutout,
-   None
-}
 /// <summary>
 /// Represents the drawable information of a G-Code segment, 
 /// which is used for simulation purposes.
@@ -784,7 +794,7 @@ public static class Utils {
       return new (newToolingEntryPoint, scrapSideDirection);
    }
 
-   public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EFeatureType featType, ECutKind profileKind = ECutKind.None) {
+   public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EKind featType, ECutKind profileKind = ECutKind.None) {
       var toolingPlaneNormal = ts.Vec0;
       if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal))
          throw new Exception ("In GetMaterialRemovalSideDirection: The given point is not on the Tool Segment's Curve");
@@ -808,14 +818,14 @@ public static class Utils {
       var biNormal = Geom.Cross (toolingDir, toolingPlaneNormal).Normalized ();
       Vector3 scrapSideDirection = biNormal.Normalized ();
 
-      if (featType == EFeatureType.Notch) {
+      if (featType == EKind.Notch) {
          // The profile is clockwise
          if (profileKind == ECutKind.Top2YNeg && Geom.Cross (toolingDir, biNormal).IsSameSense (toolingPlaneNormal))
             scrapSideDirection = -biNormal;
          // The profile is counter-clockwise
          else if ((profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top) && Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
             scrapSideDirection = -biNormal;
-      } else if (featType == EFeatureType.Cutout) {
+      } else if (featType == EKind.Cutout) {
          // The profile is always counter-clockwise
          scrapSideDirection = -biNormal;
       }
@@ -1117,7 +1127,7 @@ public static class Utils {
          );
 
          if (twoFlangeNotchStartAndEndOnSameSideFlange)
-            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EFeatureType.Notch, toolingItem.ProfileKind);
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EKind.Notch, toolingItem.ProfileKind);
          else
             scrapsideMaterialDir = vectorOutwardAtSpecPoint;
 
@@ -1175,7 +1185,7 @@ public static class Utils {
          );
 
          if (twoFlangeNotchStartAndEndOnSameSideFlange)
-            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EFeatureType.Notch, toolingItem.ProfileKind);
+            scrapsideMaterialDir = GetMaterialRemovalSideDirection (segments[segIndex], notchPoint, EKind.Notch, toolingItem.ProfileKind);
          else
             scrapsideMaterialDir = vectorOutwardAtSpecPoint;
 
@@ -1300,8 +1310,6 @@ public static class Utils {
                                                     ref List<NotchPointInfo> notchPtsInfo,
                                                     double[] percentPos,
                                                     int[] segIndices,
-                                                    double curveLeastLength,
-                                                    bool wireJointCuts,
                                                     double tolerance = 1e-6) {
       List<Point3> nptInterestPts = [], nptPts = [];
       int[] newSegIndices = [.. segIndices];
@@ -1597,7 +1605,7 @@ public static class Utils {
    /// <returns>List of tooling segments, split.</returns>
    /// <exception cref="Exception">This exception is thrown if the tooling does not intersect
    /// between the X values stored in the tooling scope.</exception>
-   public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight, Bound3 bound, double tolerance = 1e-6) {
+   public static List<ToolingSegment> SplitNotchToScope (ToolingScope ts, bool isLeftToRight, double tolerance = 1e-6) {
       var segs = ts.Tooling.Segs; var toolingItem = ts.Tooling;
       List<ToolingSegment> resSegs = [];
       if (segs[^1].Curve.End.X < segs[0].Curve.Start.X && (ts.Tooling.ProfileKind == ECutKind.YPos || ts.Tooling.ProfileKind == ECutKind.YNeg))
@@ -2177,10 +2185,56 @@ public static class Utils {
          gcodeGen.ResetBookKeepers ();
       }
       if (gcodeGen.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
+#if DEBUG || TESTRELEASE
          var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-            gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-         mpc.ComputeQuasiOptimalCutScopes ();
-         mpc.GenerateGCode ();
+               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+         if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Spatial) {
+            mpc.ComputeQuasiOptimalCutScopes ();
+            mpc.GenerateGCode ();
+            double quasi_time = GuageTime ("Spatial", mpc);
+
+            if (mpc.ToolingScopes.Count < 300) {
+               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
+               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+               mpc.ComputeBranchAndBoundCutscopes ();
+               mpc.GenerateGCode ();
+               double bnb_time = GuageTime ("TimeOptimal", mpc);
+            } else {
+               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
+               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+               mpc.ComputeSpatialOptimizationCutscopes ();
+               mpc.GenerateGCode ();
+               double space_time = GuageTime ("TimeOptimal", mpc);
+            }
+         }
+         else {
+            if (mpc.ToolingScopes.Count < 300) {
+               mpc.ComputeBranchAndBoundCutscopes ();
+               mpc.GenerateGCode ();
+               double bnb_time = GuageTime ("TimeOptimal", mpc);
+            } else {
+               mpc.ComputeSpatialOptimizationCutscopes ();
+               mpc.GenerateGCode ();
+               double space_time = GuageTime ("TimeOptimal", mpc);
+            }
+
+            mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
+              gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+            mpc.ComputeQuasiOptimalCutScopes ();
+            mpc.GenerateGCode ();
+            double quasi_time = GuageTime ("Spatial", mpc);
+         }
+#else
+            var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
+               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+            if (mpc.ToolingScopes.Count < 300) {
+               mpc.ComputeBranchAndBoundCutscopes ();
+               mpc.GenerateGCode ();
+            } else {
+               mpc.ComputeSpatialOptimizationCutscopes ();
+               mpc.GenerateGCode ();
+            }
+#endif
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
       } else {
@@ -2194,6 +2248,105 @@ public static class Utils {
          gcodeGen.EnableMultipassCut = prevVal;
       }
       return traces;
+   }
+
+   /// <summary>Calculates machining, movement and idle time</summary>
+   /// <param name="name">Name of optimization used</param>
+   static double GuageTime (string name, MultiPassCuts mpc) {
+      double totalTime = 0, totalIdleTime = 0,
+      totalMachiningTime = 0, totalMovementTime = 0,
+      totalMachiningTimeHead1 = 0, totalMachiningTimeHead2 = 0,
+      totalMovementTimeHead1 = 0, totalMovementTimeHead2 = 0;
+      double idleTimeHead1 = 0, idleTimeHead2 = 0;
+
+      foreach (var cutscopeTrace in mpc.CutScopeTraces) {
+         double machiningTimeHead1 = 0, movementTimeHead1 = 0;
+         double machiningTimeHead2 = 0, movementTimeHead2 = 0;
+         if (cutscopeTrace[0] != null)
+            foreach (var gcodeSeg in cutscopeTrace[0])
+               if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
+                  machiningTimeHead1 += gcodeSeg.Length;
+               else movementTimeHead1 += gcodeSeg.Length;
+
+         if (cutscopeTrace[1] != null)
+            foreach (var gcodeSeg in cutscopeTrace[1])
+               if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
+                  machiningTimeHead2 += gcodeSeg.Length;
+               else movementTimeHead2 += gcodeSeg.Length;
+
+         machiningTimeHead1 = machiningTimeHead1 * mpc.MachiningTime;
+         machiningTimeHead2 = machiningTimeHead2 * mpc.MachiningTime;
+         movementTimeHead1 = movementTimeHead1 * mpc.MovementTime;
+         movementTimeHead2 = movementTimeHead2 * mpc.MovementTime;
+
+         totalTime += Math.Max (machiningTimeHead1 + movementTimeHead1, machiningTimeHead2 + movementTimeHead2);
+         //totalTime += mpc.InitiationTime;
+
+         var idleTime = (machiningTimeHead1 + movementTimeHead1) - (machiningTimeHead2 + movementTimeHead2);
+         if (idleTime > 0) idleTimeHead2 += idleTime;
+         else idleTimeHead1 += Math.Abs (idleTime);
+
+         totalMachiningTimeHead1 += machiningTimeHead1;
+         totalMachiningTimeHead2 += machiningTimeHead2;
+         totalMovementTimeHead1 += movementTimeHead1;
+         totalMovementTimeHead2 += movementTimeHead2;
+      }
+      totalMachiningTime = totalMachiningTimeHead1 + totalMachiningTimeHead2;
+      totalMovementTime = totalMovementTimeHead1 + totalMovementTimeHead2;
+      totalIdleTime = idleTimeHead1 + idleTimeHead2;
+      var timeStats = new Dictionary<string, double>
+      {
+         {"TotalTime", totalTime },
+         {"TotalIdleTime", totalIdleTime },
+         {"TotalMachiningTime", totalMachiningTime },
+         {"TotalMovementTime", totalMovementTime },
+
+         {"MachiningTimeHead1", totalMachiningTimeHead1 },
+         {"MovementTimeHead1", totalMovementTimeHead1 },
+         { "IdleTimeHead1", idleTimeHead1 },
+
+         { "MachiningTimeHead2", totalMachiningTimeHead2 },
+         {"MovementTimeHead2", totalMovementTimeHead2 },
+         {"IdleTimeHead2", idleTimeHead2 }
+      };
+
+      var filePath = "W:\\Fchassis\\" + mpc.mGC.Process.Workpiece.NCFileName + "_" + name + "_TimeStats.json";
+      Utils.WriteJsonFile<Dictionary<string, double>> (filePath, timeStats);
+      return totalTime;
+   }
+
+   /// <summary>
+   /// This method is to be used to read Json file and return the object
+   /// </summary>
+   /// <typeparam name="T"></typeparam>
+   /// <param name="filePath"></param>
+   /// <returns></returns>
+   /// <exception cref="FileNotFoundException"></exception>
+   public static T ReadJsonFile<T> (string filePath) {
+      try {
+         if (!File.Exists (filePath)) {
+            throw new FileNotFoundException ($"File not found: {filePath}");
+         }
+         var json = File.ReadAllText (filePath);
+         return JsonSerializer.Deserialize<T> (json);
+      } catch { return default; }
+   }
+
+   /// <summary>
+   /// This method is to write a given object to a json file
+   /// </summary>
+   /// <typeparam name="T">The type of the object to write</typeparam>
+   /// <param name="filePath">Json file path</param>
+   /// <param name="obj">Object to write</param>
+   /// <returns>A boolean representing the write operation status</returns>
+   public static bool WriteJsonFile<T> (string filePath, T obj, JsonSerializerOptions options = default) {
+      try {
+         var json = JsonSerializer.Serialize (obj, options);
+         File.WriteAllText (filePath, json);
+         return true;
+      } catch {
+         return false;
+      }
    }
 
    /// <summary>
@@ -2323,6 +2476,15 @@ public static class Utils {
                           Path.GetFileNameWithoutExtension (filePath));
    }
 
+   /// <summary>
+   /// This method is a helper one to figure out if the notch happens at the center of the 
+   /// part and if it is split. This may happen the LH and RH components are merged into a single component.
+   /// As part of the initial implementation strategy, a notch shall have "Split" key word 
+   /// int its name and shall have the parent unsplit notch
+   /// </summary>
+   /// <param name="toolingItem">Input tooling Item</param>
+   /// <param name="segs">Tooling Segments</param>
+   /// <returns></returns>
    public static bool IsDualFlangeSameSideNotch (Tooling toolingItem, List<ToolingSegment> segs) {
       if (toolingItem.NotchKind == ECutKind.Top2YNeg || toolingItem.NotchKind == ECutKind.Top2YPos) {
          if (segs[0].Vec0.Normalized ().EQ (segs[^1].Vec1.Normalized ()) &&
@@ -2337,5 +2499,23 @@ public static class Utils {
          }
       }
       return false;
+   }
+
+   /// <summary>
+   /// This method returns the length of the tooling segments specified from
+   /// start and end index. If they are specified as -1, this returns the 
+   /// length of all the segments
+   /// </summary>
+   /// <param name="toolingItem">The Tooling item whose length is to be measured</param>
+   /// <param name="startIndex"></param>
+   /// <param name="endIndex"></param>
+   /// <returns></returns>
+   public static double GetToolingLength (Tooling toolingItem, int startIndex = -1, int endIndex = -1) {
+      if (startIndex == -1 && endIndex == -1) return toolingItem.Perimeter;
+      if (startIndex == -1 || endIndex == -1) throw new Exception ("Start and End indices should be valid index");
+      double len = 0;
+      for (int ii = startIndex; ii <= endIndex; ii++)
+         len += toolingItem.Segs[startIndex].Curve.Length;
+      return len;
    }
 }

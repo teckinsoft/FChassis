@@ -1,4 +1,5 @@
-﻿using Flux.API;
+﻿using FChassis.Core.Geometries;
+using Flux.API;
 
 namespace FChassis.Core.Tools;
 

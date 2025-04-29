@@ -1,7 +1,5 @@
-﻿using System;
-using System.Linq;
-using Flux.API;
-
+﻿using Flux.API;
+using FChassis.Core.Geometries;
 namespace FChassis.Core;
 
 public readonly struct PointVec {
@@ -12,7 +10,7 @@ public readonly struct PointVec {
    public readonly double DistTo (PointVec rhs) => Pt.DistTo (rhs.Pt);
 }
 
-public enum EKind { Hole, Notch, Mark, Cutout };
+public enum EKind { Hole, Notch, Mark, Cutout, None };
 public enum ECutKind {
    Top2YNeg, YNegToYPos, Top,
    YPos, YNeg, Top2YPos, YPosFlex, YNegFlex, None
@@ -66,13 +64,13 @@ public class Tooling {
          ProfileKind = this.ProfileKind,
          CutoutKind = this.CutoutKind,
          mPerimeter = this.mPerimeter,
-         mSegs = this.mSegs.Select (seg => new ToolingSegment (Geom.CloneCurve (seg.Curve, seg.Vec0), seg.Vec0, seg.Vec1)).ToList (),
+         mSegs = [.. this.mSegs.Select (seg => new ToolingSegment (Geom.CloneCurve (seg.Curve, seg.Vec0), seg.Vec0, seg.Vec1))],
          mBound3 = this.mBound3,
          mName = this.mName,
          IsSingleHead1 = this.IsSingleHead1,
          IsSingleHead2 = this.IsSingleHead2,
          mHead = this.mHead,
-         PostRoute = this.PostRoute.Select (pv => new PointVec (pv.Pt, pv.Vec)).ToList (),
+         PostRoute = [.. this.PostRoute.Select (pv => new PointVec (pv.Pt, pv.Vec))],
          ShouldConsiderReverseRef = this.ShouldConsiderReverseRef
       };
 
@@ -97,7 +95,7 @@ public class Tooling {
    public List<ToolingSegment> Segs {
       get {
          if (mSegs.Count == 0)
-            mSegs = ExtractSegs.ToList ();
+            mSegs = [.. ExtractSegs];
          return mSegs;
       }
 
@@ -368,7 +366,7 @@ public class Tooling {
       // Note: Segs is the most recent recomputed segments 
       // list. So, Segs will not be overwritten from Tooling.
       if (Segs.Count == 0)
-         Segs = ExtractSegs.ToList ();
+         Segs = [.. ExtractSegs];
       else
          Segs = Geom.GetReversedToolingSegments (Segs);
    }

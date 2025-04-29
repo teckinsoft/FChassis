@@ -1,15 +1,9 @@
-﻿using System.CodeDom;
-using System.Net;
-
-using MathNet.Numerics.LinearAlgebra;
+﻿using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
-
 using Flux.API;
-
 using static FChassis.Core.Utils;
 
-
-namespace FChassis.Core;
+namespace FChassis.Core.Geometries;
 
 public static class IntExtensions {
    public static int Clamp (this int a, int min, int max) {
@@ -71,14 +65,14 @@ public static class Vector3Extensions {
       v1 = v1.Normalized (); v2 = v2.Normalized ();
       return v1.X.EQ (v2.X, tolerance) && v1.Y.EQ (v2.Y, tolerance) && v1.Z.EQ (v2.Z, tolerance);
    }
-   public static bool Aligned (this Vector3 l, Vector3 r, double tolerance = 1e-6) {
+   public static bool Aligned (this Vector3 l, Vector3 r) {
       l = l.Normalized ();
       r = r.Normalized ();
       if (l.Opposing (r)) return false;
       return true;
    }
 
-   public static Vector3 Cross(this Vector3 v1, Vector3 v2) {
+   public static Vector3 Cross (this Vector3 v1, Vector3 v2) {
       return Geom.Cross (v1, v2);
    }
 
@@ -778,7 +772,7 @@ public class Geom {
             .ToList ();
       distinctInterPoints.RemoveAll (p => p.EQ (curve.Start) == true || p.EQ (curve.End) == true);
       if (curve is Arc3) return [.. SplitArc (curve as Arc3, distinctInterPoints, deltaBetween, fpn).Select (cr => (cr as Curve3))];
-      else return [.. SplitLine(curve as Line3, distinctInterPoints, deltaBetween).Select(cr => (cr as Curve3))];
+      else return [.. SplitLine (curve as Line3, distinctInterPoints, deltaBetween).Select (cr => (cr as Curve3))];
    }
 
    /// <summary>
@@ -1134,8 +1128,6 @@ public class Geom {
             return Clamp (minP, maxP, partBBox);
          }
       } else {
-         // Line
-         //var line = curve as Line3;
          List<Point3> points = [];
          points.Add (curve.Start); points.Add (curve.End);
          Bound3 bbox = new (points);
@@ -1417,8 +1409,7 @@ public class Geom {
       return res;
    }
 
-   public static Tuple<Point3, int> GetPointAtLengthFrom (Point3 iPoint, double iLength, List<ToolingSegment> segs,
-      bool reverseTrace = false, double minimumCurveLength = 0.5, double tolerance = 1e-6) {
+   public static Tuple<Point3, int> GetPointAtLengthFrom (Point3 iPoint, double iLength, List<ToolingSegment> segs) {
       Tuple<Point3, int> res;
       if (segs.Count == 2 || segs.Count == 1) {
          Curve3 crv;

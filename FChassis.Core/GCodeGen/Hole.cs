@@ -79,7 +79,7 @@ public class Hole : ToolingFeature {
       GCGen.InitializeToolingBlock (ToolingItem, mPrevToolingItem, /*frameFeed,*/
                mXStart, mXPartition, mXEnd, ToolingSegments, isValidNotch: false, isFlexCut: false,
                mIsLastToolingItem/*, isToBeTreatedAsCutOut: false*/);
-
+      GCGen.RapidMoveToPiercingPositionWithPingPong = false;
       if (ToolingSegments == null || ToolingSegments?.Count == 0) return;
 
       GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, mPrevToolingSegment, mPrevToolingItem,
@@ -90,14 +90,13 @@ public class Hole : ToolingFeature {
       // If we are reversing y and not reversing x. We are in 4th quadrant. Flip 42 or 41
       // Tool diameter compensation
       var isFromWebNotch = Utils.IsMachiningFromWebFlange (ToolingSegments, 0);
-      if (GCGen.IsRapidMoveToPiercingPositionWithPingPong)
+      if (GCGen.RapidMoveToPiercingPositionWithPingPong)
          GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch, isFlexTooling: false);
       else {
-         GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: true);
+         GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Hole, usePingPongOption: true);
          GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch, isFlexTooling: false);
       }
-      GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, usePingPongOption: false);
-
+      
       // ** Machining **
       if (GCGen.CreateDummyBlock4Master) return;
       mLastToolingSegment = GCGen.WriteTooling (ToolingSegments, ToolingItem);

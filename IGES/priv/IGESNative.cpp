@@ -219,6 +219,126 @@ class OCCTUtils {
 
       return fusedShape;
    }
+
+   static TopoDS_Shape HandleIntersectingBoundingCurves(const TopoDS_Shape& shape, double tolerance) {
+      auto cpShape = OCCTUtils::CopyShape(shape);
+
+      // Step 1: Sew gaps between surfaces
+      BRepBuilderAPI_Sewing sewing(tolerance);
+      sewing.Add(cpShape);
+      sewing.Perform();
+      TopoDS_Shape sewedShape = sewing.SewedShape();
+
+      // Step 2: Fuse surfaces to create a single solid
+      BRepAlgoAPI_Fuse fuse(sewedShape, sewedShape); // Self-fuse
+      fuse.Build();
+      cpShape = fuse.Shape();
+
+      // Step 3: Refine the shape to remove small edges
+      ShapeUpgrade_UnifySameDomain unify(cpShape, Standard_True, Standard_True, Standard_False);
+      unify.Build();
+      cpShape = unify.Shape();
+      if (!OCCTUtils::IsShapeValid(cpShape))
+         throw std::runtime_error("Boolean union of parts failed");
+
+      // Step 4: Heal the shape to fix gaps and ensure continuity
+      Handle(ShapeFix_Shape) shapeFix = new ShapeFix_Shape(cpShape);
+      shapeFix->SetPrecision(1e-3); // Set tolerance for fixing gaps
+      shapeFix->Perform(); // Perform the healing operation
+
+      return shapeFix->Shape();
+   }
+
+   static bool HasMultipleConnectedComponents(const TopoDS_Shape& shape) {
+      int solidCount = 0;
+
+      // Traverse the shape to count solids
+      for (TopExp_Explorer explorer(shape, TopAbs_SOLID); explorer.More(); explorer.Next()) {
+         solidCount++;
+         if (solidCount > 1)
+            return true;  // More than one solid found
+      }
+
+      return false;  // Only one or no solid found
+   }
+
+   static bool DoesVectorIntersectShape(const TopoDS_Shape& shape, const gp_Pnt& point,
+      const gp_Dir& direction, gp_Pnt& intersectionPoint) {
+      // Create a line from the point and direction
+      Handle(Geom_Line) geomLine = new Geom_Line(point, direction);
+
+      // Variable to store the closest intersection point and minimum distance
+      gp_Pnt closestIntersection;
+      double minDistanceSquared = std::numeric_limits<double>::max();
+      bool intersectionFound = false;
+
+      // Iterate over all faces in the shape
+      for (TopExp_Explorer faceExplorer(shape, TopAbs_FACE); faceExplorer.More(); faceExplorer.Next()) {
+         const TopoDS_Face& face = TopoDS::Face(faceExplorer.Current());
+
+         // Get the geometric surface of the face
+         Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
+         if (surface.IsNull())
+            continue; // Skip invalid surfaces
+
+         // Check intersection of the line with the surface
+         GeomAPI_IntCS intersectionChecker(geomLine, surface);
+
+         // If there is an intersection
+         if (intersectionChecker.IsDone() && intersectionChecker.NbPoints() > 0) {
+            for (int i = 1; i <= intersectionChecker.NbPoints(); ++i) {
+               gp_Pnt candidatePoint = intersectionChecker.Point(i);
+
+               // Calculate the vector from the line origin to the intersection point
+               gp_Vec toIntersection(point, candidatePoint);
+
+               // Check if the vector aligns with the specified direction
+               if (toIntersection * direction > 0) { // Dot product must be positive
+                  // Calculate the squared distance
+                  double distanceSquared = toIntersection.SquareMagnitude();
+
+                  // Update the closest point if this one is nearer
+                  if (distanceSquared < minDistanceSquared) {
+                     minDistanceSquared = distanceSquared;
+                     closestIntersection = candidatePoint;
+                     intersectionFound = true;
+                  }
+               }
+            }
+         }
+      }
+
+      // If an intersection was found, update the output parameter
+      if (intersectionFound) {
+         intersectionPoint = closestIntersection;
+         return true;
+      }
+
+      // No valid intersection found
+      return false;
+   }
+
+   static int ScrewRotationAboutMidPart(TopoDS_Shape& shape, const gp_Pnt& pt,
+      const gp_Dir& parallelaxis, double angleDegrees) {
+      g_Status.errorNo = IGESStatus::NoError;
+      if (shape.IsNull())
+         return g_Status.SetError(IGESStatus::ShapeError, "No mShapeLeft is loaded to apply screw rotation");
+
+      // Define the axis of rotation (parallel to Z-axis)
+      gp_Ax1 rotationAxis(pt, parallelaxis);
+
+      // Create the rotation transformation
+      gp_Trsf rotationTrsf;
+      rotationTrsf.SetRotation(rotationAxis, angleDegrees * M_PI / 180.0); // Convert degrees to radians
+
+      // Apply the rotation to the shape
+      BRepBuilderAPI_Transform rotator(shape, rotationTrsf, true);
+      TopoDS_Shape rotatedShape = rotator.Shape();
+
+      // Replace the original shape with the rotated shape
+      shape = TopoDS_Shape(rotatedShape);
+      return g_Status.errorNo;
+   }
 };
 
 // Private implementation class ( forward declared in header )
@@ -593,9 +713,9 @@ int IGESNative::AlignToXYPlane(int pNo /*= 0*/) {
    gp_Pnt fromPt(xmid, ymid, zmid);
    gp_Dir fromPtDirNegZ(0, 0, -1);
    gp_Pnt ixnPt;
-   if (doesVectorIntersectShape(shape, fromPt, fromPtDirNegZ, ixnPt)) {
+   if (OCCTUtils::DoesVectorIntersectShape(shape, fromPt, fromPtDirNegZ, ixnPt)) {
       auto xAxis = gp_Dir(1, 0, 0);
-      screwRotationAboutMidPart(shape, fromPt, xAxis, 180);
+      OCCTUtils::ScrewRotationAboutMidPart(shape, fromPt, xAxis, 180);
    }
 
    this->pShape->SetShape((IGESShapePimpl::ShapeType)pNo, shape);
@@ -644,10 +764,7 @@ int IGESNative::UnionShapes() {
       throw NoPartLoadedException(1);
 
    auto d = OCCTUtils::EdgeMidpointDistance(leftShape, rightShape);
-   double trans = 0;
-   if (d < 0.5) trans = 2.5 * d;
-   else if (d < 0.9) trans = 1 + d;
-   TopoDS_Shape translatedRightShape = OCCTUtils::TranslateAlongX(rightShape, -2.0 * d); // Translate by -1.0 mm along X-axis
+   TopoDS_Shape translatedRightShape = OCCTUtils::TranslateAlongX(rightShape, -(d+0.01)); // Translate by -1.0 mm along X-axis
 
    // Perform the initial union operation
    BRepAlgoAPI_Fuse fuser(leftShape, translatedRightShape);
@@ -676,7 +793,7 @@ int IGESNative::UnionShapes() {
 
    // Call the function to handle intersecting bounding curves
    double tolerance = 1e-1; // Adjust the tolerance as needed
-   this->handleIntersectingBoundingCurves(fusedShape, tolerance);
+   fusedShape = OCCTUtils::HandleIntersectingBoundingCurves(fusedShape, tolerance);
 
    // Check for multiple connected components
    TopTools_IndexedMapOfShape solids;
@@ -712,33 +829,13 @@ int IGESNative::UnionShapes() {
    if (!analyzer.IsValid())
       return g_Status.SetError(IGESStatus::FuseError, "Final fused shape is invalid");
 
-   if (hasMultipleConnectedComponents(fusedShape))
+   if (OCCTUtils::HasMultipleConnectedComponents(fusedShape))
       return g_Status.SetError(IGESStatus::FuseError, "Fused shape contains multiple connected components");
 
    return g_Status.errorNo;
 }
 
-int IGESNative::screwRotationAboutMidPart(TopoDS_Shape& shape, const gp_Pnt& pt,
-   const gp_Dir& parallelaxis, double angleDegrees) {
-   g_Status.errorNo = IGESStatus::NoError;
-   if (shape.IsNull())
-      return g_Status.SetError(IGESStatus::ShapeError, "No mShapeLeft is loaded to apply screw rotation");
 
-   // Define the axis of rotation (parallel to Z-axis)
-   gp_Ax1 rotationAxis(pt, parallelaxis);
-
-   // Create the rotation transformation
-   gp_Trsf rotationTrsf;
-   rotationTrsf.SetRotation(rotationAxis, angleDegrees * M_PI / 180.0); // Convert degrees to radians
-
-   // Apply the rotation to the shape
-   BRepBuilderAPI_Transform rotator(shape, rotationTrsf, true);
-   TopoDS_Shape rotatedShape = rotator.Shape();
-
-   // Replace the original shape with the rotated shape
-   shape = TopoDS_Shape(rotatedShape);
-   return g_Status.errorNo;
-}
 
 int IGESNative::mirror(TopoDS_Shape leftShape) {
    // Compute the bounding box of the left shape
@@ -768,125 +865,9 @@ int IGESNative::mirror(TopoDS_Shape leftShape) {
    return g_Status.errorNo;
 }
 
-bool IGESNative::hasMultipleConnectedComponents(const TopoDS_Shape& shape) {
-   int solidCount = 0;
 
-   // Traverse the shape to count solids
-   for (TopExp_Explorer explorer(shape, TopAbs_SOLID); explorer.More(); explorer.Next()) {
-      solidCount++;
-      if (solidCount > 1)
-         return true;  // More than one solid found
-   }
 
-   return false;  // Only one or no solid found
-}
 
-bool IGESNative::isPointOnAnySurface(const TopoDS_Shape& shape, const gp_Pnt& point, double tolerance) {
-   for (TopExp_Explorer explorer(shape, TopAbs_FACE); explorer.More(); explorer.Next()) {
-      const TopoDS_Face& face = TopoDS::Face(explorer.Current());
-
-      Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
-
-      if (!surface.IsNull()) {
-         GeomAPI_ProjectPointOnSurf projector;
-         projector.Init(point, surface);
-
-         if (projector.NbPoints() > 0 && projector.LowerDistance() <= tolerance)
-            return true;
-      }
-   }
-   return false;
-}
-
-bool IGESNative::doesVectorIntersectShape(const TopoDS_Shape& shape, const gp_Pnt& point,
-   const gp_Dir& direction, gp_Pnt& intersectionPoint) {
-   // Create a line from the point and direction
-   Handle(Geom_Line) geomLine = new Geom_Line(point, direction);
-
-   // Variable to store the closest intersection point and minimum distance
-   gp_Pnt closestIntersection;
-   double minDistanceSquared = std::numeric_limits<double>::max();
-   bool intersectionFound = false;
-
-   // Iterate over all faces in the shape
-   for (TopExp_Explorer faceExplorer(shape, TopAbs_FACE); faceExplorer.More(); faceExplorer.Next()) {
-      const TopoDS_Face& face = TopoDS::Face(faceExplorer.Current());
-
-      // Get the geometric surface of the face
-      Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
-      if (surface.IsNull())
-         continue; // Skip invalid surfaces
-
-      // Check intersection of the line with the surface
-      GeomAPI_IntCS intersectionChecker(geomLine, surface);
-
-      // If there is an intersection
-      if (intersectionChecker.IsDone() && intersectionChecker.NbPoints() > 0) {
-         for (int i = 1; i <= intersectionChecker.NbPoints(); ++i) {
-            gp_Pnt candidatePoint = intersectionChecker.Point(i);
-
-            // Calculate the vector from the line origin to the intersection point
-            gp_Vec toIntersection(point, candidatePoint);
-
-            // Check if the vector aligns with the specified direction
-            if (toIntersection * direction > 0) { // Dot product must be positive
-               // Calculate the squared distance
-               double distanceSquared = toIntersection.SquareMagnitude();
-
-               // Update the closest point if this one is nearer
-               if (distanceSquared < minDistanceSquared) {
-                  minDistanceSquared = distanceSquared;
-                  closestIntersection = candidatePoint;
-                  intersectionFound = true;
-               }
-            }
-         }
-      }
-   }
-
-   // If an intersection was found, update the output parameter
-   if (intersectionFound) {
-      intersectionPoint = closestIntersection;
-      return true;
-   }
-
-   // No valid intersection found
-   return false;
-}
-
-void IGESNative::handleIntersectingBoundingCurves(TopoDS_Shape& shape, double tolerance) {
-   auto cpShape = OCCTUtils::CopyShape(shape);
-
-   // Step 1: Sew gaps between surfaces
-   BRepBuilderAPI_Sewing sewing(tolerance);
-   sewing.Add(cpShape);
-   sewing.Perform();
-   TopoDS_Shape sewedShape = sewing.SewedShape();
-
-   // Step 2: Fuse surfaces to create a single solid
-   BRepAlgoAPI_Fuse fuse(sewedShape, sewedShape); // Self-fuse
-   fuse.Build();
-   cpShape = fuse.Shape();
-
-   // Step 3: Refine the shape to remove small edges
-   ShapeUpgrade_UnifySameDomain unify(cpShape, Standard_True, Standard_True, Standard_False);
-   unify.Build();
-   cpShape = unify.Shape();
-   if (!OCCTUtils::IsShapeValid(cpShape))
-      return;
-
-   // Step 1: Heal the shape to fix gaps and ensure continuity
-   Handle(ShapeFix_Shape) shapeFix = new ShapeFix_Shape(cpShape);
-   shapeFix->SetPrecision(1e-3); // Set tolerance for fixing gaps
-   shapeFix->Perform(); // Perform the healing operation
-   TopoDS_Shape healedShape = shapeFix->Shape();
-
-   // Step 2: Refine the healed shape
-   unify = ShapeUpgrade_UnifySameDomain(healedShape, Standard_True, Standard_True, Standard_False);
-   unify.Build();
-
-   shape = unify.Shape();
-}
 
 // Function to compute the bounding box dimensions of a face
 static SurfaceInfo computeBoundingBox(const TopoDS_Face& face) {
@@ -1097,11 +1078,11 @@ void IGESNative::RotatePartByAxis(TopoDS_Shape& shape, double deg, EAxis axis) {
    if (axis == EAxis::Z) {
       pt = gp_Pnt(xMid, yMid, 0);
       gpAxis = gp_Dir(0, 0, 1);
-      screwRotationAboutMidPart(shape, pt, gpAxis, 180);
+      OCCTUtils::ScrewRotationAboutMidPart(shape, pt, gpAxis, 180);
    }
    else if (axis == EAxis::X) {
       pt = gp_Pnt(xMid, yMid, zMid);
       gpAxis = gp_Dir(1, 0, 0);
-      screwRotationAboutMidPart(shape, pt, gpAxis, 180);
+      OCCTUtils::ScrewRotationAboutMidPart(shape, pt, gpAxis, 180);
    }
 }
