@@ -53,9 +53,9 @@
             </MenuItem>
         </Menu>
         <DockPanel DockPanel.Dock="Left">
-            <Button DockPanel.Dock="Bottom" Click="DoRefresh" Margin="0,0,0,0" Height="22" Width="95">Refresh</Button>
+            <Button DockPanel.Dock="Bottom" Click="DoRefresh" Margin="4,4,4,0">Refresh</Button>
             <!-- Simulate Button -->
-            <Button DockPanel.Dock="Bottom" Margin="4" Content="Simulate" Click="Simulate"
+            <Button DockPanel.Dock="Bottom" Margin="4,4,4,0" Content="Simulate" Click="Simulate"
                         Visibility="{Binding SimulationStatus, Converter={StaticResource SimulationStatusToVisibilityConverter}, ConverterParameter='Simulate'}" />
             <!-- Pause Button -->
             <Button DockPanel.Dock="Bottom" Content="Pause" Click="PauseSimulation" Margin="4,4,4,0"

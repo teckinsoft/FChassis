@@ -361,7 +361,7 @@ class IGESShapePimpl {
    Handle(Aspect_DisplayConnection) displayConnection;
    Handle(OpenGl_GraphicDriver) graphicDriver;
    Handle(V3d_Viewer) viewer; // Open CASCADE viewer
-   Handle(V3d_View) view; 
+   Handle(V3d_View) view;
    Handle(WNT_Window) viewWindow;
    Handle(AIS_InteractiveContext) context; // AIS Context14
    BRepAlgoAPI_Fuse fuser;
@@ -397,13 +397,11 @@ class IGESShapePimpl {
       this->viewer = viewer;
    }
 
-   void SetView() {
-      
-   }
+   void SetView() {}
 
-   void SetDispObject(Handle(Aspect_DisplayConnection) displayConnection, 
-                      Handle(OpenGl_GraphicDriver) graphicDriver, 
-                      Handle(V3d_View)& view, Handle(WNT_Window) viewWindow) {
+   void SetDispObject(Handle(Aspect_DisplayConnection) displayConnection,
+      Handle(OpenGl_GraphicDriver) graphicDriver,
+      Handle(V3d_View)& view, Handle(WNT_Window) viewWindow) {
       this->displayConnection = displayConnection;
       this->graphicDriver = graphicDriver;
       this->view = view;
@@ -547,16 +545,60 @@ void IGESNative::ResizeView() {
    }
 }
 
-void addOrReplaceShape_(Handle(AIS_InteractiveContext) context, const TopoDS_Shape& shape) {
+void addOrReplaceShape_(Handle(AIS_InteractiveContext) context, IGESShapePimpl* pShape) {
    // Clear existing shapes
    context->RemoveAll(true);
 
-   if (shape.IsNull())
+   // Check priority: Fused shape (index 2) first
+   TopoDS_Shape fusedShape = pShape->GetShape(IGESShapePimpl::ShapeType::Fused);
+   if (!fusedShape.IsNull()) {
+      Handle(AIS_Shape) aisShape = new AIS_Shape(fusedShape);
+      context->Display(aisShape, Standard_False);
+      context->SetDisplayMode(aisShape, AIS_Shaded, Standard_False);
       return;
+   }
 
-   Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
-   context->Display(aisShape, Standard_False);
-   context->SetDisplayMode(aisShape, AIS_Shaded, Standard_False);
+   // If no fused shape, display left (0) and right (1) if they exist
+   TopoDS_Shape leftShape = pShape->GetShape(IGESShapePimpl::ShapeType::Left);
+   if (!leftShape.IsNull()) {
+      Handle(AIS_Shape) aisLeftShape = new AIS_Shape(leftShape);
+      context->Display(aisLeftShape, Standard_False);
+      context->SetDisplayMode(aisLeftShape, AIS_Shaded, Standard_False);
+   }
+
+   TopoDS_Shape rightShape = pShape->GetShape(IGESShapePimpl::ShapeType::Right);
+   if (!rightShape.IsNull()) {
+      Handle(AIS_Shape) aisRightShape = new AIS_Shape(rightShape);
+      context->Display(aisRightShape, Standard_False);
+      context->SetDisplayMode(aisRightShape, AIS_Shaded, Standard_False);
+   }
+
+   // Get the view from the context
+   Handle(V3d_View) view;
+   V3d_ListOfView activeViews = context->CurrentViewer()->ActiveViews();
+   if (!activeViews.IsEmpty()) {
+      view = activeViews.First();
+   }
+   else {
+      view = context->CurrentViewer()->CreateView();
+   }
+
+   //// Create and configure the camera
+   //Handle(Graphic3d_Camera) camera = view->Camera();
+
+   //// Set eye position (-10, 50, 10)
+   //camera->SetEye(gp_Pnt(-10, 50, 10));
+
+   //// Set target point (10, 0, 0)
+   //camera->SetCenter(gp_Pnt(10.0, 0.0, 0.0));
+
+   //// Set up direction (Z-axis)
+   //camera->SetUp(gp_Dir(0.0, 0.0, 1.0));
+
+   // Apply the camera to the view
+   //view->SetCamera(camera);
+   view->FitAll(0.1, Standard_True);  // Fit all with 10% margin
+   view->Redraw();
 }
 
 // File handling
@@ -573,12 +615,12 @@ int IGESNative::LoadIGES(const std::string& filePath, int pNo /*= 0*/) {
    this->pShape->SetShape((IGESShapePimpl::ShapeType)pNo, shape);
 
 
-   auto viewer = pShape->GetViewer();
+   /*auto viewer = pShape->GetViewer();
    auto context = pShape->GetContext();
    if (!context.IsNull())
-      addOrReplaceShape_(context, shape);
+      addOrReplaceShape_(context, this->pShape);*/
 
-   // Any lew loading of Part 1 or 2, fused part should be set to null
+      // Any lew loading of Part 1 or 2, fused part should be set to null
    shape.Nullify();
    this->pShape->SetShape((IGESShapePimpl::ShapeType::Fused), shape);
 
@@ -740,6 +782,11 @@ int IGESNative::AlignToXYPlane(int pNo /*= 0*/) {
       part2Shape = shapeTransformer.Shape(); // Update the shape with the transformed shape
       this->pShape->SetShape((IGESShapePimpl::ShapeType::Right), part2Shape);
    }
+
+   auto viewer = pShape->GetViewer();
+   auto context = pShape->GetContext();
+   if (!context.IsNull())
+      addOrReplaceShape_(context, this->pShape);
    return 0;
 }
 
@@ -764,7 +811,7 @@ int IGESNative::UnionShapes() {
       throw NoPartLoadedException(1);
 
    auto d = OCCTUtils::EdgeMidpointDistance(leftShape, rightShape);
-   TopoDS_Shape translatedRightShape = OCCTUtils::TranslateAlongX(rightShape, -(d+0.01)); // Translate by -1.0 mm along X-axis
+   TopoDS_Shape translatedRightShape = OCCTUtils::TranslateAlongX(rightShape, -(d + 0.01)); // Translate by -1.0 mm along X-axis
 
    // Perform the initial union operation
    BRepAlgoAPI_Fuse fuser(leftShape, translatedRightShape);
@@ -835,8 +882,6 @@ int IGESNative::UnionShapes() {
    return g_Status.errorNo;
 }
 
-
-
 int IGESNative::mirror(TopoDS_Shape leftShape) {
    // Compute the bounding box of the left shape
    auto [xmin, ymin, zmin, xmax, ymax, zmax] = this->pShape->GetBBoxComp(leftShape);
@@ -864,10 +909,6 @@ int IGESNative::mirror(TopoDS_Shape leftShape) {
 
    return g_Status.errorNo;
 }
-
-
-
-
 
 // Function to compute the bounding box dimensions of a face
 static SurfaceInfo computeBoundingBox(const TopoDS_Face& face) {
@@ -1046,10 +1087,12 @@ void IGESNative::Pan(int dx, int dy) {
 
 // Rotate part about Z axis passing through center - Yaw 180
 int IGESNative::YawBy180(int shapeType) {
-   return RotatePartByAxis(shapeType, 180, EAxis::Z); }
+   return RotatePartByAxis(shapeType, 180, EAxis::Z);
+}
 
 int IGESNative::RollBy180(int shapeType) {
-   return RotatePartByAxis(shapeType, 180, EAxis::X);}
+   return RotatePartByAxis(shapeType, 180, EAxis::X);
+}
 
 int IGESNative::RotatePartByAxis(int shapeType, double deg, EAxis axis) {
    TopoDS_Shape shape;
@@ -1060,7 +1103,7 @@ int IGESNative::RotatePartByAxis(int shapeType, double deg, EAxis axis) {
    RotatePartByAxis(shape, 180, axis);
    this->pShape->SetShape((IGESShapePimpl::ShapeType)shapeType, shape);
    auto context = this->pShape->GetContext();
-   addOrReplaceShape_(context, shape);
+   addOrReplaceShape_(context, this->pShape);
    return 0;
 }
 

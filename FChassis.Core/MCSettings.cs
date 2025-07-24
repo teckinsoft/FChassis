@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.Text;
 using MessagePack;
+using System.Reflection;
 
 namespace FChassis.Core;
 
@@ -620,15 +621,19 @@ public partial class MCSettings : INotifyPropertyChanged {
    [IgnoreMember] // Ignore this field for MessagePack serialization
    double mMachiningSpeed = 2.4;
 
-   [JsonPropertyName ("machiningSpeed")]
+   [JsonPropertyName ("optimizerType")]
    [Key (96)]
-   public EOptimize OptimizerType{
-      get => mOptimizerType;
-      set => SetProperty (ref mOptimizerType, value);
+   public EOptimize OptimizerType {
+      get {
+         return mOptimizerType;
+      }
+      set {
+         SetProperty (ref mOptimizerType, value);
+      }
    }
 
    [IgnoreMember] // Ignore this field for MessagePack serialization
-   EOptimize mOptimizerType = EOptimize.Spatial;
+   EOptimize mOptimizerType = EOptimize.Time;
    #endregion
 
    #region Data Members
@@ -645,6 +650,38 @@ public partial class MCSettings : INotifyPropertyChanged {
       // Write the binary JSON to the file
       File.WriteAllBytes (filePath, binaryJson);
    }
+   public void SaveToJsonASCII (string filePath) {
+      // JSON serializer options
+      var jsonOptions = new JsonSerializerOptions {
+         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // Ensures ASCII encoding
+         WriteIndented = true, // Optional: pretty-printed JSON for readability
+      };
+
+      // Get the properties that are marked with both [JsonPropertyName] and [Key]
+      var properties = typeof (MCSettings)
+          .GetProperties ()
+          .Where (p => p.GetCustomAttribute<JsonPropertyNameAttribute> () != null
+                   && p.GetCustomAttribute<KeyAttribute> () != null)
+          .ToList ();
+
+      // Create a dictionary to store the filtered properties and their values
+      var jsonObject = new Dictionary<string, object> ();
+
+      foreach (var prop in properties) {
+         var value = prop.GetValue (It); // Get the value of the property
+         var jsonPropertyName = prop.GetCustomAttribute<JsonPropertyNameAttribute> ().Name; // Get the JsonPropertyName
+         jsonObject[jsonPropertyName] = value; // Add the value to the dictionary
+      }
+
+      // Serialize the filtered properties to JSON
+      string jsonString = JsonSerializer.Serialize (jsonObject, jsonOptions);
+
+      // Ensure ASCII encoding (non-ASCII chars replaced with '?')
+      byte[] asciiBytes = Encoding.ASCII.GetBytes (jsonString);
+
+      // Write the ASCII bytes to the specified file
+      File.WriteAllBytes (filePath, asciiBytes);
+   }
 
    public void LoadFromJson (string filePath) {
       if (File.Exists (filePath)) {
@@ -657,12 +694,11 @@ public partial class MCSettings : INotifyPropertyChanged {
          // Check if the file is binary JSON (e.g., MessagePack) or ASCII JSON
          bool isBinary = IsBinaryFile (fileBytes);
 
-         MCSettings settings;
 
          if (isBinary) {
             // Deserialize from binary JSON (e.g., MessagePack)
             try {
-               settings = MessagePackSerializer.Deserialize<MCSettings> (fileBytes);
+               sIt = MessagePackSerializer.Deserialize<MCSettings> (fileBytes);
             } catch (MessagePackSerializationException ex) {
                throw new InvalidOperationException ("Failed to deserialize binary JSON.", ex);
             }
@@ -670,21 +706,16 @@ public partial class MCSettings : INotifyPropertyChanged {
             // Deserialize from ASCII JSON
             try {
                var json = Encoding.UTF8.GetString (fileBytes);
-               settings = JsonSerializer.Deserialize<MCSettings> (json, mJSONReadOptions);
+               sIt = JsonSerializer.Deserialize<MCSettings> (json, mJSONReadOptions);
             } catch (JsonException ex) {
                throw new InvalidOperationException ("Failed to deserialize ASCII JSON.", ex);
             }
-         }
-
-         if (settings != null) {
-            // Update current instance fields with deserialized values
-            UpdateFields (settings);
          }
       }
    }
 
    // Helper method to determine if a file is binary
-   private bool IsBinaryFile (byte[] fileBytes) {
+   public static bool IsBinaryFile (byte[] fileBytes) {
       // Check for common binary file signatures or non-ASCII characters
       foreach (byte b in fileBytes) {
          if (b < 32 && b != 9 && b != 10 && b != 13) { // Non-printable ASCII characters (excluding tab, LF, CR)

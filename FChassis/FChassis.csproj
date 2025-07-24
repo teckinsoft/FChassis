@@ -58,6 +58,9 @@
 		<Reference Include="FChassis.Core">
 		  <HintPath>c:\FluxSDK\Bin\FChassis.Core.dll</HintPath>
 		</Reference>
+		<Reference Include="FChassis.Input">
+		  <HintPath>c:\FluxSDK\Bin\FChassis.Input.dll</HintPath>
+		</Reference>
 		<Reference Include="Flux.API">
 			<HintPath>$(OutDir)Flux.API.dll</HintPath>
 		</Reference>

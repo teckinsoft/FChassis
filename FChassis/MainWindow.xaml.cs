@@ -8,6 +8,7 @@ using FChassis.Draw;
 using FChassis.Core;
 using FChassis.Core.GCodeGen;
 using FChassis.Core.Processes;
+using FChassis.Input;
 
 
 using SPath = System.IO.Path;
@@ -74,7 +75,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          }
       }
    }
-   
+
    bool _isTextMarkingOptionVisible;
    public bool IsTextMarkingOptionVisible {
       get => _isTextMarkingOptionVisible;
@@ -99,7 +100,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
 
       // Get IGES and IGS files
-      var allowedExtensions = new[] { ".iges", ".igs", ".step", ".stp", ".dxf", ".step" };
+      var allowedExtensions = new[] { ".iges", ".igs", ".step", ".stp", ".dxf", ".step", ".csv" };
       var igesFiles = System.IO.Directory.GetFiles (dir)
                                           .Where (file => allowedExtensions.Contains (System.IO.Path.GetExtension (file).ToLower ()))
                                           .Select (System.IO.Path.GetFileName)
@@ -111,7 +112,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       // Assign the combined collection to ItemsSource
       UpdateInputFilesList (allFiles);
    }
-#endregion
+   #endregion
 
    #region Event handlers
    void TriggerRedraw ()
@@ -139,12 +140,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnMenuFileOpen (object sender, RoutedEventArgs e) {
-      OpenFileDialog openFileDialog = new () {
-         Filter = "STEP Files (*.stp;*.step)|*.stp;*.step|FX Files (*.fx)|*.fx|IGS Files (*.igs;*.iges)|*.igs;*.iges|All files (*.*)|*.*",
-         InitialDirectory = @"W:\FChassis\Sample"
-      };
-      if (openFileDialog.ShowDialog () == true) {
+      OpenFileDialog openFileDialog;
+      string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
+      if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals ("FX")) {
+         openFileDialog = new () {
+            Filter = "IGS Files (*.igs;*.iges)|*.igs;*.iges|STEP Files (*.stp;*.step)|*.stp;*.step|FX Files (*.fx)|*.fx|CSV Files (*.csv)|*.csv|All files (*.*)|*.*",
+            InitialDirectory = @"W:\FChassis\Sample"
+         };
+      } else {
+         openFileDialog = new () {
+            Filter = "IGS Files (*.igs;*.iges)|*.igs;*.iges|STEP Files (*.stp;*.step)|*.stp;*.step|CSV Files (*.csv)|*.csv|All files (*.*)|*.*",
+            InitialDirectory = @"W:\FChassis\Sample"
+         };
+      }
 
+      if (openFileDialog.ShowDialog () == true) {
          // Handle file opening, e.g., load the file into your application
          if (!string.IsNullOrEmpty (openFileDialog.FileName))
             LoadPart (openFileDialog.FileName);
@@ -190,7 +200,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void OnMirrorAndJoinedFileSaved (string savedDirectory) {
       // Check if the saved file's directory matches MainWindow's mSrcDir
-      if (string.Equals (Path.GetFullPath (savedDirectory), Path.GetFullPath (mSrcDir), StringComparison.OrdinalIgnoreCase)) {
+      if (string.Equals (System.IO.Path.GetFullPath (savedDirectory), System.IO.Path.GetFullPath (mSrcDir), StringComparison.OrdinalIgnoreCase)) {
          // Refresh file list
          PopulateFilesFromDir (mSrcDir);
       }
@@ -200,7 +210,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       SaveFileDialog saveFileDialog = new () {
          Filter = "FX files (*.fx)|*.fx|All files (*.*)|*.*",
          DefaultExt = "fx",
-         FileName = Path.GetFileName (mPart.Info.FileName),
+         FileName = System.IO.Path.GetFileName (mPart.Info.FileName),
       };
 
       bool? result = saveFileDialog.ShowDialog ();
@@ -231,7 +241,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void OnSettings (object sender, RoutedEventArgs e) {
       mSetDlg = new (MCSettings.It);
-      mSetDlg.OnOkAction += () => { if (mSetDlg.IsModified) SaveSettings(); };
+      mSetDlg.OnOkAction += () => { if (mSetDlg.IsModified) SaveSettings (); };
       mSetDlg.ShowDialog ();
    }
 
@@ -266,17 +276,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
 
       // Define the path to the FChassis folder
-      string fChassisFolderPath = Path.Combine (userHomePath, "FChassis");
+      string fChassisFolderPath = System.IO.Path.Combine (userHomePath, "FChassis");
 
       // Check if the directory exists, if not, create it
       if (!Directory.Exists (fChassisFolderPath))
          Directory.CreateDirectory (fChassisFolderPath);
 
       // Define the full path to the settings file
-      string settingsFilePath = Path.Combine (fChassisFolderPath, "FChassis.User.Settings.JSON");
+      string settingsFilePath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.Settings.JSON");
 
       // Call the SaveToJson method from the MCSettings singleton to save the JSON file
+#if DEBUG || TESTRELEASE
+      MCSettings.It.SaveToJsonASCII (settingsFilePath);
+#else
       MCSettings.It.SaveToJson (settingsFilePath);
+#endif
 
       Console.WriteLine ($"Settings file created at: {settingsFilePath}");
    }
@@ -409,6 +423,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #region Part Preparation Methods
    void LoadPart (string file) {
       file = file.Replace ('\\', '/');
+
+      // Create DXF file from .CSV file.
+      bool isCsv = System.IO.Path.GetExtension (file).Equals (".csv", StringComparison.OrdinalIgnoreCase);
+      if (isCsv) {
+         var origCSVFile = file;
+         try {
+            var csvPartData = CsvReader.ReadPartData (file);
+            file += ".dxf";
+            FChassis.Input.DXFWriter dxfW = new (file, csvPartData);
+            dxfW.WriteDXF ();
+            PopulateFilesFromDir (mSrcDir);
+         } catch (Exception ex) {
+            MessageBox.Show ($"Part defined by {origCSVFile} can not be created. Error: {ex.Message}"
+            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         }
+      }
       mPart = Part.Load (file);
       mPart.Info.FileName = file;
       if (mPart.Info.MatlName == "NONE")
@@ -442,6 +472,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             return;
          }
       }
+      //mPart.Dwg?.SaveDXF ("C:\\temp\\xyz.dxf");
 
       mOverlay = new SimpleVM (DrawOverlay);
       Lux.UIScene = mScene = new Scene (new GroupVModel (VModel.For (mPart.Model),
@@ -486,7 +517,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void DoCutNotches (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece() && !_cutNotches) {
+      if (!HandleNoWorkpiece () && !_cutNotches) {
          if (Work.DoCutNotchesAndCutouts ())
             GenesysHub?.ClearZombies ();
          _cutNotches = true;
@@ -502,29 +533,35 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
-      if (!HandleNoWorkpiece () && Work.Dirty) {
+
+      if (!HandleNoWorkpiece ()) {
+
 #if DEBUG || TESTRELEASE
          GenesysHub.ComputeGCode ();
-         string jsonPath1 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_Spatial_TimeStats.json";
+         string jsonPath1 = "W:\\Fchassis\\" + System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_Spatial_TimeStats.json";
          var timeStats1 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath1);
-         string jsonPath2 = "W:\\Fchassis\\" + Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_TimeOptimal_TimeStats.json";
+         string jsonPath2 = "W:\\Fchassis\\" + System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_TimeOptimal_TimeStats.json";
          var timeStats2 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath2);
-         string message =
-         $"{"Metric(Secs)",-35} {"Spatial",15} {"TimeOptimal",15}\n" +
-         new string ('-', 70) + "\n" +
-         $"{"Total Time",-30} {timeStats1["TotalTime"],15:F2} {timeStats2["TotalTime"],15:F2}     \n" +
-         $"{"Total Idle Time",-25} {timeStats1["TotalIdleTime"],15:F2} {timeStats2["TotalIdleTime"],15:F2}     \n" +
-         $"{"Total Machining Time",-15} {timeStats1["TotalMachiningTime"],15:F2} {timeStats2["TotalMachiningTime"],15:F2}     \n" +
-         $"{"Total Movement Time",-15} {timeStats1["TotalMovementTime"],15:F2} {timeStats2["TotalMovementTime"],15:F2}     \n\n" +
-         $"{"Machining Time (Head 1)",-15} {timeStats1["MachiningTimeHead1"],15:F2} {timeStats2["MachiningTimeHead1"],15:F2}     \n" +
-         $"{"Movement Time (Head 1)",-15} {timeStats1["MovementTimeHead1"],15:F2} {timeStats2["MovementTimeHead1"],15:F2}     \n" +
-         $"{"Idle Time (Head 1)",-25} {timeStats1["IdleTimeHead1"],15:F2} {timeStats2["IdleTimeHead1"],15:F2}     \n\n" +
-         $"{"Machining Time (Head 2)",-15} {timeStats1["MachiningTimeHead2"],15:F2} {timeStats2["MachiningTimeHead2"],15:F2}     \n" +
-         $"{"Movement Time (Head 2)",-15} {timeStats1["MovementTimeHead2"],15:F2} {timeStats2["MovementTimeHead2"],15:F2}     \n" +
-         $"{"Idle Time (Head 2)",-25} {timeStats1["IdleTimeHead2"],15:F2} {timeStats2["IdleTimeHead2"],15:F2}     ";
 
-         MessageBox.Show (message, "Time Stats Comparison", MessageBoxButton.OK, MessageBoxImage.Information);
-         Work.Dirty = false;
+         try {
+            string message =
+            $"{"Metric(Secs)",-35} {"Spacial",15} {"TimeOptimal",15}\n" +
+            new string ('-', 70) + "\n" +
+            $"{"Total Time",-30} {timeStats1["TotalTime"],15:F2} {timeStats2["TotalTime"],15:F2}     \n" +
+            $"{"Total Idle Time",-25} {timeStats1["TotalIdleTime"],15:F2} {timeStats2["TotalIdleTime"],15:F2}     \n" +
+            $"{"Total Machining Time",-15} {timeStats1["TotalMachiningTime"],15:F2} {timeStats2["TotalMachiningTime"],15:F2}     \n" +
+            $"{"Total Movement Time",-15} {timeStats1["TotalMovementTime"],15:F2} {timeStats2["TotalMovementTime"],15:F2}     \n\n" +
+            $"{"Machining Time (Head 1)",-15} {timeStats1["MachiningTimeHead1"],15:F2} {timeStats2["MachiningTimeHead1"],15:F2}     \n" +
+            $"{"Movement Time (Head 1)",-15} {timeStats1["MovementTimeHead1"],15:F2} {timeStats2["MovementTimeHead1"],15:F2}     \n" +
+            $"{"Idle Time (Head 1)",-25} {timeStats1["IdleTimeHead1"],15:F2} {timeStats2["IdleTimeHead1"],15:F2}     \n\n" +
+            $"{"Machining Time (Head 2)",-15} {timeStats1["MachiningTimeHead2"],15:F2} {timeStats2["MachiningTimeHead2"],15:F2}     \n" +
+            $"{"Movement Time (Head 2)",-15} {timeStats1["MovementTimeHead2"],15:F2} {timeStats2["MovementTimeHead2"],15:F2}     \n" +
+            $"{"Idle Time (Head 2)",-25} {timeStats1["IdleTimeHead2"],15:F2} {timeStats2["IdleTimeHead2"],15:F2}     ";
+
+            MessageBox.Show (message, "Time Stats Comparison", MessageBoxButton.OK, MessageBoxImage.Information);
+            Work.Dirty = false;
+         } catch (Exception) { }
+
 #else
          try {
             GenesysHub.ComputeGCode ();
@@ -596,12 +633,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          string dinFileNameH1 = "", dinFileNameH2 = "";
          try {
             string[] paths = Environment.GetEnvironmentVariable ("PATH")?.Split (';');
-            string notepadPlusPlus = paths?.Select (p => Path.Combine (p, "notepad++.exe")).FirstOrDefault (File.Exists);
-            string notepad = paths?.Select (p => Path.Combine (p, "notepad.exe")).FirstOrDefault (File.Exists);
+            string notepadPlusPlus = paths?.Select (p => System.IO.Path.Combine (p, "notepad++.exe")).FirstOrDefault (File.Exists);
+            string notepad = paths?.Select (p => System.IO.Path.Combine (p, "notepad.exe")).FirstOrDefault (File.Exists);
             string editor = notepadPlusPlus ?? notepad; // Prioritize Notepad++, fallback to Notepad
 
             if (editor == null) {
-               MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error", 
+               MessageBox.Show ("Neither Notepad++ nor Notepad was found in the system PATH.", "Error",
                   MessageBoxButton.OK, MessageBoxImage.Error);
                return;
             }
@@ -609,9 +646,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             // Construct the DIN file paths using the selected file name
             string dinFileSuffix = string.IsNullOrEmpty (MCSettings.It.DINFilenameSuffix) ? "" : $"-{MCSettings.It.DINFilenameSuffix}-";
             dinFileNameH1 = $@"{Utils.RemoveLastExtension (selectedFile)}-{1}{dinFileSuffix}({(MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
-            dinFileNameH1 = Path.Combine (MCSettings.It.NCFilePath, "Head1", dinFileNameH1);
+            dinFileNameH1 = System.IO.Path.Combine (MCSettings.It.NCFilePath, "Head1", dinFileNameH1);
             dinFileNameH2 = $@"{Utils.RemoveLastExtension (selectedFile)}-{2}{dinFileSuffix}({(MCSettings.It.PartConfig == MCSettings.PartConfigType.LHComponent ? "LH" : "RH")}).din";
-            dinFileNameH2 = Path.Combine (MCSettings.It.NCFilePath, "Head2", dinFileNameH2);
+            dinFileNameH2 = System.IO.Path.Combine (MCSettings.It.NCFilePath, "Head2", dinFileNameH2);
 
             if (!File.Exists (dinFileNameH1)) throw new Exception ($"\nFile: {dinFileNameH1} does not exist.\nGenerate G Code first");
             if (!File.Exists (dinFileNameH2)) throw new Exception ($"\nFile: {dinFileNameH2} does not exist.\nGenerate G Code first");

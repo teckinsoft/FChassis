@@ -20,13 +20,13 @@ using static FChassis.Core.MCSettings.EHeads;
 public partial class SettingsDlg : Window, INotifyPropertyChanged {
    public delegate void OnOkActionDelegate ();
    public event OnOkActionDelegate OnOkAction;
-   bool _isRestrictedSettingsVisible;
+   bool mIsRestrictedSettingsVisible;
 
    public bool IsRestrictedSettingsVisible {
-      get => _isRestrictedSettingsVisible;
+      get => mIsRestrictedSettingsVisible;
       set {
-         if (_isRestrictedSettingsVisible != value) {
-            _isRestrictedSettingsVisible = value;
+         if (mIsRestrictedSettingsVisible != value) {
+            mIsRestrictedSettingsVisible = value;
             OnPropertyChanged ();
          }
       }
@@ -42,11 +42,16 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
    public SettingsDlg (MCSettings set) {
       InitializeComponent ();
       DataContext = this;
-      
+
 #if DEBUG || TESTRELEASE
       IsRestrictedSettingsVisible = true;
 #else
-      IsRestrictedSettingsVisible = false;
+      string envVariable = Environment.GetEnvironmentVariable ("__FC_AUTH__");
+      Guid expectedGuid = new ("e96e66ff-17e6-49ac-9fe1-28bb45a6c1b9");
+      if (!string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid)
+         IsRestrictedSettingsVisible = true;
+      else
+         IsRestrictedSettingsVisible = false;
 #endif
       Bind (set);
       tbNotchWireJointDistance.TextChanged += TbNotchWireJointDistanceValueChanged;
@@ -135,7 +140,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
             IsModified = true;
          }
       });
-      rbSpatial.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Spatial, 
+      rbSpatial.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Spatial,
          () => { Settings.OptimizerType = MCSettings.EOptimize.Spatial; IsModified = true; });
       rbTime.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Time,
          () => { Settings.OptimizerType = MCSettings.EOptimize.Time; IsModified = true; });

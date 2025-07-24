@@ -27,10 +27,19 @@ public class SettingServices {
    }
 
    public void SaveSettings (MCSettings settings, bool backupNew = false) {
-      if (backupNew)
+      if (backupNew) {
+#if DEBUG || TESTRELEASE
+         settings.SaveToJsonASCII (settingsFilePath + ".bckup");
+#else
          settings.SaveToJson (settingsFilePath + ".bckup");
-      else
+#endif
+      } else {
+#if DEBUG || TESTRELEASE
+         settings.SaveToJsonASCII (settingsFilePath);
+#else
          settings.SaveToJson (settingsFilePath);
+#endif
+      }
    }
 
    public void LoadSettings (MCSettings settings) {
@@ -38,6 +47,12 @@ public class SettingServices {
          try {
             settings.LoadFromJson (settingsFilePath);
          } catch (Exception) { }
+         // Write to ASCII json if TESTRELEASE or DEBUG config
+#if DEBUG || TESTRELEASE
+         settings.SaveToJsonASCII (settingsFilePath);
+#else
+         settings.SaveToJson (settingsFilePath);
+#endif
       }
    }
 }

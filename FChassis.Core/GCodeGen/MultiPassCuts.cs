@@ -653,7 +653,7 @@ public class CutScope {
    #region Branch and Bound Cutscope Methods
    private void ArrangeSpatially (double deadZoneXmin, double deadZoneXmax) {
       if (UnTouchedToolingScopes.LastOrDefault ().StartX <= StartX + deadZoneXmax) {
-         TSInScope2 = UnTouchedToolingScopes.Where (ts => ts.EndX < StartX + deadZoneXmin).Select (t => t.Index).ToList ();
+         TSInScope2 = [.. UnTouchedToolingScopes.Where (ts => ts.EndX < StartX + deadZoneXmin).Select (t => t.Index)];
          return;
       }
 
@@ -888,7 +888,7 @@ public class MultiPassCuts {
          mTEnds = [.. ToolingScopes.OrderByDescending (ts => ts.EndX)];
          mOrderedToolScopes = [.. mOrderedToolScopes.OrderByDescending (e => e.Position)];
       }
-  
+
       mOrderedToolScopes.AddRange (mTStarts.Select (ts => (ts.StartX, ts, true)));
       mOrderedToolScopes.AddRange (mTStarts.Select (ts => (ts.EndX, ts, false)));
       mOrderedToolScopes.AddRange (mTEnds.Select (ts => (ts.StartX, ts, true)));
@@ -1134,24 +1134,9 @@ public class MultiPassCuts {
          //bool startXPosChanged = false;
          bool endXPosChanged = false;
          var dbTsc = cs.DeadBandToolingScopes (tss);
-         //if (featsWithIn.Count > 0 && !(featsWithIn[0].StartX - startXPos).EQ (0) && // If there is a need
-         //   (dbTsc.Count>0&& featsWithIn[0].StartX.SLT (dbTsc.First ().StartX) )) {
 
-         //   // Otherwise, the StartX changes to the after end of dead scope
-         //   // which will omit the dead band altogether
-         //   startXPos = featsWithIn[0].StartX;
-         //   endXPos = Math.Min (startXPos + maxScopeLength, mpc.XMax);
-         //   startXPosChanged = true;
-         //}
          if (firstRun) firstRun = false;
 
-         // Recreate cutscope if there is a change in startXPos
-         //if (startXPosChanged) {
-         //   cs = new (startXPos, 0, endXPos, mpc.Model.Bound, maxScopeLength, mpc.DeadBandWidth, ref mpc, mpc.mIsLeftToRight);
-         //   tss = mpc.ToolingScopes;
-         //   featsWithIn = GetUncutToolingScopesWithin (cs, tss);
-         //   currDBScope = cs.DeadBandScope;
-         //}
          List<int> ixnNotchesIndxs = [];
          bool overrideMinNotchCutOption = false;
          do {
@@ -1566,8 +1551,7 @@ public class MultiPassCuts {
             (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
             (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
             (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
-         }
-         else (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+         } else (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
          mpc.ToolingScopes = splitTSS;
          foreach (var tsi in cs.TSInScope1)
             foreach (var ts in mpc.ToolingScopes)
@@ -1601,7 +1585,7 @@ public class MultiPassCuts {
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, end, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       tss = splitTSS;
-      
+
       List<int> tss1 = [], tss2 = [];
       List<ToolingScope> tssH1 = [];
       List<ToolingScope> tssH2 = [];
@@ -1715,10 +1699,10 @@ public class MultiPassCuts {
          (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadZoneXmax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
          (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, end, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
          tss = splitTSS;
-         CutScope cutscope = new CutScope (start, end, tss, deadZoneXmin, deadZoneXmax, false);
+         CutScope cutscope = new (start, end, tss, deadZoneXmin, deadZoneXmax, false);
 
-         tss = tss.Where (cs => !cutscope.TSInScope1.Contains (cs.Index) &&
-                                                !cutscope.TSInScope2.Contains (cs.Index)).ToList ();
+         tss = [.. tss.Where (cs => !cutscope.TSInScope1.Contains (cs.Index) &&
+                                                !cutscope.TSInScope2.Contains (cs.Index))];
 
          cutScopeSeq.Add (cutscope);
       }
@@ -1753,10 +1737,7 @@ public class MultiPassCuts {
       //if (mGC.Heads == MCSettings.EHeads.Both) {
       mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Master, mcCutScopes);
       mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Slave, mcCutScopes);
-      //}else if ( mGC.Heads == MCSettings.EHeads.Left)
-      // mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Master, mcCutScopes);
-      //else if (mGC.Heads == MCSettings.EHeads.Right)
-      // mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Slave, mcCutScopes);
+
       mGC.BlockNumber = 0;
       CutScopeTraces = mGC.CutScopeTraces;
       mGC.PartitionRatio = prevPartRatio;

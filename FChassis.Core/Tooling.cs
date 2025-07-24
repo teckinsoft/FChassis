@@ -1,5 +1,6 @@
 ﻿using Flux.API;
 using FChassis.Core.Geometries;
+using FChassis.Core.GCodeGen;
 namespace FChassis.Core;
 
 public readonly struct PointVec {
@@ -20,20 +21,45 @@ public struct ToolingSegment {
    Vector3 mVec0;
    Vector3 mVec1;
    bool mIsValid = true;
-   public ToolingSegment ((Curve3, Vector3, Vector3) vtSeg) {
-      mCurve = vtSeg.Item1;
+   public ToolingSegment ((Curve3, Vector3, Vector3) vtSeg, bool cloneCrv = false) {
+      if (cloneCrv)
+         mCurve = Geom.CloneCurve (vtSeg.Item1, vtSeg.Item2);
+      else mCurve = vtSeg.Item1;
       mVec0 = vtSeg.Item2;
       mVec1 = vtSeg.Item3;
+      NotchSectionType = NotchSectionType.None;
    }
-   public ToolingSegment (Curve3 crv, Vector3 vec0, Vector3 vec1) {
-      mCurve = crv;
+   public ToolingSegment ((Curve3, Vector3, Vector3, NotchSectionType) vtSeg, bool cloneCrv = false) {
+      if (cloneCrv)
+         mCurve = Geom.CloneCurve (vtSeg.Item1, vtSeg.Item2);
+      else mCurve = vtSeg.Item1;
+      mVec0 = vtSeg.Item2;
+      mVec1 = vtSeg.Item3;
+      NotchSectionType = vtSeg.Item4;
+   }
+   public ToolingSegment (Curve3 crv, Vector3 vec0, Vector3 vec1, bool cloneCrv = false) {
+      if (cloneCrv)
+         mCurve = Geom.CloneCurve (crv, vec0);
+      else mCurve = crv;
       mVec0 = vec0;
       mVec1 = vec1;
+      NotchSectionType = NotchSectionType.None;
    }
-   public ToolingSegment (ToolingSegment rhs) {
-      mCurve = rhs.mCurve;
+   public ToolingSegment (Curve3 crv, Vector3 vec0, Vector3 vec1, NotchSectionType nsectionType, bool cloneCrv = false) {
+      if (cloneCrv)
+         mCurve = Geom.CloneCurve (crv, vec0);
+      else mCurve = crv;
+      mVec0 = vec0;
+      mVec1 = vec1;
+      NotchSectionType = nsectionType;
+   }
+   public ToolingSegment (ToolingSegment rhs, bool cloneCrv = false) {
+      if (cloneCrv)
+         mCurve = Geom.CloneCurve (rhs.mCurve, rhs.mVec0);
+      else mCurve = rhs.Curve;
       mVec0 = rhs.mVec0;
       mVec1 = rhs.mVec1;
+      NotchSectionType = rhs.NotchSectionType;
    }
    public readonly void Deconstruct (out Curve3 curve, out Vector3 vec0, out Vector3 vec1) {
       curve = this.Curve;
@@ -44,6 +70,17 @@ public struct ToolingSegment {
    public Vector3 Vec0 { readonly get => mVec0; set => mVec0 = value; }
    public Vector3 Vec1 { readonly get => mVec1; set => mVec1 = value; }
    public bool IsValid { readonly get => mIsValid; set => mIsValid = value; }
+   public readonly double Length { get => mCurve.Length; }
+   public NotchSectionType NotchSectionType { get; set; } = NotchSectionType.None;
+
+   // Alternative implementation using object initializer with your existing constructor
+   public readonly ToolingSegment Clone () {
+      return new ToolingSegment (
+          (Geom.CloneCurve (this.mCurve, this.mVec0), this.mVec0, this.mVec1, this.NotchSectionType
+      )) {
+         mIsValid = this.mIsValid
+      };
+   }
 }
 public class Tooling {
    public Tooling (Workpiece wp, E3Thick ent,
@@ -420,7 +457,6 @@ public class Tooling {
    // which feature only on the E3Planes
    // and not on any E3Flex is PlaneFeature
    public bool IsPlaneFeature () => !IsFlexFeature ();
-
    public bool IsFlexHole () => IsHole () && IsFlexFeature ();
    public bool IsFlexCutout () => IsCutout () && IsFlexFeature ();
    public bool IsFlexNotch () => IsNotch () && IsFlexFeature ();

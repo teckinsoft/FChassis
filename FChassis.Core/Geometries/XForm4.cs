@@ -2,6 +2,8 @@
 using MathNet.Numerics.LinearAlgebra.Double;
 using Flux.API;
 using static FChassis.Core.Utils;
+using FChassis.Core.GCodeGen;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 
 namespace FChassis.Core.Geometries;
 
@@ -84,6 +86,29 @@ public static class Vector2Extensions {
       return new Vector2 (Math.Round (vec.X, decimalPlaces, rounding), Math.Round (vec.Y, decimalPlaces, rounding));
    }
 }
+
+public class FCArc {
+   Arc3 mArc;
+   Vector3 mNormal;
+   public FCArc (Arc3 arc, Vector3 normal) {
+      mArc = arc;
+      mNormal = normal;
+      Point3 st = arc.Start; Point3 end = arc.End;
+      double C = Math.Sqrt (Math.Pow (end.X - st.X, 2) + Math.Pow (end.Y - st.Y, 2) + Math.Pow (end.Z - st.Z, 2));
+      var (cen, rad) = Geom.EvaluateCenterAndRadius (arc);
+      double L = arc.Length;
+      double t, tNext;
+      t = L / rad;
+      double numer = 2 * L * Math.Sin (t / 2) - C * t;
+      double denom = L * Math.Cos (t / 2) - C;
+      tNext = t - numer / denom;
+      while (Math.Abs (tNext - t).LTEQ (1e-7)) {
+         tNext = t - numer / denom;
+      }
+   }
+   public Point3 Start { get; private set; }
+   public Point3 End { get; private set; }
+}
 public class Geom {
    #region Enums
    public enum PairOfLineSegmentsType {
@@ -161,7 +186,7 @@ public class Geom {
    /// <returns>A tuple of Tangent and Normal vector at the given point</returns>
    public static Tuple<Vector3, Vector3> EvaluateTangentAndNormalAtPoint (Arc3 arc, Point3 pt, Vector3 apn,
       bool constrainedWithinArc = true) {
-      if (arc == null || !IsPointOnCurve (arc as Curve3, pt, apn, tolerance: 1e-6, constrainedWithinArc))
+      if (arc == null || !IsPointOnCurve (arc as Curve3, pt, apn, hintSense: EArcSense.Infer, tolerance: 1e-6, constrainedWithinArc))
          throw new Exception ("Arc is null or point is not on the curve");
       var param = GetParamAtPoint (arc as Curve3, pt, apn);
       var (center, _) = EvaluateCenterAndRadius (arc);
@@ -188,16 +213,32 @@ public class Geom {
    /// The angle returned is in a sense CW or CCW WRT the arc plane normal amanating towards
    /// the observer</returns>
    /// <exception cref="Exception">An exception is thrown if the given point is not on the arc</exception>
-   public static Tuple<double, EArcSense> GetArcAngleAtPoint (Arc3 arc, Point3 pt, Vector3 apn, double tolerance = 1e-6) {
-      (var center, var radius) = EvaluateCenterAndRadius (arc);
-      if (!Math.Abs (pt.DistTo (center) - radius).EQ (0.0, tolerance) || !Math.Abs (apn.Dot ((pt - center).Normalized ())).EQ (0.0, tolerance))
-         throw new Exception ("Given point is not on the 3d circle");
-      if (Utils.IsCircle (arc)) {
-         if ((arc.Start - pt).Length.EQ (0.0, tolerance)) return new Tuple<double, EArcSense> (0, EArcSense.CCW);
-         else if ((arc.End - pt).Length.EQ (0.0, tolerance)) return new Tuple<double, EArcSense> (2 * Math.PI, EArcSense.CCW);
-         else return GetArcAngleAndSense (arc, arc.Start, pt, apn);
+   public static Tuple<double, EArcSense> GetArcAngleAtPoint (Arc3 arc, Point3 pt, Vector3 apn, EArcSense hintSense, double tolerance = 1e-6) {
+      if (!arc.Start.EQ (pt, tolerance) && !arc.Start.EQ (pt, tolerance)) {
+         (var center, var radius) = EvaluateCenterAndRadius (arc);
+
+         // If the given pt is neither start and end of the arc..
+         if (!arc.Start.EQ (pt, tolerance) && !arc.End.EQ (pt, tolerance)) {
+            if (!Math.Abs (pt.DistTo (center) - radius).EQ (0.0, tolerance) || !Math.Abs (apn.Dot ((pt - center).Normalized ())).EQ (0.0, tolerance))
+               throw new Exception ("Given point is not on the 3d circle");
+         }
+         if (Utils.IsCircle (arc)) {
+            if ((arc.Start - pt).Length.EQ (0.0, tolerance)) return new Tuple<double, EArcSense> (0, EArcSense.CCW);
+            else if ((arc.End - pt).Length.EQ (0.0, tolerance)) return new Tuple<double, EArcSense> (2 * Math.PI, EArcSense.CCW);
+         }
+      } else {
+         if (arc.Start.EQ (pt, tolerance)) {
+            if (Utils.IsCircle (arc))
+               return new Tuple<double, EArcSense> (Math.PI * 2, EArcSense.CCW);
+            else
+               return new Tuple<double, EArcSense> (0, EArcSense.CCW);
+         }
       }
-      return GetArcAngleAndSense (arc, arc.Start, pt, apn);
+      return GetArcAngleAndSense (arc, arc.Start, pt, apn, hintSense);
+   }
+
+   public static Tuple<double, EArcSense> GetArcAngleAtPoint (Arc3 arc, Vector3 apn, EArcSense hintSense = EArcSense.Infer, double tolerance = 1e-6) {
+      return GetArcAngleAtPoint (arc, arc.End, apn, hintSense, tolerance);
    }
 
    public static bool IsMajor (Arc3 arc) {
@@ -205,15 +246,21 @@ public class Geom {
       if ((arc.Length.SGT (Math.PI * rad))) return true;
       return false;
    }
-   public static Tuple<double, EArcSense> GetArcAngleAndSense (Arc3 arc, Vector3 normal) {
-      return GetArcAngleAndSense (arc, arc.Start, arc.End, normal);
+   public static Tuple<double, EArcSense> GetArcAngleAndSense (Arc3 arc, Vector3 normal, EArcSense hintSense = EArcSense.Infer) {
+      return GetArcAngleAndSense (arc, arc.Start, arc.End, normal, hintSense);
    }
 
-   public static Tuple<double, EArcSense> GetArcAngleAndSense (Arc3 arc, Point3 start, Point3 end, Vector3 normal) {
+   public static Tuple<double, EArcSense> GetArcAngleAndSense (Arc3 arc, Point3 start, Point3 end, Vector3 normal, EArcSense hintSense) {
+      if (arc == null) throw new Exception ("Geom.GetArcAngleAndSense: arc is null");
+      var (cen, _) = EvaluateCenterAndRadius (arc);
+
       if (Utils.IsCircle (arc)) {
-         if (arc.Start.EQ (start) && arc.End.EQ (end))
-            return new Tuple<double, EArcSense> (Math.PI * 2, EArcSense.CCW);
-         var (cen, _) = EvaluateCenterAndRadius (arc);
+         if (arc.Start.EQ (start) && arc.End.EQ (end)) {
+            if (hintSense == EArcSense.Infer)
+               return new Tuple<double, EArcSense> (Math.PI * 2, EArcSense.CCW);
+            else
+               return new Tuple<double, EArcSense> (Math.PI * 2, hintSense);
+         }
          if (!IsPointOnCurve (arc as Curve3, start, normal))
             throw new Exception ("In GetArcAngleAndSense: For the circle, the start point is not on the circle");
          if (!IsPointOnCurve (arc as Curve3, end, normal))
@@ -222,7 +269,17 @@ public class Geom {
          var crossP = Geom.Cross (cenToStart, cenToEnd).Normalized ();
          var angBet = Math.Acos (cenToStart.Normalized ().Dot (cenToEnd.Normalized ()));
          if (crossP.Opposing (normal)) angBet = 2 * Math.PI - angBet;
-         return new Tuple<double, EArcSense> (angBet, EArcSense.CCW);
+         if (hintSense == EArcSense.Infer)
+            return new Tuple<double, EArcSense> (angBet, EArcSense.CCW);
+         else
+            return new Tuple<double, EArcSense> (angBet, hintSense);
+      } else if (arc.Start.EQ (start) && arc.Start.EQ (end) || arc.Start.EQ (end) && arc.Start.EQ (start)) {
+         // If the start or end point provided is the start point of the arc itself, no need to compute
+         // and return the 0 angle.
+         if (hintSense == EArcSense.Infer)
+            return new Tuple<double, EArcSense> (0, EArcSense.CCW);
+         else
+            return new Tuple<double, EArcSense> (0, hintSense);
       }
 
       // Compute the vectors from center to start and center to end
@@ -233,8 +290,8 @@ public class Geom {
 
       // Calculate the angle between the two vectors using the dot product
       double dot = vecStart.Dot (vecEnd).Clamp (-0.9999999999999999999999, 0.999999999999999999999999999);
-      double theta = Math.Acos (dot);
-      var angle = theta;
+      double includedAngle = Math.Acos (dot);
+      var angle = includedAngle;
 
       if (Math.Abs (Math.Abs (angle) - Math.PI) < 1e-5) {
          var arcDirFromStartPt = (arc.Evaluate (0.1) - arc.Start).Normalized ();
@@ -244,9 +301,17 @@ public class Geom {
          // the length being exactly PI*radius, in many cases, it is little lesser. In those cases,
          // we directly conclude that the arc is counter-clockwise if the apn is directed towards us
          //if (arc.Length < 2 * Math.PI*radius) return new (Math.Abs (angleUptoPt), EArcSense.CCW);
-         if (Geom.Cross (arcDirFromStartPt, scVec).Normalized ().Aligned (normal))
-            return new (Math.Abs (angle), EArcSense.CCW);
-         else return new (-Math.Abs (angle), EArcSense.CW);
+         if (Geom.Cross (arcDirFromStartPt, scVec).Normalized ().Aligned (normal)) {
+            if (hintSense == EArcSense.Infer)
+               return new (Math.Abs (angle), EArcSense.CCW);
+            else
+               return new (Math.Abs (angle), hintSense);
+         } else {
+            if (hintSense == EArcSense.Infer)
+               return new (-Math.Abs (angle), EArcSense.CW);
+            else
+               return new (-Math.Abs (angle), hintSense);
+         }
       }
       EArcSense sense;
 
@@ -264,35 +329,50 @@ public class Geom {
       EArcSense arcSense = EArcSense.CCW;
       bool fullArc = false;
       if (start.DistTo (arc.Start).EQ (0) && end.DistTo (arc.End).EQ (0)) fullArc = true;
-      if (!fullArc) (_, arcSense) = GetArcAngleAndSense (arc, normal);
-      if (sXe.Dot (normal) < 0.0 && L > Math.PI * radius) {
-         angle = 2 * Math.PI - theta;
-         sense = EArcSense.CCW;
-         if (sense != arcSense && !fullArc) {
-            angle = -theta;
-            sense = EArcSense.CW;
+      if (!fullArc) (_, arcSense) = GetArcAngleAndSense (arc, normal, hintSense);
+      if (hintSense != EArcSense.Infer) {
+         if (L > Math.PI * radius) { // Major arc
+            if (hintSense == EArcSense.CCW)
+               angle = Math.Tau - includedAngle;
+            else // CW
+               angle = -includedAngle;
+         } else { // Minor arc
+            if (hintSense == EArcSense.CCW)
+               angle = includedAngle;
+            else // CW
+               angle = -(Math.Tau - includedAngle);
          }
-      } else if (sXe.Dot (normal) > 0.0 && L > Math.PI * radius) {
-         angle = -(2 * Math.PI - theta);
-         sense = EArcSense.CW;
-         if (sense != arcSense && !fullArc) {
-            angle = theta;
+         sense = hintSense;
+      } else {// if (hintSense == EArcSense.Infer) {
+         if (sXe.Dot (normal) < 0.0 && L > Math.PI * radius) {
+            angle = 2 * Math.PI - includedAngle;
             sense = EArcSense.CCW;
-         }
-      } else if (sXe.Dot (normal) > 0 && L < Math.PI * radius) {
-         sense = EArcSense.CCW;
-         if (sense != arcSense && !fullArc) {
-            angle = -(2 * Math.PI - theta);
+            if (sense != arcSense && !fullArc) {
+               angle = -includedAngle;
+               sense = EArcSense.CW;
+            }
+         } else if (sXe.Dot (normal) > 0.0 && L > Math.PI * radius) {
+            angle = -(2 * Math.PI - includedAngle);
             sense = EArcSense.CW;
-         }
-      } else if (sXe.Dot (normal) < 0 && L < Math.PI * radius) {
-         angle = -theta;
-         sense = EArcSense.CW;
-         if (sense != arcSense && !fullArc) {
-            angle = 2 * Math.PI - theta;
+            if (sense != arcSense && !fullArc) {
+               angle = includedAngle;
+               sense = EArcSense.CCW;
+            }
+         } else if (sXe.Dot (normal) > 0 && L < Math.PI * radius) {
             sense = EArcSense.CCW;
-         }
-      } else throw new Exception ("In GetArcAngleAndSense: Semicircular arc case not properly handled");
+            if (sense != arcSense && !fullArc) {
+               angle = -(2 * Math.PI - includedAngle);
+               sense = EArcSense.CW;
+            }
+         } else if (sXe.Dot (normal) < 0 && L < Math.PI * radius) {
+            angle = -includedAngle;
+            sense = EArcSense.CW;
+            if (sense != arcSense && !fullArc) {
+               angle = 2 * Math.PI - includedAngle;
+               sense = EArcSense.CCW;
+            }
+         } else throw new Exception ("In GetArcAngleAndSense: Semicircular arc case not properly handled");
+      }
       return new Tuple<double, EArcSense> (angle, sense);
    }
 
@@ -327,11 +407,12 @@ public class Geom {
    /// from the segment level and not from the tooling level.</param>
    /// <returns>Returns two intermediate points from "fromPt" and "toPoint" WRT 
    /// Arc Plane Normal in the direction of the sense of the arc</returns>
-   public static List<Point3> GetTwoIntermediatePoints (Arc3 arc, Point3 fromPt, Point3 toPoint, Vector3 planeNormal, double tolerance = 1e-6) {
-      if (!IsPointOnCurve (arc, fromPt, planeNormal, tolerance) || !IsPointOnCurve (arc, toPoint, planeNormal, tolerance))
+   public static List<Point3> GetTwoIntermediatePoints (Arc3 arc, Point3 fromPt, Point3 toPoint, Vector3 planeNormal,
+      EArcSense hintSense, double tolerance = 1e-6) {
+      if (!IsPointOnCurve (arc, fromPt, planeNormal, hintSense: hintSense, tolerance) || !IsPointOnCurve (arc, toPoint, planeNormal, hintSense: hintSense, tolerance))
          throw new InvalidOperationException ("The point is not on the arc");
-      var angDataFromPt = GetArcAngleAtPoint (arc, fromPt, planeNormal, tolerance);
-      var angDataToPt = GetArcAngleAtPoint (arc, toPoint, planeNormal, tolerance);
+      var angDataFromPt = GetArcAngleAtPoint (arc, fromPt, planeNormal, hintSense, tolerance);
+      var angDataToPt = GetArcAngleAtPoint (arc, toPoint, planeNormal, hintSense, tolerance);
       var deltaAngle = angDataToPt.Item1 - angDataFromPt.Item1;
       if (Utils.IsCircle (arc)) {
          //By default all circles are CCW in sense. If angleDataToPt is less than
@@ -432,7 +513,7 @@ public class Geom {
    /// to the next arc's start point of the split arcs</param>
    /// <returns>List of split Arcs (Arc3)</returns>
    public static List<Arc3> SplitArc (Arc3 arc, List<Point3> interPointsList,
-      double deltaBetweenArcs, Vector3 apn, double tolerance = 1e-6) {
+      double deltaBetweenArcs, Vector3 apn, EArcSense hintSense = EArcSense.Infer, double tolerance = 1e-6) {
       List<Arc3> splitArcs = [];
       List<Point3> points = [];
       points.Add (arc.Start); points.AddRange (interPointsList);
@@ -440,14 +521,15 @@ public class Geom {
       if (points.Count > 2) {
          Point3 newIncrStPt = points[0];
          for (int ii = 0; ii < points.Count - 1; ii++) {
-            List<Point3> twoIntermediatePoints = GetTwoIntermediatePoints (arc, newIncrStPt, points[ii + 1], apn, tolerance);
-
+            List<Point3> twoIntermediatePoints = GetTwoIntermediatePoints (arc, newIncrStPt, points[ii + 1], apn, hintSense, tolerance);
+            if (twoIntermediatePoints.Count == 0)
+               continue;
             // Nidge intermediate points
             var (cen, rad) = EvaluateCenterAndRadius (arc);
             for (int jj = 0; jj < 2; jj++) {
                var p = twoIntermediatePoints[jj];
                var np = NudgePointToArc (cen, rad, p, apn);
-               if (!Geom.IsPointOnCurve (arc as Curve3, np, apn))
+               if (!Geom.IsPointOnCurve (arc as Curve3, np, apn, hintSense))
                   throw new Exception ("In SplitArc: nudged point is not on the arc with in 1e-6");
                twoIntermediatePoints[jj] = np;
             }
@@ -545,7 +627,7 @@ public class Geom {
       if (crv is Arc3) {
          if (apn == null) throw new Exception ("Arc Plane Normal needed");
          var (arcAngle, _) = GetArcAngleAndSense (crv as Arc3, apn.Value);
-         var (arcAngleAtPt, _) = GetArcAngleAtPoint (crv as Arc3, pt, apn.Value, tolerance);
+         var (arcAngleAtPt, _) = GetArcAngleAtPoint (crv as Arc3, pt, apn.Value, EArcSense.Infer, tolerance);
          return arcAngleAtPt / arcAngle;
       } else {
          double denomX = (crv.End.X - crv.Start.X);
@@ -590,8 +672,10 @@ public class Geom {
    /// <returns>Boolean if the given point lies on the curve</returns>
    /// <exception cref="Exception">If the input curve is null or if the arc plane normal
    /// is not provided</exception>
-   public static bool IsPointOnCurve (Curve3 curve, Point3 pt, Vector3? apn, double tolerance = 1e-6, bool constrainedWithinSegment = true) {
+   public static bool IsPointOnCurve (Curve3 curve, Point3 pt, Vector3? apn,
+      EArcSense hintSense = EArcSense.Infer, double tolerance = 1e-6, bool constrainedWithinSegment = true) {
       if (curve == null) throw new Exception ("The curve passed is null");
+      if (curve.Start.EQ (pt, tolerance) || curve.End.EQ (pt, tolerance)) return true;
       if (curve is Arc3) {
          if (apn == null) throw new Exception ("Arc plane normal is null");
          var arc = curve as Arc3;
@@ -615,8 +699,8 @@ public class Geom {
 
          // Check for arc
          if (constrainedWithinSegment) {
-            var arcAngle = GetArcAngleAndSense (arc, apn.Value);
-            var arcAngleFromStToPt = GetArcAngleAtPoint (arc, pt, apn.Value, tolerance);
+            var arcAngle = GetArcAngleAndSense (arc, apn.Value, hintSense);
+            var arcAngleFromStToPt = GetArcAngleAtPoint (arc, pt, apn.Value, hintSense, tolerance);
             var param = arcAngleFromStToPt.Item1 / arcAngle.Item1;
             if (param.LieWithin (0, 1, 1e-5)) return true;
             return false;
@@ -734,12 +818,12 @@ public class Geom {
    /// <returns>Returns the list of Curve3. If there is no need to split the curves, this returns
    /// the original curve itself</returns>
    public static List<Curve3> SplitCurve (Curve3 curve, List<Point3> interPointsList, Vector3 fpn,
-      double deltaBetween = 0.0, double tolerance = 1e-6) {
+      double deltaBetween = 0.0, EArcSense hintSense = EArcSense.Infer, double tolerance = 1e-6) {
       var distinctInterPoints = interPointsList
             .Where ((p, index) => interPointsList.Take (index).All (p2 => p2.EQ (p) != true))
             .ToList ();
       distinctInterPoints.RemoveAll (p => p.EQ (curve.Start) == true || p.EQ (curve.End) == true);
-      if (curve is Arc3) return [.. SplitArc (curve as Arc3, distinctInterPoints, deltaBetween, fpn, tolerance).Select (cr => (cr as Curve3))];
+      if (curve is Arc3) return [.. SplitArc (curve as Arc3, distinctInterPoints, deltaBetween, fpn, hintSense, tolerance).Select (cr => (cr as Curve3))];
       else return [.. SplitLine (curve as Line3, distinctInterPoints, deltaBetween).Select (cr => (cr as Curve3))];
    }
 
@@ -781,10 +865,10 @@ public class Geom {
    /// <param name="curve">The input Curve3 (Line3 or Arc3)</param>
    /// <param name="planeNormal">The plane normal that contains the curve. This is for Arc3</param>
    /// <returns>The curve that is a reverse of the input curve</returns>
-   public static Curve3 GetReversedCurve (Curve3 curve, Vector3 planeNormal, double tolerance = 1e-6) {
+   public static Curve3 GetReversedCurve (Curve3 curve, Vector3 planeNormal, EArcSense hintSense = EArcSense.Infer, double tolerance = 1e-6) {
       if (curve is Arc3) {
          var arc = curve as Arc3;
-         var intPoints = GetTwoIntermediatePoints (arc, arc.Start, arc.End, planeNormal, tolerance);
+         var intPoints = GetTwoIntermediatePoints (arc, arc.Start, arc.End, planeNormal, hintSense, tolerance);
          Arc3 reversedArc = new (curve.End, intPoints[1], intPoints[0], curve.Start);
          return reversedArc as Curve3;
       } else if (curve is Line3) {
@@ -803,7 +887,7 @@ public class Geom {
    /// <returns></returns>
    public static Curve3 CloneCurve (Curve3 curve, Vector3 planeNormal) {
       if (curve is Arc3 arc) {
-         var p1 = EvaluateArc (arc, 0.1, planeNormal); var p2 = EvaluateArc (arc, 0.9, planeNormal);
+         var p1 = EvaluateArc (arc, 0.3, planeNormal); var p2 = EvaluateArc (arc, 0.9, planeNormal);
          //var intPoints = GetTwoIntermediatePoints (arc, arc.Start, arc.End, planeNormal);
          var clonedArc = new Arc3 (arc.Start, p1, p2, arc.End);
          return clonedArc as Curve3;
@@ -1221,9 +1305,12 @@ public class Geom {
    /// </summary>
    /// <param name="ts">The input Tooling Segment</param>
    /// <returns>This returns the reversed tooling segment</returns>
-   public static ToolingSegment GetReversedToolingSegment (ToolingSegment ts, double tolerance = 1e-6) {
-      var crv = GetReversedCurve (ts.Curve, ts.Vec0.Normalized (), tolerance);
-      return new ToolingSegment (crv, ts.Vec1, ts.Vec0);
+   public static ToolingSegment GetReversedToolingSegment (ToolingSegment ts, EArcSense hintSense = EArcSense.Infer, double tolerance = 1e-6) {
+      var crv = GetReversedCurve (ts.Curve, ts.Vec0.Normalized (), hintSense, tolerance);
+      var newTs = new ToolingSegment (crv, ts.Vec1, ts.Vec0) {
+         NotchSectionType = ts.NotchSectionType
+      };
+      return newTs;
    }
 
    /// <summary>
@@ -1258,12 +1345,23 @@ public class Geom {
    /// <param name="parentSegment">The reference segment to use its start and end normals.</param>
    /// <param name="crv">The curve which will be wrapped by the tooling segment</param>
    /// <returns>The newly created tooling segment</returns>
-   public static ToolingSegment CreateToolingSegmentForCurve (ToolingSegment parentSegment, Curve3 crv) {
-      return new ToolingSegment (crv, parentSegment.Vec0, parentSegment.Vec1);
+   public static ToolingSegment CreateToolingSegmentForCurve (ToolingSegment parentSegment, Curve3 crv, bool cloneCrv = false) {
+      if (cloneCrv)
+         return new ToolingSegment (crv, parentSegment.Vec0, parentSegment.Vec1, cloneCrv: cloneCrv);
+      else
+         return new ToolingSegment (crv, parentSegment.Vec0, parentSegment.Vec1);
    }
 
-   public static ToolingSegment CreateToolingSegmentForCurve (Curve3 crv, Vector3 startNormal, Vector3 endNormal) {
+   public static ToolingSegment CreateToolingSegmentForCurve (ToolingSegment parentSegment, Curve3 crv, NotchSectionType nsType, bool clone = false) {
+      return new ToolingSegment (crv, parentSegment.Vec0, parentSegment.Vec1, nsType);
+   }
+
+   public static ToolingSegment CreateToolingSegmentForCurve (Curve3 crv, Vector3 startNormal, Vector3 endNormal, bool clone = false) {
       return new ToolingSegment (crv, startNormal, endNormal);
+   }
+
+   public static ToolingSegment CreateToolingSegmentForCurve (Curve3 crv, Vector3 startNormal, Vector3 endNormal, NotchSectionType nsType, bool clone = false) {
+      return new ToolingSegment (crv, startNormal, endNormal, nsType);
    }
    /// <summary>
    /// This method is a creates a list of tooling segments for a list of curves
@@ -1668,6 +1766,19 @@ public class Geom {
    //   if (lhs.X.EQ (rhs.X, tol) && lhs.Y.EQ (rhs.Y, tol) && lhs.Z.EQ (rhs.Z, tol)) return true;
    //   return false;
    //}
+
+   public static void MergeSegments (List<ToolingSegment> segs, int stIndex, int endIndex, NotchSectionType nType = NotchSectionType.None) {
+      if (stIndex < 0 || stIndex >= segs.Count || endIndex < 0 || endIndex >= segs.Count)
+         throw new Exception ("Array out of bounds");
+      if (stIndex >= endIndex) return;
+      var line = new Line3 (segs[stIndex].Curve.Start, segs[endIndex].Curve.End);
+      var vec0 = segs[stIndex].Vec0; var vec1 = segs[stIndex].Vec1;
+      var newTs = new ToolingSegment (line as Curve3, vec0, vec1, nType);
+
+      for (int ii = stIndex; ii <= endIndex; ii++)
+         segs.RemoveAt (stIndex);
+      segs.Insert (stIndex, newTs);
+   }
 }
 
 /// <summary>

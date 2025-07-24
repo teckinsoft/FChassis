@@ -17,11 +17,7 @@ extern "C" void CleanupOCCT(); //Allows C++/CLI to call it
 
 namespace FChassis::IGES {
 
-   IGES::IGES() : pPriv(nullptr) {
-      /*_putenv("CSF_TclLib=C:\\FluxSDK\\bin\\tcl86.dll");
-      _putenv("CSF_TkLib=C:\\FluxSDK\\bin\\tk86.dll");
-      _putenv("CSF_GraphicShr=C:\\FluxSDK\\bin\\TKOpenGl.dll");*/
-   }
+   IGES::IGES() : pPriv(nullptr) {}
 
    IGES::~IGES() {
       this->!IGES();
@@ -69,10 +65,12 @@ namespace FChassis::IGES {
    }
 
    void IGES::Zoom(bool zoomIn, int x, int y) {
-      this->pPriv->Zoom(zoomIn, x, y); }
+      this->pPriv->Zoom(zoomIn, x, y);
+   }
 
    void IGES::Pan(int dx, int dy) {
-      this->pPriv->Pan(dx, dy); }   
+      this->pPriv->Pan(dx, dy);
+   }
 
    int IGES::LoadIGES(System::String^ filePath, int order) {
       if (!pPriv)

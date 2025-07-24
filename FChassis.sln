@@ -6,6 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FChassis", "FChassis\FChassis.csproj", "{02B78A70-58D9-47F1-A90A-B5F946A9DD96}"
 	ProjectSection(ProjectDependencies) = postProject
 		{4A55656B-5670-452B-B8C3-FFC2AFF4E8AA} = {4A55656B-5670-452B-B8C3-FFC2AFF4E8AA}
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56} = {5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}
 		{777E3156-458C-4C39-900E-E5AA3899BA53} = {777E3156-458C-4C39-900E-E5AA3899BA53}
 	EndProjectSection
 EndProject
@@ -37,6 +38,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.Installer", "FChas
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uninstall", "uninstall\uninstall.csproj", "{F5875190-A23A-43F4-AA9E-CFD9CC77831C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.Input", "FChassis.Input\FChassis.Input.csproj", "{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A55656B-5670-452B-B8C3-FFC2AFF4E8AA} = {4A55656B-5670-452B-B8C3-FFC2AFF4E8AA}
+		{777E3156-458C-4C39-900E-E5AA3899BA53} = {777E3156-458C-4C39-900E-E5AA3899BA53}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -176,6 +183,24 @@ Global
 		{F5875190-A23A-43F4-AA9E-CFD9CC77831C}.TestRelease|x64.Build.0 = Release|Any CPU
 		{F5875190-A23A-43F4-AA9E-CFD9CC77831C}.TestRelease|x86.ActiveCfg = Release|Any CPU
 		{F5875190-A23A-43F4-AA9E-CFD9CC77831C}.TestRelease|x86.Build.0 = Release|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Debug|x64.ActiveCfg = Debug|x64
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Debug|x64.Build.0 = Debug|x64
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Debug|x86.Build.0 = Debug|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Release|x64.ActiveCfg = Release|x64
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Release|x64.Build.0 = Release|x64
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Release|x86.ActiveCfg = Release|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.Release|x86.Build.0 = Release|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|Any CPU.ActiveCfg = TestRelease|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|Any CPU.Build.0 = TestRelease|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|x64.ActiveCfg = TestRelease|x64
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|x64.Build.0 = TestRelease|x64
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|x86.ActiveCfg = TestRelease|Any CPU
+		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|x86.Build.0 = TestRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

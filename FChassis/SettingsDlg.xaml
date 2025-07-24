@@ -173,8 +173,8 @@
                             <Label Grid.Row="0" VerticalAlignment="Top" VerticalContentAlignment="Top">Head Configuration</Label>
                             <StackPanel Grid.Row="0" Grid.Column="1" Margin="0 7 0 0">
                                 <RadioButton GroupName="Heads" Name="rbBoth">Both</RadioButton>
-                                <RadioButton GroupName="Heads" Name="rbLeft">Left</RadioButton>
-                                <RadioButton GroupName="Heads" Name="rbRight">Right</RadioButton>
+                                <RadioButton GroupName="Heads" Name="rbLeft">Head-1</RadioButton>
+                                <RadioButton GroupName="Heads" Name="rbRight">Head-2</RadioButton>
                             </StackPanel>
                         </Grid>
                     </StackPanel>

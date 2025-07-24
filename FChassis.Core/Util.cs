@@ -69,29 +69,21 @@ public class MachinableCutScope {
    public double ToolingScopesWidthH2 { get; set; }
    public List<ToolingScope> ToolingScopesH1 { get; private set; }
    public List<ToolingScope> ToolingScopesH2 { get; private set; }
-   public static List<MachinableCutScope> CreateMachinableCutScopes (List<CutScope> css, GCodeGenerator gcGen) {
-      return [.. css.Select (cs => new MachinableCutScope (cs, gcGen))];
-   }
+   public static List<MachinableCutScope> CreateMachinableCutScopes (List<CutScope> css, GCodeGenerator gcGen) =>
+      [.. css.Select (cs => new MachinableCutScope (cs, gcGen))];
    public Bound3 Bound { get; private set; }
 }
 
 internal static class Extensions {
    public static double LieOn (this double f, double a, double b) => (f - a) / (b - a);
-
    public static bool EQ (this double a, double b) => Abs (a - b) < 1e-6;
-
    public static bool EQ (this double a, double b, double err) => Abs (a - b) < err;
-
    public static bool EQ (this float a, float b) => Abs (a - b) < 1e-6;
-
    public static bool EQ (this float a, float b, double err) => Abs (a - b) < err;
-
    public static double D2R (this int a) => a * PI / 180;
-
    public static bool LieWithin (this double val, double leftLimit,
                                  double rightLimit, double epsilon = 1e-6)
-      => (leftLimit - epsilon < val && val < rightLimit + epsilon);
-
+      => (leftLimit - epsilon <= val && val <= rightLimit + epsilon);
    public static Point3 Subtract (this Point3 val, Point3 sub) {
       Point3 pt = new (val.X - sub.X, val.Y - sub.Y, val.Z - sub.Z);
       return pt;
@@ -101,6 +93,7 @@ internal static class Extensions {
       Point2 pt = new (val.X - sub.X, val.Y - sub.Y);
       return pt;
    }
+
    public static string GetGCodeComment (this Point3 val, string token) {
       var s = $"{token} {{ {val.X.Round (3)}, {val.Y.Round (3)}, {val.Z.Round (3)} }}";
       return GCodeGenerator.GetGCodeComment (s);
@@ -113,6 +106,9 @@ internal static class Extensions {
       if (vec1.Opposing (vec2)) return false;
       return true;
    }
+   public static bool IsWebFlange (this Vector3 normal, double tol = 1e-6) => normal.Normalized ().EQ (XForm4.mZAxis, tol);
+   public static bool IsTopOrBottomFlange (this Vector3 normal, double tol = 1e-6) =>
+      normal.Normalized ().EQ (XForm4.mYAxis, tol) || normal.Normalized ().EQ (XForm4.mNegYAxis, tol);
 }
 
 public class NegZException : Exception {
@@ -312,10 +308,9 @@ public static class Utils {
    }
 
    public enum EArcSense {
-      CW, CCW
+      CW, CCW, Infer
    }
 
-   //static readonly XForm4 Xfm = new ();
    public const double EpsilonVal = 1e-6;
    public static Color32 LHToolColor = new (57, 255, 20); // neon green
    public static Color32 RHToolColor = new (255, 87, 51); // Neon Red
@@ -853,6 +848,7 @@ public static class Utils {
       Point3 bdyPtXMin, bdyPtXMax, bdyPtZMin;
       Vector3 normalAtNotchPt;
       double t;
+      Arc3 arc;
       switch (profileKind) {
          case ECutKind.Top:
             if (doubleFlangeNotchWithSameSideStartAndEnd) {
@@ -860,13 +856,40 @@ public static class Utils {
                if (bdyYExtreme - pt.Y < 0) proxBdy = XForm4.EAxis.NegY;
                else proxBdy = XForm4.EAxis.Y;
             } else {
-               if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
+               if (seg.Curve is Arc3) {
+                  arc = seg.Curve as Arc3;
+                  var (tgt, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0.Normalized ());
+                  // To find the scrapside normal for arcs
+                  // Find the cross of tangent vec with seg normal
+                  var biNormal = tgt.Cross (seg.Vec0).Normalized ();
+                  var negBiNormal = biNormal * -1;
+                  // Scrapside direction is one among biNormal or negBiNormal.
+                  // it is found by checking the cross of tgt and binormal sense with segment's normal.
+                  // Here if the cross is same sense with binormal then it is the scrapside. Otherwise, 
+                  // negBinormal is the scrapside.
+                  // How it works: IN Top plane(flange), The profile starts from neg-X to Pos-X. So
+                  // the scrapside is always to the left 90 deg to the tangent. A left turn is CCW and so
+                  // if the computed normal is CW, it is negated.
+                  var computedNormal = tgt.Cross (biNormal);
+                  if (computedNormal.Opposing (seg.Vec0))
+                     res = negBiNormal;
+                  else
+                     res = biNormal;
+                  if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
                      < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
-                  res = bdyPtXMin - pt;
-                  proxBdy = XForm4.EAxis.NegX;
+                     proxBdy = XForm4.EAxis.NegX;
+                  } else {
+                     proxBdy = XForm4.EAxis.X;
+                  }
                } else {
-                  res = bdyPtXMax - pt;
-                  proxBdy = XForm4.EAxis.X;
+                  if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
+                        < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
+                     res = bdyPtXMin - pt;
+                     proxBdy = XForm4.EAxis.NegX;
+                  } else {
+                     res = bdyPtXMax - pt;
+                     proxBdy = XForm4.EAxis.X;
+                  }
                }
             }
             break;
@@ -875,20 +898,55 @@ public static class Utils {
          case ECutKind.YNegToYPos: /* TRIPLE_FLANGE_NOTCH */
          case ECutKind.YPos:
          case ECutKind.YNeg:
-            if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg || profileKind == ECutKind.YNegToYPos) {
-               if (seg.Curve is Line3) {
-                  t = pt.DistTo (seg.Curve.Start) / seg.Curve.Length;
-                  normalAtNotchPt = Geom.GetInterpolatedNormal (seg.Vec0, seg.Vec1, t);
-               } else
-                  normalAtNotchPt = seg.Vec0;
+            if (seg.Curve is Arc3) {
+               arc = seg.Curve as Arc3;
+               var (tgt, normal) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0.Normalized ());
+               // To find the scrapside normal for arcs
+               // Find the cross of tangent vec with seg normal
+               var biNormal = tgt.Cross (seg.Vec0).Normalized ();
+               var negBiNormal = biNormal * -1;
+               // Scrapside direction is one among biNormal or negBiNormal.
+               // it is found by checking the cross of tgt and binormal sense with segment's normal.
+               // Here if the cross is same sense with binormal then it is the scrapside. Otherwise, 
+               // negBinormal is the scrapside.
+               // How it works: If the profile flows from top to ypos OR if the profile is on YPOs plane               
+               // the scrapside is always to the right 90 deg to the tangent. A left turn is CCW and so
+               // if the computed normal is CCW, it is negated.
+               var computedNormal = tgt.Cross (biNormal);
+               // Clockwise case
+               if (profileKind == ECutKind.YPos || profileKind == ECutKind.Top2YPos) {
+                  if (computedNormal.Opposing (seg.Vec0))
+                     res = biNormal;
+                  else
+                     res = negBiNormal;
+               } else {
+                  if (computedNormal.Opposing (seg.Vec0))
+                     res = negBiNormal;
+                  else
+                     res = biNormal;
+               }
+               if (pt.DistTo (_ = new Point3 (bound.XMin, pt.Y, pt.Z))
+                     < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
+                  proxBdy = XForm4.EAxis.NegX;
+               } else {
+                  proxBdy = XForm4.EAxis.X;
+               }
+            } else {
+               if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg || profileKind == ECutKind.YNegToYPos) {
+                  if (seg.Curve is Line3) {
+                     t = pt.DistTo (seg.Curve.Start) / seg.Curve.Length;
+                     normalAtNotchPt = Geom.GetInterpolatedNormal (seg.Vec0, seg.Vec1, t);
+                  } else
+                     normalAtNotchPt = seg.Vec0;
 
-               if (isFlexMachining) goto case ECutKind.YPosFlex;
-               if (normalAtNotchPt.EQ (XForm4.mZAxis)) goto case ECutKind.Top;
-               if (Utils.IsNormalAtFlex (normalAtNotchPt)) goto case ECutKind.YPosFlex;
+                  if (isFlexMachining) goto case ECutKind.YPosFlex;
+                  if (normalAtNotchPt.EQ (XForm4.mZAxis)) goto case ECutKind.Top;
+                  if (Utils.IsNormalAtFlex (normalAtNotchPt)) goto case ECutKind.YPosFlex;
+               }
+               bdyPtZMin = new Point3 (pt.X, pt.Y, bound.ZMin);
+               res = bdyPtZMin - pt;
+               proxBdy = XForm4.EAxis.NegZ;
             }
-            bdyPtZMin = new Point3 (pt.X, pt.Y, bound.ZMin);
-            res = bdyPtZMin - pt;
-            proxBdy = XForm4.EAxis.NegZ;
             break;
          case ECutKind.YPosFlex:
          case ECutKind.YNegFlex:
@@ -1131,16 +1189,11 @@ public static class Utils {
          else
             scrapsideMaterialDir = vectorOutwardAtSpecPoint;
 
-         var flangeNormalVecAtSpecPt = (notchPoint - center).Normalized ();
-
-         if (GetUnitVector (proxBdyStart).Opposing (flangeNormalVecAtSpecPt))
-            flangeNormalVecAtSpecPt *= -1.0;
-
          return new NotchAttribute (
              segments[segIndex].Curve,
              segments[segIndex].Vec0.Normalized (),
              segments[segIndex].Vec1.Normalized (),
-             flangeNormalVecAtSpecPt.Normalized (),
+             scrapsideMaterialDir.Normalized (),
              vectorOutwardAtSpecPoint,
              proxBdyStart,
              scrapsideMaterialDir,
@@ -1198,30 +1251,56 @@ public static class Utils {
             _ => throw new NotSupportedException ("Outward vector cannot be other than NegX, X, and NegZ")
          };
 
+         // outwardNormalAlongFlange is the bi normal along the flange, 
+         // which is bi normal to the segment normal at notch point and the 
+         // segment vector. 
          outwardNormalAlongFlange = new Vector3 ();
 
          if (vectorOutwardAtStart.Length.EQ (0) || vectorOutwardAtEnd.Length.EQ (0)) {
             outwardNormalAlongFlange = bdyVec;
          } else {
             int nc = 0;
-            do {
-               if (!Geom.Cross (p1p2, bdyVec).Length.EQ (0)) {
-                  outwardNormalAlongFlange = Geom.Cross (
-                      segments[segIndex].Vec0.Normalized (),
-                      p1p2
-                  ).Normalized ();
+            // For the web flange..
+            if (segments[segIndex].Vec0.Normalized ().EQ (XForm4.mZAxis)) {
+               do {
+                  if (!Geom.Cross (p1p2, bdyVec).Length.EQ (0)) {
+                     outwardNormalAlongFlange = Geom.Cross (
+                         segments[segIndex].Vec0.Normalized (),
+                         p1p2
+                     ).Normalized ();
 
-                  if (outwardNormalAlongFlange.Opposing (bdyVec))
-                     outwardNormalAlongFlange *= -1.0;
+                     if (outwardNormalAlongFlange.Opposing (bdyVec))
+                        outwardNormalAlongFlange *= -1.0;
 
-                  break;
-               } else
-                  p1p2 = Geom.Perturb (p1p2);
+                     break;
+                  } else
+                     p1p2 = Geom.Perturb (p1p2);
 
-               ++nc;
-               if (nc > 10)
-                  break;
-            } while (true);
+                  ++nc;
+                  if (nc > 10)
+                     break;
+               } while (true);
+            } else { // If the flange is not web flange...
+               if (segments[segIndex].Vec0.Normalized ().EQ (XForm4.mYAxis) ||
+                  segments[segIndex].Vec0.Normalized ().EQ (XForm4.mNegYAxis) || Utils.IsToolingOnFlex (segments[segIndex])) {
+                  // Find the three vectors, 1. from notch point to the bound Xmin
+                  // 2. from notch point to XMax,
+                  // 3. vectorOutwardAtSpecPoint
+                  var v1 = new Vector3 (bound.XMin - notchPoint.X, 0, 0);
+                  var v2 = new Vector3 (bound.XMax - notchPoint.X, 0, 0);
+                  var v3 = vectorOutwardAtSpecPoint;
+                  // Choose the vector with least length as outwardNormalAlongFlange
+                  if (v1.Length <= v2.Length && v1.Length <= v3.Length)
+                     outwardNormalAlongFlange = v1;
+                  else if (v2.Length <= v1.Length && v2.Length <= v3.Length)
+                     outwardNormalAlongFlange = v2;
+                  else
+                     outwardNormalAlongFlange = v3;
+               } else if (segments[segIndex].Vec0.Normalized ().EQ (XForm4.mNegZAxis))
+                  throw new Exception ("Utils.ComputeNotchAttribute: Neg Z axis not supported");
+               else
+                  throw new Exception ("Utils.ComputeNotchAttribute: Undefined normal not supported");
+            }
          }
       }
 
@@ -1273,19 +1352,19 @@ public static class Utils {
       var fixedSegs = segs;
       for (int ii = 1; ii < fixedSegs.Count; ii++) {
          if (!fixedSegs[ii - 1].Curve.End.DistTo (fixedSegs[ii].Curve.Start).EQ (0)) {
-            if (fixedSegs[ii - 1].Curve is Line3 || fixedSegs[ii].Curve is Line3) {
+            if (fixedSegs[ii - 1].Curve is Line3 && fixedSegs[ii].Curve is Line3) {
                var newLine = new Line3 (fixedSegs[ii - 1].Curve.Start, fixedSegs[ii].Curve.Start);
                var newTS = Geom.CreateToolingSegmentForCurve (newLine as Curve3, fixedSegs[ii - 1].Vec0, fixedSegs[ii].Vec0);
                fixedSegs[ii - 1] = newTS;
-            } else if (fixedSegs[ii - 1].Curve is Arc3 || fixedSegs[ii].Curve is Line3) {
+            } else if (fixedSegs[ii - 1].Curve is Arc3 && fixedSegs[ii].Curve is Line3) {
                var newLine = new Line3 (fixedSegs[ii - 1].Curve.End, fixedSegs[ii].Curve.End);
                var newTS = Geom.CreateToolingSegmentForCurve (newLine as Curve3, fixedSegs[ii - 1].Vec1, fixedSegs[ii].Vec1);
                fixedSegs[ii] = newTS;
-            } else if (fixedSegs[ii - 1].Curve is Line3 || fixedSegs[ii].Curve is Arc3) {
+            } else if (fixedSegs[ii - 1].Curve is Line3 && fixedSegs[ii].Curve is Arc3) {
                var newLine = new Line3 (fixedSegs[ii - 1].Curve.Start, fixedSegs[ii].Curve.Start);
                var newTS = Geom.CreateToolingSegmentForCurve (newLine as Curve3, fixedSegs[ii - 1].Vec0, fixedSegs[ii].Vec0);
                fixedSegs[ii - 1] = newTS;
-            } else if (fixedSegs[ii - 1].Curve is Arc3 || fixedSegs[ii].Curve is Arc3) {
+            } else if (fixedSegs[ii - 1].Curve is Arc3 && fixedSegs[ii].Curve is Arc3) {
                // Create a link line between arcs
                var newLine = new Line3 (fixedSegs[ii - 1].Curve.End, fixedSegs[ii].Curve.Start);
                var newTS = Geom.CreateToolingSegmentForCurve (newLine as Curve3, fixedSegs[ii - 1].Vec1, fixedSegs[ii].Vec0);
@@ -1324,7 +1403,7 @@ public static class Utils {
             int segIndex = segments.FindIndex (s => s.Curve.End.DistTo (npt).EQ (0, tolerance));
             if (segIndex == -1) {
                for (int kk = 0; kk < segments.Count; kk++) {
-                  if (Geom.IsPointOnCurve (segments[kk].Curve, npt, segments[kk].Vec0, tolerance, true)) {
+                  if (Geom.IsPointOnCurve (segments[kk].Curve, npt, segments[kk].Vec0, hintSense: EArcSense.Infer, tolerance, true)) {
                      segIndex = kk; break;
                   }
                }
@@ -1332,7 +1411,7 @@ public static class Utils {
             var crvs = Geom.SplitCurve (segments[segIndex].Curve,
                                         [npt],
                                         segments[segIndex].Vec0.Normalized (),
-                                        deltaBetween: 0, tolerance);
+                                        deltaBetween: 0, hintSense: EArcSense.Infer, tolerance);
             if (crvs.Count > 1) {
                var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (segments[segIndex], crvs);
                segments.RemoveAt (segIndex);
@@ -1389,11 +1468,11 @@ public static class Utils {
       List<Point3> intPoints = [point];
       // Consistency check
       if (segments.Count == 0 || segIndex < 0 || segIndex >= segments.Count ||
-         !Geom.IsPointOnCurve (segments[segIndex].Curve, point, fpn, tolerance))
+         !Geom.IsPointOnCurve (segments[segIndex].Curve, point, fpn, hintSense: EArcSense.Infer, tolerance))
          throw new Exception ("SplitToolingSegmentsAtPoint: Point not on the curve");
 
       var crvs = Geom.SplitCurve (segments[segIndex].Curve, intPoints, fpn,
-                                  deltaBetween: 0, tolerance);
+                                  deltaBetween: 0, EArcSense.Infer, tolerance);
       var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (segments[segIndex], crvs);
 
       return toolSegsForCrvs;
@@ -1426,7 +1505,7 @@ public static class Utils {
            || (ts.Vec0.Normalized ().Dot (XForm4.mYAxis).EQ (1) && ts.Vec1.Normalized ().Dot (XForm4.mYAxis).EQ (1))
            || (ts.Vec0.Normalized ().Dot (XForm4.mNegYAxis).EQ (1) && ts.Vec1.Normalized ().Dot (XForm4.mNegYAxis).EQ (1)))
          return false;
-      else if (ts.Vec0.Normalized ().Dot (-XForm4.mZAxis).EQ (1)
+      if (ts.Vec0.Normalized ().Dot (-XForm4.mZAxis).EQ (1)
                || ts.Vec1.Normalized ().Dot (-XForm4.mZAxis).EQ (1))
          throw new Exception ("Negative Z axis normal encountered");
 
@@ -2206,8 +2285,7 @@ public static class Utils {
                mpc.GenerateGCode ();
                double space_time = GuageTime ("TimeOptimal", mpc);
             }
-         }
-         else {
+         } else {
             if (mpc.ToolingScopes.Count < 300) {
                mpc.ComputeBranchAndBoundCutscopes ();
                mpc.GenerateGCode ();
@@ -2225,15 +2303,15 @@ public static class Utils {
             double quasi_time = GuageTime ("Spatial", mpc);
          }
 #else
-            var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-            } else {
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-            }
+         var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
+            gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+         if (mpc.ToolingScopes.Count < 300) {
+            mpc.ComputeBranchAndBoundCutscopes ();
+            mpc.GenerateGCode ();
+         } else {
+            mpc.ComputeSpatialOptimizationCutscopes ();
+            mpc.GenerateGCode ();
+         }
 #endif
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
@@ -2253,8 +2331,8 @@ public static class Utils {
    /// <summary>Calculates machining, movement and idle time</summary>
    /// <param name="name">Name of optimization used</param>
    static double GuageTime (string name, MultiPassCuts mpc) {
-      double totalTime = 0, totalIdleTime = 0,
-      totalMachiningTime = 0, totalMovementTime = 0,
+      double totalTime = 0, totalIdleTime,
+      totalMachiningTime = 0, totalMovementTime,
       totalMachiningTimeHead1 = 0, totalMachiningTimeHead2 = 0,
       totalMovementTimeHead1 = 0, totalMovementTimeHead2 = 0;
       double idleTimeHead1 = 0, idleTimeHead2 = 0;
@@ -2274,10 +2352,10 @@ public static class Utils {
                   machiningTimeHead2 += gcodeSeg.Length;
                else movementTimeHead2 += gcodeSeg.Length;
 
-         machiningTimeHead1 = machiningTimeHead1 * mpc.MachiningTime;
-         machiningTimeHead2 = machiningTimeHead2 * mpc.MachiningTime;
-         movementTimeHead1 = movementTimeHead1 * mpc.MovementTime;
-         movementTimeHead2 = movementTimeHead2 * mpc.MovementTime;
+         machiningTimeHead1 *= mpc.MachiningTime;
+         machiningTimeHead2 *= mpc.MachiningTime;
+         movementTimeHead1 *= mpc.MovementTime;
+         movementTimeHead2 *= mpc.MovementTime;
 
          totalTime += Math.Max (machiningTimeHead1 + movementTimeHead1, machiningTimeHead2 + movementTimeHead2);
          //totalTime += mpc.InitiationTime;
@@ -2517,5 +2595,13 @@ public static class Utils {
       for (int ii = startIndex; ii <= endIndex; ii++)
          len += toolingItem.Segs[startIndex].Curve.Length;
       return len;
+   }
+
+   public static bool IsSameSideExitNotch (Tooling ti) {
+      if (ti.ProfileKind == ECutKind.Top2YPos || ti.ProfileKind == ECutKind.Top2YNeg) {
+         if (ti.Segs[0].Vec0.Normalized ().EQ (ti.Segs[^1].Vec0.Normalized ()))
+            return true;
+      }
+      return false;
    }
 }
