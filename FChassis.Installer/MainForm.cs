@@ -17,6 +17,8 @@ public partial class MainForm : Form {
 
       if (component != null ) 
          this.setPage (component?.page);
+
+      CancelBtn.Text = "Close";
    }
 
    void backBtn_Click (object sender, EventArgs e) {

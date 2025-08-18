@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.Input", "FChassis.
 		{777E3156-458C-4C39-900E-E5AA3899BA53} = {777E3156-458C-4C39-900E-E5AA3899BA53}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.OC.Installer", "FChassis.OC.Installer\FChassis.OC.Installer.csproj", "{F868ECAE-1772-4240-B3FF-3DD195471BA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -201,6 +203,24 @@ Global
 		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|x64.Build.0 = TestRelease|x64
 		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|x86.ActiveCfg = TestRelease|Any CPU
 		{5DF1DCDC-AA7E-1C92-CD29-4B2C64547B56}.TestRelease|x86.Build.0 = TestRelease|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Debug|x64.Build.0 = Debug|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Debug|x86.Build.0 = Debug|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Release|x64.ActiveCfg = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Release|x64.Build.0 = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Release|x86.ActiveCfg = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.Release|x86.Build.0 = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|Any CPU.Build.0 = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|x64.ActiveCfg = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|x64.Build.0 = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|x86.ActiveCfg = Release|Any CPU
+		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
