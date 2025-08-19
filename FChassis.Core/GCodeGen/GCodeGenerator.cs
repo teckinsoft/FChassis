@@ -2838,7 +2838,8 @@ public class GCodeGenerator {
          else
             totalToolingCutLength += Notch.GetTotalNotchToolingLength (
                 Process.Workpiece.Bound, ti, mPercentLengths, NotchWireJointDistance,
-                NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0));
+                NotchApproachLength, mCurveLeastLength, !NotchWireJointDistance.EQ (0),
+                JobInnerRadius, JobThickness);
       }
       return totalToolingCutLength;
    }
@@ -2935,7 +2936,7 @@ public class GCodeGenerator {
                prevCutToolingsLength += Notch.GetTotalNotchToolingLength (
                    Process.Workpiece.Bound, toolingItem, [0.25, 0.5, 0.75],
                    NotchWireJointDistance, NotchApproachLength, mCurveLeastLength,
-                   !NotchWireJointDistance.EQ (0));
+                   !NotchWireJointDistance.EQ (0), JobInnerRadius, JobThickness);
             else
                prevCutToolingsLength += toolingItem.Perimeter;
          } else
@@ -3390,7 +3391,7 @@ public class GCodeGenerator {
              (UsePingPong && usePingPongOption) ? "M1014" : "",
              createDummyBlock4Master: CreateDummyBlock4Master);
       } else if (planeType == EPlane.Top) {
-         if (featType != EKind.Mark )
+         if (featType != EKind.Mark)
             Utils.RapidPosition (
                 sw, mcCoordsStPoint.X, OrdinateAxis.Y, mcCoordsStPoint.Y,
                 comment,

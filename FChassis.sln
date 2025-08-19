@@ -46,6 +46,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.Input", "FChassis.
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.OC.Installer", "FChassis.OC.Installer\FChassis.OC.Installer.csproj", "{F868ECAE-1772-4240-B3FF-3DD195471BA0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{02B78A70-58D9-47F1-A90A-B5F946A9DD96} = {02B78A70-58D9-47F1-A90A-B5F946A9DD96}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

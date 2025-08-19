@@ -53,7 +53,7 @@ public class Workpiece : INotifyPropertyChanged {
       // rotate it 90 degrees about the Z axis. Model extrusion is now in the X direction
       var size = mModel.Baseplane.Bound.Size;
       if (size.Y > size.X) {
-         Apply (Matrix3.Rotation (EAxis.Z, Geo.HalfPI ));
+         Apply (Matrix3.Rotation (EAxis.Z, Geo.HalfPI));
          Dirty = true;
       }
 
@@ -396,7 +396,7 @@ public class Workpiece : INotifyPropertyChanged {
                double[] percentLengths = [0.25, 0.5, 0.75];
                double mCurveLeastLength = 0.5;
                if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
-                   mCurveLeastLength))
+                   mCurveLeastLength, Model.Flexes.First ().Radius, Model.Flexes.First ().Thickness))
                   cut.EdgeNotch = true;
                cutSegs = [.. cut.Segs];
             }

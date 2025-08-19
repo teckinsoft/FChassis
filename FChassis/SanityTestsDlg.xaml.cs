@@ -238,7 +238,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       };
 
       if (openFileDialog.ShowDialog () == true)
-         LoadFromJson (openFileDialog.FileName);
+         LoadSettingsFromJson (openFileDialog.FileName);
 
       TestFileName = openFileDialog.FileName;
       this.Title = "Sanity Tests Suite - " + TestFileName;
@@ -258,7 +258,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
 
    void OnSaveButtonClick (object sender, RoutedEventArgs e) {
       if (!string.IsNullOrEmpty (TestFileName)) {
-         SaveToJson (TestFileName);
+         SaveSettingsToJson (TestFileName);
          isDirty = false; // Reset the dirty flag after saving
       } else if (SanityTests.Count > 0) {
          SaveFileDialog saveFileDialog = new () {
@@ -267,7 +267,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          };
 
          if (saveFileDialog.ShowDialog () == true) {
-            SaveToJson (saveFileDialog.FileName);
+            SaveSettingsToJson (saveFileDialog.FileName);
             TestFileName = saveFileDialog.FileName;
             this.Title = "Sanity Tests - " + TestFileName;
             isDirty = false; // Reset the dirty flag after saving
@@ -333,7 +333,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
          MessageBoxResult result = MessageBox.Show ("Do you want to save ?", "Save Confirmation",
                                                     MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
          if (result == MessageBoxResult.Yes) {
-            if (!String.IsNullOrEmpty (TestFileName)) SaveToJson (TestFileName);
+            if (!String.IsNullOrEmpty (TestFileName)) SaveSettingsToJson (TestFileName);
             else {
                // Show Save File Dialog
                SaveFileDialog saveFileDialog = new () {
@@ -342,7 +342,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
                };
 
                if (saveFileDialog.ShowDialog () == true) {
-                  SaveToJson (saveFileDialog.FileName);
+                  SaveSettingsToJson (saveFileDialog.FileName);
                }
             }
          }
@@ -399,7 +399,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       mSelectedTestIndices.Clear ();
    }
 
-   void SaveToJson (string filePath) {
+   void SaveSettingsToJson (string filePath) {
       mJSONWriteOptions ??= new JsonSerializerOptions {
          WriteIndented = true, // For pretty-printing the JSON
          Converters = { new JsonStringEnumConverter () } // Converts Enums to their string representation
@@ -413,7 +413,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       File.WriteAllText (filePath, json);
    }
 
-   void LoadFromJson (string filePath, bool isTestBatch = false) {
+   void LoadSettingsFromJson (string filePath, bool isTestBatch = false) {
       mJSONReadOptions ??= new JsonSerializerOptions {
          Converters = { new JsonStringEnumConverter () } // Converts Enums from their string representation
       };
@@ -448,7 +448,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       };
       if (fileDialog.ShowDialog () == true) {
          RemoveSanityTestRows (onlySelected: false);
-         LoadFromJson (fileDialog.FileName);
+         LoadSettingsFromJson (fileDialog.FileName);
          TestFileName = fileDialog.FileName;
          this.Title = "Sanity Tests Batch - " + TestFileName;
       }
@@ -464,7 +464,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
       if (fileDialog.ShowDialog () == true) {
          RemoveSanityTestRows (onlySelected: false);
          foreach (var file in fileDialog.FileNames) {
-            LoadFromJson (fileDialog.FileName, true);
+            LoadSettingsFromJson (fileDialog.FileName, true);
          }
          TestFileName = "";
          this.Title = "Sanity Tests - New Test Batch";
@@ -485,7 +485,7 @@ public partial class SanityTestsDlg : Window, INotifyPropertyChanged {
 
       if (saveFileDialog.ShowDialog () == true) {
          TestFileName = saveFileDialog.FileName;
-         SaveToJson (TestFileName);
+         SaveSettingsToJson (TestFileName);
          this.Title = "Sanity Tests - " + TestFileName;
          isDirty = false; // Reset the dirty flag after saving
       }

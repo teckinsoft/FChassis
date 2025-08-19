@@ -15,11 +15,18 @@ using SPath = System.IO.Path;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FChassis.Core.AssemblyUtils;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text;
+using MessagePack;
+using System.Runtime.Serialization;
+using System.Collections.ObjectModel;
+using System.Windows.Controls;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
 public partial class MainWindow : Window, INotifyPropertyChanged {
-   #region Data Members
+   #region Fields
    Part mPart = null;
    SimpleVM mOverlay;
    Scene mScene;
@@ -30,6 +37,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    ProcessSimulator mProcessSimulator;
    ProcessSimulator.ESimulationStatus mSimulationStatus = ProcessSimulator.ESimulationStatus.NotRunning;
    string mSrcDir = "W:/FChassis/Sample";
+   
+   [IgnoreDataMember]
+   Dictionary<string, string> mRecentFilesMap = [];
+   public bool IsIgesAvailable { get; }
+   public ProcessSimulator.ESimulationStatus SimulationStatus {
+      get => mSimulationStatus;
+      set {
+         if (mSimulationStatus != value) {
+            mSimulationStatus = value;
+            OnPropertyChanged (nameof (SimulationStatus));
+         }
+      }
+   }
 
    public event PropertyChangedEventHandler PropertyChanged;
    #endregion
@@ -161,6 +181,50 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
+
+   void OnFilesHeaderItemClicked (object sender, RoutedEventArgs e) {
+      string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
+      string fChassisFolderPath = System.IO.Path.Combine (userHomePath, "FChassis");
+      string recentFilesJSONFilePath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
+
+      mRecentFilesMap = LoadRecentFilesFromJSON (recentFilesJSONFilePath);
+
+      // Rebuild the observable collection
+      RecentFiles.Clear ();
+
+      if (mRecentFilesMap is { Count: > 0 }) {
+         static DateTimeOffset ParseTs (string ts) =>
+             DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
+
+         foreach (var kv in mRecentFilesMap.OrderByDescending (kv => ParseTs (kv.Value))) {
+            RecentFiles.Add ($"{kv.Key}\t{kv.Value}");
+         }
+      }
+   }
+
+
+   void OnRecentFileItemClick (object sender, RoutedEventArgs e) {
+      if (sender is not MenuItem mi || mi.Header is not string line || string.IsNullOrWhiteSpace (line))
+         return;
+
+      const int TimestampLen = 19; // "yyyy-MM-dd HH:mm:ss"
+      string path = line;
+
+      if (line.Length >= TimestampLen + 1) // +1 for the separating space
+      {
+         // drop the timestamp and the preceding space
+         path = line[..^(TimestampLen + 1)];
+      }
+
+      path = path.Trim ();
+
+      if (!File.Exists (path)) {
+         MessageBox.Show ($"File not found:\n{path}", "Open Recent", MessageBoxButton.OK, MessageBoxImage.Warning);
+         return;
+      }
+
+      LoadPart (path);
+   }
    void OnMenuDirOpen (object sender, RoutedEventArgs e) {
       var dlg = new FolderPicker {
          InputPath = PathUtils.ConvertToWindowsPath (mSrcDir),
@@ -225,6 +289,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnFileClose (object sender, RoutedEventArgs e) {
+      WriteRecentFiles ();
       if (Work != null) {
          if (mProcessSimulator != null) {
             if (mProcessSimulator.SimulationStatus == ProcessSimulator.ESimulationStatus.Running ||
@@ -271,42 +336,66 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       sanityTestsDlg.ShowDialog ();
    }
 
-   public void OnExit () {
-      // Get the user's home directory path
-      string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
-
-      // Define the path to the FChassis folder
-      string fChassisFolderPath = System.IO.Path.Combine (userHomePath, "FChassis");
-
-      // Check if the directory exists, if not, create it
-      if (!Directory.Exists (fChassisFolderPath))
+   protected override void OnClosing (CancelEventArgs e) {
+      try {
+         // ~/FChassis
+         string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
+         string fChassisFolderPath = Path.Combine (userHomePath, "FChassis");
          Directory.CreateDirectory (fChassisFolderPath);
 
-      // Define the full path to the settings file
-      string settingsFilePath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.Settings.JSON");
-
-      // Call the SaveToJson method from the MCSettings singleton to save the JSON file
+         // Settings JSON
+         string settingsFilePath = Path.Combine (fChassisFolderPath, "FChassis.User.Settings.JSON");
 #if DEBUG || TESTRELEASE
-      MCSettings.It.SaveToJsonASCII (settingsFilePath);
+         MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
 #else
-      MCSettings.It.SaveToJson (settingsFilePath);
+      MCSettings.It.SaveSettingsToJson(settingsFilePath);
 #endif
 
-      Console.WriteLine ($"Settings file created at: {settingsFilePath}");
+         WriteRecentFiles ();
+
+         System.Diagnostics.Debug.WriteLine ($"Settings file created at: {settingsFilePath}");
+      } catch (Exception ex) {
+         // Don’t block app shutdown on save errors
+         System.Diagnostics.Debug.WriteLine ($"Error saving on close: {ex}");
+      }
+
+      base.OnClosing (e);
+   }
+
+   void WriteRecentFiles () {
+      try {
+         string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
+         string fChassisFolderPath = Path.Combine (userHomePath, "FChassis");
+         Directory.CreateDirectory (fChassisFolderPath);
+         string recentFilesJSONPath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
+         string timeStamp = DateTime.Now.ToString ("yyyy-MM-dd HH:mm:ss");
+         mRecentFilesMap[mPart.Info.FileName] = timeStamp;
+         TrimRecentFilesMap (mRecentFilesMap);
+
+         // Recent files JSON (MCSettings manages mRecentFilesMap internally)
+         SaveRecentFilesToJSON (mRecentFilesMap, recentFilesJSONPath);
+      } catch (Exception) {
+      }
+   }
+
+   static void TrimRecentFilesMap (Dictionary<string,string> map) {
+      const int MaxEntries = 30;
+
+      if (map == null || map.Count <= MaxEntries)
+         return;
+
+      static DateTimeOffset ParseTs (string ts) =>
+          DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
+
+      map = map
+          .OrderByDescending (kv => ParseTs (kv.Value))   // newest first
+          .Take (MaxEntries)                             // keep only top 30
+          .ToDictionary (kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
    }
    #endregion
 
    #region Properties
-   public bool IsIgesAvailable { get; }
-   public ProcessSimulator.ESimulationStatus SimulationStatus {
-      get => mSimulationStatus;
-      set {
-         if (mSimulationStatus != value) {
-            mSimulationStatus = value;
-            OnPropertyChanged (nameof (SimulationStatus));
-         }
-      }
-   }
+   public ObservableCollection<string> RecentFiles { get; set; } = [];
 
    public Workpiece Work {
       get => mWork;
@@ -422,6 +511,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    #region Part Preparation Methods
    void LoadPart (string file) {
+      //string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
+      //string fChassisFolderPath = System.IO.Path.Combine (userHomePath, "FChassis");
+      //string recentFilesJSONPath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
+      //string timeStamp = DateTime.Now.ToString ("yyyy-MM-dd HH:mm:ss");
+      ////SaveRecentFilesToJSON (file, timeStamp, recentFilesJSONPath);
+      //mRecentFilesMap[file] = timeStamp;
+      //static DateTimeOffset ParseTs (string ts)
+      //      => DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
+      //RecentFiles = [];
+      //foreach (var kv in mRecentFilesMap.OrderByDescending (kv => ParseTs (kv.Value))) {
+      //   RecentFiles.Add ($"{kv.Key} {kv.Value}");
+      //}
       file = file.Replace ('\\', '/');
 
       // Create DXF file from .CSV file.
@@ -661,6 +762,97 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          }
       }
    }
+   #endregion
+   #region JSON readers/writers
+   
+   // --------------------------------------------------------------------
+   // Saves mRecentFilesMap to JSON (keeps latest 30 by timestamp)
+   // --------------------------------------------------------------------
+   public static void SaveRecentFilesToJSON (Dictionary<string,string> map, string jsonFileName) {
+      const int MaxEntries = 30;
+
+      if (string.IsNullOrWhiteSpace (jsonFileName))
+         throw new ArgumentException ("jsonFileName must be a non-empty path.", nameof (jsonFileName));
+
+      // Ensure directory exists
+      var dir = Path.GetDirectoryName (jsonFileName);
+      if (!string.IsNullOrEmpty (dir) && !Directory.Exists (dir))
+         Directory.CreateDirectory (dir);
+
+      // Ensure map exists
+      map ??= new Dictionary<string, string> (StringComparer.Ordinal);
+
+      // Trim to newest 30 by timestamp
+      static DateTimeOffset ParseTs (string ts) =>
+         DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
+
+      if (map.Count > MaxEntries) {
+         map = map
+            .OrderByDescending (kv => ParseTs (kv.Value))
+            .Take (MaxEntries)
+            .ToDictionary (kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+      }
+
+      var jsonOptions = new JsonSerializerOptions {
+         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+         WriteIndented = true
+      };
+
+      var jsonOut = JsonSerializer.Serialize (map, jsonOptions);
+
+      // Persist as ASCII (non-ASCII -> '?') to match your existing convention
+      var asciiBytes = Encoding.ASCII.GetBytes (jsonOut);
+      File.WriteAllBytes (jsonFileName, asciiBytes);
+   }
+
+   static List<string> DescendingOrderMap(Dictionary<string, string> map) {
+      List<string> recFiles = [];
+      if (map != null) {
+         // Keep newest first (by timestamp)
+         static DateTimeOffset ParseTs (string ts)
+             => DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
+
+         foreach (var kv in map.OrderByDescending (kv => ParseTs (kv.Value))) {
+            recFiles.Add ($"{kv.Key} {kv.Value}");
+         }
+      }
+      return recFiles;
+   }
+
+   public static Dictionary<string, string> LoadRecentFilesFromJSON (string jsonFileName) {
+      
+      Dictionary<string, string> map = [];
+      if (string.IsNullOrWhiteSpace (jsonFileName))
+         throw new ArgumentException ("jsonFileName must be a non-empty path.", nameof (jsonFileName));
+
+      if (!File.Exists (jsonFileName))
+         return map;
+
+      try {
+         var bytes = File.ReadAllBytes (jsonFileName);
+         if (bytes.Length == 0)
+            return map;
+         
+         var json = Encoding.UTF8.GetString (bytes);
+         map = JsonSerializer.Deserialize<Dictionary<string, string>> (json);
+
+         //if (map != null) {
+         //   // Keep newest first (by timestamp)
+         //   static DateTimeOffset ParseTs (string ts)
+         //       => DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
+
+         //   foreach (var kv in map.OrderByDescending (kv => ParseTs (kv.Value))) {
+         //      RecentFiles.Add ($"{kv.Key} {kv.Value}");
+         //   }
+         //}
+      } catch {
+         // swallow exceptions -> return whatever was parsed so far (empty on error)
+      }
+
+      return map;
+   }
+
+
    #endregion
 }
 

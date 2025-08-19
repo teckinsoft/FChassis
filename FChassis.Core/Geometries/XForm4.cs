@@ -331,19 +331,41 @@ public class Geom {
       if (start.DistTo (arc.Start).EQ (0) && end.DistTo (arc.End).EQ (0)) fullArc = true;
       if (!fullArc) (_, arcSense) = GetArcAngleAndSense (arc, normal, hintSense);
       if (hintSense != EArcSense.Infer) {
-         if (L > Math.PI * radius) { // Major arc
-            if (hintSense == EArcSense.CCW)
-               angle = Math.Tau - includedAngle;
-            else // CW
-               angle = -includedAngle;
-         } else { // Minor arc
-            if (hintSense == EArcSense.CCW)
-               angle = includedAngle;
-            else // CW
-               angle = -(Math.Tau - includedAngle);
-         }
+         bool isMajorArc = L.SGT (Math.PI * radius);
+         angle = includedAngle * (hintSense == EArcSense.CCW ? 1 : -1);
+
+         if (isMajorArc)
+            angle = (Math.Tau - includedAngle) * (hintSense == EArcSense.CCW ? 1 : -1);
+
          sense = hintSense;
-      } else {// if (hintSense == EArcSense.Infer) {
+      }
+      //if (hintSense != EArcSense.Infer) {
+      //   bool majorArc = L.SGT(Math.PI * radius);
+      //   bool minorArc = !majorArc;
+      //   if (minorArc && hintSense == EArcSense.CCW)
+      //      angle = includedAngle;
+      //   else if (minorArc && hintSense == EArcSense.CW)
+      //      angle = -includedAngle;
+      //   else if (majorArc && hintSense == EArcSense.CCW)
+      //      angle = Math.Tau - includedAngle;
+      //   else if (majorArc && hintSense == EArcSense.CW)
+      //      angle = -(Math.Tau - includedAngle);
+      //   else
+      //      throw new Exception ("Arc sense and type not in valid cases");
+      //   //if (L > Math.PI * radius) { // Major arc
+      //   //   if (hintSense == EArcSense.CCW)
+      //   //      angle = Math.Tau - includedAngle;
+      //   //   else // CW
+      //   //      angle = -includedAngle;
+      //   //} else { // Minor arc
+      //   //   if (hintSense == EArcSense.CCW)
+      //   //      angle = includedAngle;
+      //   //   else // CW
+      //   //      angle = -(Math.Tau - includedAngle);
+      //   //}
+      //   sense = hintSense;
+      //} 
+      else {// if (hintSense == EArcSense.Infer) {
          if (sXe.Dot (normal) < 0.0 && L > Math.PI * radius) {
             angle = 2 * Math.PI - includedAngle;
             sense = EArcSense.CCW;

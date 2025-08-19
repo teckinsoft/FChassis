@@ -643,14 +643,14 @@ public partial class MCSettings : INotifyPropertyChanged {
 
    #region JSON Read/Write Methods
    // Method to serialize the singleton instance to a JSON file
-   public void SaveToJson (string filePath) {
+   public void SaveSettingsToJson (string filePath) {
       // Serialize the object to binary JSON using MessagePack
       var binaryJson = MessagePackSerializer.Serialize (It);
 
       // Write the binary JSON to the file
       File.WriteAllBytes (filePath, binaryJson);
    }
-   public void SaveToJsonASCII (string filePath) {
+   public void SaveSettingsToJsonASCII (string filePath) {
       // JSON serializer options
       var jsonOptions = new JsonSerializerOptions {
          Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // Ensures ASCII encoding
@@ -683,7 +683,7 @@ public partial class MCSettings : INotifyPropertyChanged {
       File.WriteAllBytes (filePath, asciiBytes);
    }
 
-   public void LoadFromJson (string filePath) {
+   public void LoadSettingsFromJson (string filePath) {
       if (File.Exists (filePath)) {
          mJSONReadOptions ??= new JsonSerializerOptions {
             Converters = { new JsonStringEnumConverter () } // Converts Enums from their string representation

@@ -34,12 +34,27 @@
     <DockPanel LastChildFill="True">
         <!-- Menu at the top of the window -->
         <Menu DockPanel.Dock="Top">
-            <MenuItem Header="Files">
+            <MenuItem Header="Files" SubmenuOpened="OnFilesHeaderItemClicked">
                 <MenuItem Header="Open File" Click="OnMenuFileOpen"/>
                 <MenuItem Header="Open Folder" Click="OnMenuDirOpen"/>
                 <MenuItem Header="Join" Click="OnJoin" Visibility="{Binding IsIgesAvailable, Converter={StaticResource JoinMenuItemVisibilityConverter}}" />
                 <MenuItem Header="Save" Click= "OnMenuFileSave"/>
                 <MenuItem Header="Close" Click="OnFileClose"/>
+                <Separator />
+                <MenuItem Header="Recent Files"
+          ItemsSource="{Binding RecentFiles, RelativeSource={RelativeSource AncestorType=Window}}">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem">
+                            <!-- Each item is a string; show it as the menu item's header -->
+                            <Setter Property="Header" Value="{Binding}" />
+                            <!-- Optional: show same text as tooltip -->
+                            <Setter Property="ToolTip" Value="{Binding}" />
+                            <!-- Optional: make items non-clickable (display-only) -->
+                            <!-- <Setter Property="IsHitTestVisible" Value="False" /> -->
+                            <EventSetter Event="Click" Handler="OnRecentFileItemClick"/>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="Options">
                 <MenuItem Header="Settings" Click="OnSettings"/>

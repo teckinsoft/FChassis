@@ -288,7 +288,9 @@ public class Notch : ToolingFeature {
           notchWireJointDistance,
           notchApproachLength,
           mCurveLeastLength,
-          !notchWireJointDistance.EQ (0)
+          !notchWireJointDistance.EQ (0),
+          mGCodeGen.JobInnerRadius,
+          mGCodeGen.JobThickness
       );
 
       if (!mTwoFlangeNotchStartAndEndOnSameSideFlange &&
@@ -1465,7 +1467,7 @@ public class Notch : ToolingFeature {
 
       // Compute the notch attributes
       mNotchAttrs = GetNotchAttributes (mSegments, [(mNToolPath.ApproachParameters.Value.SegIndex, mNToolPath.ApproachParameters.Value.NPosition)],
-         mFullPartBound, mToolingItem);
+         mFullPartBound, mToolingItem, mGCodeGen.JobInnerRadius, mGCodeGen.JobThickness);
       mApproachIndex = 0;
       return;
    }
@@ -1536,6 +1538,8 @@ public class Notch : ToolingFeature {
                            List<ToolingSegment> segs,
                            List<NotchAttribute> notchAttrs,
                            Bound3 bound,
+                           double radius,
+                           double thickness,
                            int approachIndex,
                            double wireJointDistance,
                            bool sameSidedExitNotch) {
@@ -1623,7 +1627,7 @@ public class Notch : ToolingFeature {
 
       // For the best point find the notch attribute info. We are interested in finding the 
       // flange end point, which is given by item5 of NotchAttribute
-      var notchAttr = ComputeNotchAttribute (bound, toolingItem, segs, bestSegIndex, bestApproachPtOnProfile);
+      var notchAttr = ComputeNotchAttribute (bound, toolingItem, segs, bestSegIndex, bestApproachPtOnProfile, radius, thickness);
       flangeBoundaryEnd = bestApproachPtOnProfile + notchAttr.NearestBdyVec;
 
       if (sameSidedExitNotch) {
@@ -1797,12 +1801,12 @@ public class Notch : ToolingFeature {
       }
       var segs = mSegments;
       var (n1, nMid1, flangeEnd, n2, nMid2, notchPointAtApproachpc) = GetNotchApproachPositions (mToolingItem, segs, mNotchAttrs,
-         mFullPartBound, mApproachIndex, mNotchWireJointDistance, sameSidedExitNotch: mTwoFlangeNotchStartAndEndOnSameSideFlange);
+         mFullPartBound, mGCodeGen.JobInnerRadius, mGCodeGen.JobThickness, mApproachIndex, mNotchWireJointDistance, sameSidedExitNotch: mTwoFlangeNotchStartAndEndOnSameSideFlange);
       var notchAttr = mNotchAttrs[mApproachIndex];
       var notchApproachEndNormal = notchAttr.EndNormal;
       var notchApproachStNormal = notchAttr.StNormal;
       mBlockCutLength = mCutLengthTillPrevTooling;
-      Point3 prevTSPt = flangeEnd;
+      //Point3 prevTSPt = flangeEnd;
       bool continueMachining = false;
       Point3? prevRapidPos = null;
       mGCodeGen.RapidMoveToPiercingPositionWithPingPong = false;
@@ -2020,10 +2024,10 @@ public class Notch : ToolingFeature {
                //var blockNoMark = mGCodeGen.BlockNumberMark;
                if (notchSequence.SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex || notchSequence.SectionType == NotchSectionType.WireJointTraceJumpReverseOnFlex)
                   notchAttr = ComputeNotchAttribute (mFullPartBound, mToolingItem, mSegments, notchSequence.StartIndex,
-                     mSegments[notchSequence.StartIndex].Curve.End, isFlexMachining: true);
+                     mSegments[notchSequence.StartIndex].Curve.End, mGCodeGen.JobInnerRadius, mGCodeGen.JobThickness, isFlexMachining: true);
                else
                   notchAttr = ComputeNotchAttribute (mFullPartBound, mToolingItem, mSegments, notchSequence.StartIndex,
-                     mSegments[notchSequence.StartIndex].Curve.Start, isFlexMachining: false);
+                     mSegments[notchSequence.StartIndex].Curve.Start, mGCodeGen.JobInnerRadius, mGCodeGen.JobThickness, isFlexMachining: false);
 
                Vector3 scrapSideNormal;
                if (Math.Abs (mSegments[notchSequence.StartIndex].Vec0.Normalized ().Z - 1.0).EQ (0, mSplit ? 1e-4 : 1e-6) ||
@@ -2140,7 +2144,7 @@ public class Notch : ToolingFeature {
                         mGCodeGen.WriteCurve (mSegments[jj], mToolingItem.Name, relativeCoords: relCoords,
                            refStPt: prevRapidPos);
 
-                        prevTSPt = mSegments[jj].Curve.End;
+                        //prevTSPt = mSegments[jj].Curve.End;
                         mBlockCutLength += mSegments[jj].Curve.Length;
                      }
                      PreviousToolingSegment = mSegments[notchSequence.EndIndex];
@@ -2186,7 +2190,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteCurve (mExitTooling.Value, mToolingItem.Name, relativeCoords: relCoords,
                         refStPt: prevRapidPos);
 
-                     prevTSPt = mExitTooling.Value.Curve.End;
+                     //prevTSPt = mExitTooling.Value.Curve.End;
                      mBlockCutLength += mExitTooling.Value.Curve.Length;
                   }
                   PreviousToolingSegment = mSegments[notchSequence.EndIndex];
@@ -2229,7 +2233,7 @@ public class Notch : ToolingFeature {
                      var segment = Geom.GetReversedToolingSegment (mSegments[jj], tolerance: mSplit ? 1e-4 : 1e-6);
                      mGCodeGen.WriteFlexLineSeg (segment,
                        isWJTStartCut: false, mToolingItem.Name, flexRefSeg: mFlexStartRef);
-                     prevTSPt = segment.Curve.End;
+                     //prevTSPt = segment.Curve.End;
                      mBlockCutLength += segment.Curve.Length;
                      PreviousToolingSegment = segment;
                   }
@@ -2271,7 +2275,7 @@ public class Notch : ToolingFeature {
 
                      mGCodeGen.WriteFlexLineSeg (mSegments[jj],
                         isWJTStartCut: false, mToolingItem.Name, flexRefSeg: mFlexStartRef);
-                     prevTSPt = mSegments[jj].Curve.End;
+                     //prevTSPt = mSegments[jj].Curve.End;
 
                      mBlockCutLength += mSegments[jj].Curve.Length;
                      PreviousToolingSegment = mSegments[jj];
@@ -2396,9 +2400,9 @@ public class Notch : ToolingFeature {
    /// </param>
    public static bool IsEdgeNotch (Bound3 bound, Tooling toolingItem,
       double[] percentPos,
-      double leastCurveLength) {
+      double leastCurveLength, double radius, double thickness) {
       var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
-         leastCurveLength);
+         leastCurveLength, radius, thickness);
       if (toolingItem.IsNotch () && attrs.Count == 0) return true;
 
       // If a notch should have start and endx at XMin, or XMax or ZMin
@@ -2472,9 +2476,10 @@ public class Notch : ToolingFeature {
    /// assumed that there is no curve</param>
    /// <returns>The overall length of the cut (this includes tooling and other cutting strokes for approach etc.)</returns>
    public static double GetTotalNotchToolingLength (Bound3 bound, Tooling toolingItem,
-      double[] percentPos, double notchWireJointDistance, double notchApproachLength, double leastCurveLength, bool isWireJointCutsNeeded) {
+      double[] percentPos, double notchWireJointDistance, double notchApproachLength, double leastCurveLength, bool isWireJointCutsNeeded,
+      double radius, double thickness) {
       var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
-         leastCurveLength);
+         leastCurveLength, radius, thickness);
 
       double totalMachiningLength = 0;
       if (attrs.Count == 0) {
@@ -2555,7 +2560,7 @@ public class Notch : ToolingFeature {
    /// from the approximate mid point of the segment FROM 50% distance of the tooling segments TO
    /// the nearest boundary on the flange. The vector is the flamnge normal at the above point</returns>
    public static ValueTuple<Point3, Vector3> GetNotchEntry (Bound3 bound, Tooling toolingItem,
-      double[] percentPos, double notchApproachLength, double wireJointDistance, double curveLeastLength = 0.5,
+      double[] percentPos, double notchApproachLength, double wireJointDistance, double radius, double thickness, double curveLeastLength = 0.5,
       double tolerance = 1e-6) {
       List<Tuple<Point3, Vector3, Vector3>> attrs = [];
       var segs = toolingItem.Segs.ToList ();
@@ -2574,7 +2579,7 @@ public class Notch : ToolingFeature {
       // Split the curves and modify the indices and segments in segments and
       // in notchPointsInfo
       SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices, tolerance);
-      var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem);
+      var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem, radius, thickness);
       foreach (var notchAttr in notchAttrs) {
          var approachEndPoint = notchAttr.Curve.End;
          if (notchAttr.NearestBdyVec.Length > notchApproachLength - Utils.EpsilonVal) {
@@ -2602,7 +2607,7 @@ public class Notch : ToolingFeature {
 
          // @Notchpoint at aporoach
          var (n1, _, _, _, _, _) = GetNotchApproachPositions
-            (toolingItem, segs, notchAttrs, bound, approachSegIndex, wireJointDistance, sameSidedExitNotch: sameSidedExitNotch);
+            (toolingItem, segs, notchAttrs, bound, radius, thickness, approachSegIndex, wireJointDistance, sameSidedExitNotch: sameSidedExitNotch);
          return new ValueTuple<Point3, Vector3> (n1, notchAttrs[approachSegIndex].StNormal.Normalized ());
       } else return new ValueTuple<Point3, Vector3> (segs[0].Curve.Start, segs[0].Vec0);
    }
@@ -2624,7 +2629,7 @@ public class Notch : ToolingFeature {
          return new ValueTuple<Point3, Vector3> (curve.Start, stNoral);
       } else
          return Notch.GetNotchEntry (mFullPartBound, mToolingItem, mPercentLength, mNotchApproachLength,
-            mNotchWireJointDistance, mCurveLeastLength);
+            mNotchWireJointDistance, mGCodeGen.JobInnerRadius, mGCodeGen.JobThickness, mCurveLeastLength);
    }
 
    /// <summary>
@@ -2672,7 +2677,7 @@ public class Notch : ToolingFeature {
    /// <returns>A list of tuples that contain the notch point, normal at the point
    /// and the direction to the nearest boundary</returns>
    public static List<Tuple<Point3, Vector3, Vector3>> GetNotchApproachParams (Bound3 bound, Tooling toolingItem,
-      double[] percentPos, double curveLeastLength) {
+      double[] percentPos, double curveLeastLength, double radius, double thickness) {
       List<Tuple<Point3, Vector3, Vector3>> attrs = [];
       var segs = toolingItem.Segs.ToList ();
       if (!toolingItem.IsNotch ()) return attrs;
@@ -2685,7 +2690,7 @@ public class Notch : ToolingFeature {
       // in notchPointsInfo
       SplitToolingSegmentsAtPoints (ref segs, ref notchPointsInfo, percentPos, segIndices,
          toolingItem.FeatType.Contains ("split", StringComparison.CurrentCultureIgnoreCase) ? 1e-4 : 1e-6);
-      var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem);
+      var notchAttrs = GetNotchAttributes (ref segs, ref notchPointsInfo, bound, toolingItem, radius, thickness);
       foreach (var notchAttr in notchAttrs) {
          var approachEndPoint = notchAttr.Curve.End;
          if (notchAttr.NearestBdyVec.Length > /*notchApproachDistance*/1.0 - Utils.EpsilonVal) { // TODO Revisit for notchApproachDistance
@@ -2737,7 +2742,7 @@ public class Notch : ToolingFeature {
    /// <exception cref="Exception">An exception is thrown if the pre-step to split the tooling segments is not 
    /// made. This is checked if each of the NotchPointInfo has only one point for the index (of the segment)</exception>
    public static List<NotchAttribute> GetNotchAttributes (ref List<ToolingSegment> segments,
-      ref List<NotchPointInfo> notchPointsInfo, Bound3 bound, Tooling toolingItem) {
+      ref List<NotchPointInfo> notchPointsInfo, Bound3 bound, Tooling toolingItem, double radius, double thickness) {
       List<NotchAttribute> notchAttrs = [];
 
       // Assertion that each notch point info should have only one point after split
@@ -2750,7 +2755,8 @@ public class Notch : ToolingFeature {
 
       // Compute the notch attributes
       for (int ii = 0; ii < notchPointsInfo.Count; ii++) {
-         var newNotchAttr = ComputeNotchAttribute (bound, toolingItem, segments, notchPointsInfo[ii].mSegIndex, notchPointsInfo[ii].mPoints[0]);
+         var newNotchAttr = ComputeNotchAttribute (bound, toolingItem, segments, notchPointsInfo[ii].mSegIndex, notchPointsInfo[ii].mPoints[0],
+            radius, thickness);
          notchAttrs.Add (newNotchAttr);
       }
       return notchAttrs;
@@ -2760,12 +2766,12 @@ public class Notch : ToolingFeature {
       List<ToolingSegment> segments,
       List<(int SegIndex, Point3 NPosition)> refVals,
       Bound3 bound,
-      Tooling toolingItem) {
+      Tooling toolingItem, double radius, double thickness) {
       List<NotchAttribute> notchAttrs = [];
 
       // Compute the notch attributes
       for (int ii = 0; ii < refVals.Count; ii++) {
-         var newNotchAttr = ComputeNotchAttribute (bound, toolingItem, segments, refVals[ii].SegIndex, refVals[ii].NPosition);
+         var newNotchAttr = ComputeNotchAttribute (bound, toolingItem, segments, refVals[ii].SegIndex, refVals[ii].NPosition, radius, thickness);
          notchAttrs.Add (newNotchAttr);
       }
       return notchAttrs;

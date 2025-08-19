@@ -843,14 +843,19 @@ public static class Utils {
    static Vector3 GetVectorToProximalBoundary (Point3 pt, Bound3 bound, ToolingSegment seg,
                                                ECutKind profileKind, out XForm4.EAxis proxBdy,
                                                bool doubleFlangeNotchWithSameSideStartAndEnd,
+                                               ToolingSegment startSeg, ToolingSegment endSeg,
+                                               double radius, double thickness,
                                                bool isFlexMachining = false, double bdyYExtreme = 0) {
       Vector3 res;
       Point3 bdyPtXMin, bdyPtXMax, bdyPtZMin;
       Vector3 normalAtNotchPt;
       double t;
       Arc3 arc;
+      bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z);
+      bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z);
       switch (profileKind) {
          case ECutKind.Top:
+
             if (doubleFlangeNotchWithSameSideStartAndEnd) {
                res = new Vector3 (0, bdyYExtreme - pt.Y, 0);
                if (bdyYExtreme - pt.Y < 0) proxBdy = XForm4.EAxis.NegY;
@@ -872,18 +877,18 @@ public static class Utils {
                   // if the computed normal is CW, it is negated.
                   var computedNormal = tgt.Cross (biNormal);
                   if (computedNormal.Opposing (seg.Vec0))
-                     res = negBiNormal;
+                     res = bdyPtXMin - pt;
                   else
-                     res = biNormal;
-                  if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
-                     < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
+                     res = bdyPtXMax - pt;
+                  if (pt.DistTo (bdyPtXMin)
+                     < pt.DistTo (bdyPtXMax)) {
                      proxBdy = XForm4.EAxis.NegX;
                   } else {
                      proxBdy = XForm4.EAxis.X;
                   }
                } else {
-                  if (pt.DistTo (bdyPtXMin = new Point3 (bound.XMin, pt.Y, pt.Z))
-                        < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
+                  if (pt.DistTo (bdyPtXMin)
+                        < pt.DistTo (bdyPtXMax)) {
                      res = bdyPtXMin - pt;
                      proxBdy = XForm4.EAxis.NegX;
                   } else {
@@ -893,51 +898,52 @@ public static class Utils {
                }
             }
             break;
-         case ECutKind.Top2YPos:
-         case ECutKind.Top2YNeg:
+         case ECutKind.Top2YPos: // Also for doubleFlangeNotchWithSameSideStartAndEnd
+         case ECutKind.Top2YNeg: // also for doubleFlangeNotchWithSameSideStartAndEnd
          case ECutKind.YNegToYPos: /* TRIPLE_FLANGE_NOTCH */
          case ECutKind.YPos:
          case ECutKind.YNeg:
+            double OrdX;
+            double OrdY = bound.Min.Y;
+            double OrdZ = bound.Max.Z;
             if (seg.Curve is Arc3) {
-               arc = seg.Curve as Arc3;
-               var (tgt, normal) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0.Normalized ());
-               // To find the scrapside normal for arcs
-               // Find the cross of tangent vec with seg normal
-               var biNormal = tgt.Cross (seg.Vec0).Normalized ();
-               var negBiNormal = biNormal * -1;
-               // Scrapside direction is one among biNormal or negBiNormal.
-               // it is found by checking the cross of tgt and binormal sense with segment's normal.
-               // Here if the cross is same sense with binormal then it is the scrapside. Otherwise, 
-               // negBinormal is the scrapside.
-               // How it works: If the profile flows from top to ypos OR if the profile is on YPOs plane               
-               // the scrapside is always to the right 90 deg to the tangent. A left turn is CCW and so
-               // if the computed normal is CCW, it is negated.
-               var computedNormal = tgt.Cross (biNormal);
-               // Clockwise case
-               if (profileKind == ECutKind.YPos || profileKind == ECutKind.Top2YPos) {
-                  if (computedNormal.Opposing (seg.Vec0))
-                     res = biNormal;
-                  else
-                     res = negBiNormal;
-               } else {
-                  if (computedNormal.Opposing (seg.Vec0))
-                     res = negBiNormal;
-                  else
-                     res = biNormal;
-               }
-               if (pt.DistTo (_ = new Point3 (bound.XMin, pt.Y, pt.Z))
-                     < pt.DistTo (bdyPtXMax = new Point3 (bound.XMax, pt.Y, pt.Z))) {
+               if (pt.DistTo (bdyPtXMin)
+                        < pt.DistTo (bdyPtXMax))
                   proxBdy = XForm4.EAxis.NegX;
-               } else {
+               else
                   proxBdy = XForm4.EAxis.X;
+
+               if (doubleFlangeNotchWithSameSideStartAndEnd) {
+                  OrdX = (startSeg.Curve.Start.X + endSeg.Curve.End.X) / 2;
+                  OrdZ = bound.Max.Z;
+                  // Clockwise case
+                  if (profileKind == ECutKind.YPos || profileKind == ECutKind.Top2YPos) {
+                     OrdY = -bound.Min.Y + (radius + thickness);
+                  } else {
+                     OrdY = bound.Min.Y - (radius + thickness);
+                  }
+               } else {
+                  if (pt.DistTo (bdyPtXMin)
+                        < pt.DistTo (bdyPtXMax))
+                     OrdX = bound.Min.X;
+                  else
+                     OrdX = bound.Max.X;
+                  if (profileKind == ECutKind.YPos) {
+                     OrdY = bound.Max.Y;
+                     OrdZ = bound.Min.Z;
+                  } else if (profileKind == ECutKind.YNeg) {
+                     OrdY = bound.Min.Y;
+                     OrdZ = bound.Min.Z;
+                  } else if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg) {
+                     OrdY = pt.Y;
+                     OrdZ = pt.Z;
+                  }
                }
+               res = new Point3 (OrdX, OrdY, OrdZ) - pt;
             } else {
                if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg || profileKind == ECutKind.YNegToYPos) {
-                  if (seg.Curve is Line3) {
-                     t = pt.DistTo (seg.Curve.Start) / seg.Curve.Length;
-                     normalAtNotchPt = Geom.GetInterpolatedNormal (seg.Vec0, seg.Vec1, t);
-                  } else
-                     normalAtNotchPt = seg.Vec0;
+                  t = pt.DistTo (seg.Curve.Start) / seg.Curve.Length;
+                  normalAtNotchPt = Geom.GetInterpolatedNormal (seg.Vec0, seg.Vec1, t);
 
                   if (isFlexMachining) goto case ECutKind.YPosFlex;
                   if (normalAtNotchPt.EQ (XForm4.mZAxis)) goto case ECutKind.Top;
@@ -1138,6 +1144,8 @@ public static class Utils {
     List<ToolingSegment> segments,
     int segIndex,
     Point3 notchPoint,
+    double radius,
+    double thickness,
     bool isFlexMachining = false) {
       // Determine if the notch is on two flanges and if the start and end of the notch
       // are on the same Y flange.
@@ -1180,6 +1188,9 @@ public static class Utils {
              toolingItem.ProfileKind,
              out proxBdyStart,
              twoFlangeNotchStartAndEndOnSameSideFlange,
+             segments[0], segments[^1],
+             radius,
+             thickness,
              isFlexMachining,
              yReach
          );
@@ -1211,6 +1222,9 @@ public static class Utils {
              toolingItem.ProfileKind,
              out proxBdyStart,
              twoFlangeNotchStartAndEndOnSameSideFlange,
+             segments[0], segments[^1],
+             radius,
+             thickness,
              isFlexMachining,
              yReach
          );
@@ -1222,6 +1236,9 @@ public static class Utils {
              toolingItem.ProfileKind,
              out _,
              twoFlangeNotchStartAndEndOnSameSideFlange,
+             segments[0], segments[^1],
+             radius,
+             thickness,
              isFlexMachining,
              yReach
          );
@@ -1233,6 +1250,9 @@ public static class Utils {
              toolingItem.ProfileKind,
              out _,
              twoFlangeNotchStartAndEndOnSameSideFlange,
+             segments[0], segments[^1],
+             radius,
+             thickness,
              isFlexMachining,
              yReach
          );
