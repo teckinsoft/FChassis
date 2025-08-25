@@ -78,7 +78,11 @@ Section "Install"
   vcskip:
   
   ; === Map W: drive persistently to thirdParty folder ===
-  ; WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\DOS Devices" "W:" "\??\$INSTDIR\Map"
+  ; Run the subst command during installation
+  nsExec::Exec '"cmd.exe" /C subst W: "$INSTDIR\Map"'
+
+  ; Ensure the drive persists after reboot by adding it to the registry
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "MyVirtualDrive" '"cmd.exe" /C subst W: "$INSTDIR\Map"'
 
   ; Clean up after extraction
   Delete "$INSTDIR\thirdParty.zip"
@@ -108,9 +112,6 @@ Section "Uninstall"
   ; Remove registry entry
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
   
-  ; === Remove persistent W: mapping ===
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\DOS Devices" "W:"
-  
   ; === Remove from PATH ===
   EnVar::SetHKLM  ; Or SetHKCU for current user
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin"
@@ -124,4 +125,10 @@ Section "Uninstall"
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin"
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin"
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
+  
+  ; Remove the virtual drive during uninstallation
+  nsExec::Exec '"cmd.exe" /C subst W: /D'
+
+  ; Remove only the specific registry key for your virtual drive
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "MyVirtualDrive"
 SectionEnd
