@@ -2284,55 +2284,43 @@ public static class Utils {
          gcodeGen.ResetBookKeepers ();
       }
       if (gcodeGen.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
-#if DEBUG || TESTRELEASE
          var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
                gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
          if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Spatial) {
             mpc.ComputeQuasiOptimalCutScopes ();
             mpc.GenerateGCode ();
-            double quasi_time = GuageTime ("Spatial", mpc);
+            GuageTime ("Spatial", mpc);
 
             if (mpc.ToolingScopes.Count < 300) {
                mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
                gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
                mpc.ComputeBranchAndBoundCutscopes ();
                mpc.GenerateGCode ();
-               double bnb_time = GuageTime ("TimeOptimal", mpc);
+               GuageTime ("TimeOptimal", mpc);
             } else {
                mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
                gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
                mpc.ComputeSpatialOptimizationCutscopes ();
                mpc.GenerateGCode ();
-               double space_time = GuageTime ("TimeOptimal", mpc);
+               GuageTime ("TimeOptimal", mpc);
             }
          } else {
             if (mpc.ToolingScopes.Count < 300) {
                mpc.ComputeBranchAndBoundCutscopes ();
                mpc.GenerateGCode ();
-               double bnb_time = GuageTime ("TimeOptimal", mpc);
+               GuageTime ("TimeOptimal", mpc);
             } else {
                mpc.ComputeSpatialOptimizationCutscopes ();
                mpc.GenerateGCode ();
-               double space_time = GuageTime ("TimeOptimal", mpc);
+               GuageTime ("TimeOptimal", mpc);
             }
 
             mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
             mpc.ComputeQuasiOptimalCutScopes ();
             mpc.GenerateGCode ();
-            double quasi_time = GuageTime ("Spatial", mpc);
+            GuageTime ("Spatial", mpc);
          }
-#else
-         var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-            gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-         if (mpc.ToolingScopes.Count < 300) {
-            mpc.ComputeBranchAndBoundCutscopes ();
-            mpc.GenerateGCode ();
-         } else {
-            mpc.ComputeSpatialOptimizationCutscopes ();
-            mpc.GenerateGCode ();
-         }
-#endif
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
       } else {
@@ -2357,6 +2345,7 @@ public static class Utils {
       totalMovementTimeHead1 = 0, totalMovementTimeHead2 = 0;
       double idleTimeHead1 = 0, idleTimeHead2 = 0;
 
+#if DEBUG || TESTRELEASE
       foreach (var cutscopeTrace in mpc.CutScopeTraces) {
          double machiningTimeHead1 = 0, movementTimeHead1 = 0;
          double machiningTimeHead2 = 0, movementTimeHead2 = 0;
@@ -2410,6 +2399,7 @@ public static class Utils {
 
       var filePath = "W:\\Fchassis\\" + mpc.mGC.Process.Workpiece.NCFileName + "_" + name + "_TimeStats.json";
       Utils.WriteJsonFile<Dictionary<string, double>> (filePath, timeStats);
+#endif
       return totalTime;
    }
 
