@@ -345,10 +345,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
          // Settings JSON
          string settingsFilePath = Path.Combine (fChassisFolderPath, "FChassis.User.Settings.JSON");
+
+         string envVariable = Environment.GetEnvironmentVariable ("__FC_AUTH__");
+         Guid expectedGuid = new ("e96e66ff-17e6-49ac-9fe1-28bb45a6c1b9");
 #if DEBUG || TESTRELEASE
          MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
 #else
-      MCSettings.It.SaveSettingsToJson(settingsFilePath);
+         if (!string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid)
+            MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
+         else
+            MCSettings.It.SaveSettingsToJson (settingsFilePath);
 #endif
 
          WriteRecentFiles ();
