@@ -49,6 +49,10 @@
 	  <Compile Remove="Util.cs" />
 	  <Compile Remove="Workpiece.cs" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Images\FChassis_Splash.png" />
+	</ItemGroup>
 	
 	<ItemGroup>
 		<PackageReference Update="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -84,6 +88,13 @@
 	    <HintPath>$(OutDir)iges.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
+
+	<ItemGroup>
+	  <SplashScreen Include="Images\FChassis_Splash.png">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </SplashScreen>
+	</ItemGroup>
+
 
 	<ItemGroup>
 	  <None Update="App.config">

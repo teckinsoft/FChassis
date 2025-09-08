@@ -10,7 +10,7 @@ ${StrStr}
 ; Build-time defines (from MSBuild /DVERSION=... /DINSTALLDIR=... /DPayloadDir=... /DInstallerOutputDir=...)
 ;--------------------------------
 !ifndef VERSION
-  !define VERSION "1.0.69"
+  !define VERSION "1.0.68"
 !endif
 
 !ifndef INSTALLDIR
@@ -44,6 +44,7 @@ RequestExecutionLevel admin
 Var InstalledState ; 0 = not installed, 1 = same version, 2 = older version, 3 = newer version
 Var ExistingInstallDir
 Var ExistingVersion
+Var OpenCASCADEInstalled
 
 ;--------------------------------
 ; Pages
@@ -188,6 +189,7 @@ Function .onInit
   StrCpy $InstalledState 0 ; Default to not installed
   StrCpy $ExistingInstallDir "${INSTALLDIR}"
   StrCpy $ExistingVersion ""
+  StrCpy $OpenCASCADEInstalled 0
 
   ; Check if already installed via uninstall registry
   ReadRegStr $0 HKLM "${UNINSTALL_KEY}" "UninstallString"
@@ -254,6 +256,46 @@ Function DirectoryPre
 FunctionEnd
 
 ;--------------------------------
+; Function: InstallOpenCASCADE
+;--------------------------------
+Function InstallOpenCASCADE
+  ; Check if OpenCASCADE is already installed
+  IfFileExists "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin\TKernel.dll" opencascade_found
+  
+  ; Check if OpenCASCADE installer exists
+  IfFileExists "${ThirdPartyDir}\opencascade-7.7.0-vc14-64.exe" opencascade_installer_exists
+    MessageBox MB_OK|MB_ICONEXCLAMATION "OpenCASCADE installer not found at:$\n${ThirdPartyDir}\opencascade-7.7.0-vc14-64.exe$\n$\nPlease ensure the installer is available and try again."
+    StrCpy $OpenCASCADEInstalled 0
+    Return
+  
+  opencascade_installer_exists:
+  ; Copy OpenCASCADE installer to temp location
+  SetOutPath "$TEMP"
+  File "${ThirdPartyDir}\opencascade-7.7.0-vc14-64.exe"
+  
+  ; Install OpenCASCADE silently to the target directory
+  DetailPrint "Installing OpenCASCADE 7.7.0..."
+  ExecWait '"$TEMP\opencascade-7.7.0-vc14-64.exe" /S /D=$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64' $0
+  
+  ; Check installation result
+  ${If} $0 != 0
+    MessageBox MB_OK|MB_ICONEXCLAMATION "OpenCASCADE installation failed with error code: $0"
+    StrCpy $OpenCASCADEInstalled 0
+  ${Else}
+    StrCpy $OpenCASCADEInstalled 1
+    DetailPrint "OpenCASCADE installed successfully."
+  ${EndIf}
+  
+  ; Clean up installer
+  Delete "$TEMP\opencascade-7.7.0-vc14-64.exe"
+  Return
+  
+  opencascade_found:
+  StrCpy $OpenCASCADEInstalled 1
+  DetailPrint "OpenCASCADE already installed."
+FunctionEnd
+
+;--------------------------------
 ; Section: Install
 ;--------------------------------
 Section "Install"
@@ -307,7 +349,7 @@ Section "Install"
     RMDir /r "$INSTDIR\zh-Hans"
     RMDir /r "$INSTDIR\zh-Hant"
     
-    ; Keep thirdParty directory if it exists (to avoid re-downloading large files)
+    ; Keep thirdParty directory if it exists (to avoid re-installing OpenCASCADE)
     ; But remove specific files we want to update
     Delete "$INSTDIR\*.dll"
     Delete "$INSTDIR\*.exe"
@@ -330,24 +372,12 @@ Section "Install"
   ; Desktop (All Users)
   CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe"
 
-  ; Include the pre-packaged files (only if they exist and we're not repairing)
+  ; Install OpenCASCADE if not already installed
   ${If} $InstalledState != 1
-    IfFileExists "${ThirdPartyDir}\thirdParty.zip" 0 +2
-      File "${ThirdPartyDir}\thirdParty.zip"
-    
-    IfFileExists "${ThirdPartyDir}\7z.exe" 0 +2
-      File "${ThirdPartyDir}\7z.exe"
-    
-    IfFileExists "${ThirdPartyDir}\7z.dll" 0 +2
-      File "${ThirdPartyDir}\7z.dll"
-    
-    IfFileExists "${ThirdPartyDir}\VC_redist.x64.exe" 0 +2
-      File "${ThirdPartyDir}\VC_redist.x64.exe"
-
-    ; Extract using 7z.exe if the zip file exists
-    IfFileExists "$INSTDIR\thirdParty.zip" 0 +3
-      IfFileExists "$INSTDIR\7z.exe" 0 +2
-        nsExec::ExecToLog '"$INSTDIR\7z.exe" x "$INSTDIR\thirdParty.zip" -o"$INSTDIR" -y'
+    Call InstallOpenCASCADE
+    ${If} $OpenCASCADEInstalled == 0
+      MessageBox MB_OK|MB_ICONEXCLAMATION "OpenCASCADE installation failed. Some features may not work properly."
+    ${EndIf}
   ${EndIf}
   
   ; Write installation information to registry
@@ -393,22 +423,16 @@ Section "Install"
   ${If} $InstalledState != 1 ; Don't reinstall VC++ redist during repair
     ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
     StrCmp $0 1 vcskip
-      IfFileExists "$INSTDIR\VC_redist.x64.exe" 0 vcskip
+      IfFileExists "${ThirdPartyDir}\VC_redist.x64.exe" 0 vcskip
+        File "${ThirdPartyDir}\VC_redist.x64.exe"
         ExecWait '"$INSTDIR\VC_redist.x64.exe" /install /quiet /norestart'
+        Delete "$INSTDIR\VC_redist.x64.exe"
     vcskip:
   ${EndIf}
   
   ; === Map W: drive persistently to thirdParty folder ===
   nsExec::Exec '"cmd.exe" /C subst W: "$INSTDIR\Map"'
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "MyVirtualDrive" '"cmd.exe" /C subst W: "$INSTDIR\Map"'
-
-  ; Clean up after extraction (only during fresh install or upgrade)
-  ${If} $InstalledState != 1
-    Delete "$INSTDIR\thirdParty.zip"
-    Delete "$INSTDIR\VC_redist.x64.exe"
-    Delete "$INSTDIR\7z.exe"
-    Delete "$INSTDIR\7z.dll"
-  ${EndIf}
 SectionEnd
 
 ;--------------------------------

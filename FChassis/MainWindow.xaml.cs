@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using Microsoft.Win32;
@@ -22,6 +22,8 @@ using MessagePack;
 using System.Runtime.Serialization;
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
+using System.Reflection;
+using System.Windows.Media.Imaging;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
@@ -83,6 +85,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 #else
       IsTextMarkingOptionVisible = false;
 #endif
+      //// Set icon programmatically (alternative to XAML)
+      //this.Icon = new BitmapImage (new Uri ("pack://application:,,,/Images/FChassis_Splash.png"));
    }
 
    bool _isSanityCheckVisible;
@@ -361,7 +365,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
          System.Diagnostics.Debug.WriteLine ($"Settings file created at: {settingsFilePath}");
       } catch (Exception ex) {
-         // Don�t block app shutdown on save errors
+         // Don’t block app shutdown on save errors
          System.Diagnostics.Debug.WriteLine ($"Error saving on close: {ex}");
       }
 
@@ -517,6 +521,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    #region Part Preparation Methods
    void LoadPart (string file) {
+      VerifyFluxAssemblies ();
       //string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
       //string fChassisFolderPath = System.IO.Path.Combine (userHomePath, "FChassis");
       //string recentFilesJSONPath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
@@ -860,5 +865,152 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
 
    #endregion
+
+   private void VerifyFluxAssemblies () {
+      try {
+         Console.WriteLine ("=== Flux Assembly Dependency Analysis ===");
+         Console.WriteLine ($"Current Domain: {AppDomain.CurrentDomain.FriendlyName}");
+
+         // Get all loaded assemblies containing "Flux"
+         var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies ()
+             .Where (a => a.FullName?.Contains ("Flux") == true ||
+                        a.GetName ().Name?.StartsWith ("Flux") == true)
+             .ToList ();
+
+         Console.WriteLine ($"\nFound {loadedAssemblies.Count} Flux-related assemblies:");
+         foreach (var assembly in loadedAssemblies) {
+            Console.WriteLine ($"  - {assembly.GetName ().Name} v{assembly.GetName ().Version}");
+         }
+
+         // Check Flux.API specifically
+         var fluxApiAssembly = loadedAssemblies.FirstOrDefault (a => a.GetName ().Name == "Flux.API");
+
+         if (fluxApiAssembly == null) {
+            Console.WriteLine ("✗ Flux.API assembly not loaded");
+            return;
+         }
+
+         Console.WriteLine ($"\n--- Flux.API Assembly Info ---");
+         Console.WriteLine ($"Location: {fluxApiAssembly.Location}");
+         Console.WriteLine ($"FullName: {fluxApiAssembly.FullName}");
+
+         // Try to get referenced assemblies to see dependencies
+         try {
+            var referencedAssemblies = fluxApiAssembly.GetReferencedAssemblies ();
+            Console.WriteLine ($"\nReferenced assemblies by Flux.API:");
+            foreach (var refAssembly in referencedAssemblies) {
+               var loadedRef = loadedAssemblies.FirstOrDefault (a => a.FullName == refAssembly.FullName);
+               Console.WriteLine ($"  - {refAssembly.Name} v{refAssembly.Version} {(loadedRef != null ? "✓ LOADED" : "✗ MISSING")}");
+
+               if (loadedRef == null) {
+                  // Try to find this missing assembly in the Flux SDK directory
+                  var sdkPath = @"C:\FluxSDK\Bin\";
+                  var possiblePaths = new[]
+                  {
+                        Path.Combine(sdkPath, $"{refAssembly.Name}.dll"),
+                        Path.Combine(sdkPath, $"{refAssembly.Name}.exe"),
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"{refAssembly.Name}.dll")
+                    };
+
+                  foreach (var path in possiblePaths) {
+                     if (File.Exists (path)) {
+                        Console.WriteLine ($"    Found at: {path}");
+                        try {
+                           var loaded = Assembly.LoadFrom (path);
+                           Console.WriteLine ($"    ✓ Successfully loaded from {path}");
+                        } catch (Exception loadEx) {
+                           Console.WriteLine ($"    ✗ Failed to load: {loadEx.Message}");
+                        }
+                        break;
+                     }
+                  }
+               }
+            }
+         } catch (Exception ex) {
+            Console.WriteLine ($"Error getting referenced assemblies: {ex.Message}");
+         }
+
+         // Safe way to check for Part type without triggering ExportedTypes exception
+         Console.WriteLine ($"\n--- Checking for Part Type (Safe Method) ---");
+
+         // Method 1: Try GetType without triggering full assembly load
+         try {
+            var partType = fluxApiAssembly.GetType ("Flux.API.Part");
+            Console.WriteLine ($"fluxApiAssembly.GetType('Flux.API.Part'): {(partType != null ? "✓ FOUND" : "✗ NOT FOUND")}");
+
+            if (partType != null) {
+               // Check for Load method
+               var loadMethod = partType.GetMethod ("Load", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof (string) }, null);
+               Console.WriteLine ($"Load method: {(loadMethod != null ? "✓ FOUND" : "✗ NOT FOUND")}");
+            }
+         } catch (Exception ex) {
+            Console.WriteLine ($"Error getting Part type: {ex.GetType ().Name}: {ex.Message}");
+         }
+
+         // Method 2: Try Type.GetType
+         try {
+            var partType = Type.GetType ("Flux.API.Part, Flux.API");
+            Console.WriteLine ($"Type.GetType('Flux.API.Part, Flux.API'): {(partType != null ? "✓ FOUND" : "✗ NOT FOUND")}");
+         } catch (Exception ex) {
+            Console.WriteLine ($"Error with Type.GetType: {ex.GetType ().Name}: {ex.Message}");
+         }
+
+         // Method 3: Search all types in all loaded Flux assemblies (safe approach)
+         Console.WriteLine ($"\n--- Searching for 'Part' in all loaded Flux assemblies ---");
+         foreach (var assembly in loadedAssemblies) {
+            try {
+               // Get types that don't trigger full assembly load
+               var types = assembly.GetTypes ();
+               var partTypes = types.Where (t => t.Name.Contains ("Part", StringComparison.OrdinalIgnoreCase)).ToList ();
+
+               if (partTypes.Count > 0) {
+                  Console.WriteLine ($"Found in {assembly.GetName ().Name}:");
+                  foreach (var type in partTypes) {
+                     Console.WriteLine ($"  - {type.FullName}");
+                  }
+               }
+            } catch (ReflectionTypeLoadException rtle) {
+               Console.WriteLine ($"✗ Could not load types from {assembly.GetName ().Name} due to missing dependencies:");
+               foreach (var loaderEx in rtle.LoaderExceptions) {
+                  if (loaderEx is FileNotFoundException fileEx) {
+                     Console.WriteLine ($"    - Missing: {fileEx.FileName}");
+                  } else {
+                     Console.WriteLine ($"    - Error: {loaderEx?.Message}");
+                  }
+               }
+            } catch (Exception ex) {
+               Console.WriteLine ($"Error examining {assembly.GetName ().Name}: {ex.GetType ().Name}: {ex.Message}");
+            }
+         }
+
+         // Check what's actually in the Flux SDK directory
+         Console.WriteLine ($"\n--- Contents of Flux SDK Directory (C:\\FluxSDK\\Bin\\) ---");
+         try {
+            var sdkPath = @"C:\FluxSDK\Bin\";
+            if (Directory.Exists (sdkPath)) {
+               var dllFiles = Directory.GetFiles (sdkPath, "*.dll");
+               var exeFiles = Directory.GetFiles (sdkPath, "*.exe");
+
+               Console.WriteLine ($"DLL files: {dllFiles.Length}");
+               foreach (var file in dllFiles.OrderBy (f => f)) {
+                  Console.WriteLine ($"  - {Path.GetFileName (file)}");
+               }
+
+               Console.WriteLine ($"EXE files: {exeFiles.Length}");
+               foreach (var file in exeFiles.OrderBy (f => f)) {
+                  Console.WriteLine ($"  - {Path.GetFileName (file)}");
+               }
+            } else {
+               Console.WriteLine ($"✗ Flux SDK directory not found: {sdkPath}");
+            }
+         } catch (Exception ex) {
+            Console.WriteLine ($"Error reading SDK directory: {ex.Message}");
+         }
+
+      } catch (Exception ex) {
+         Console.WriteLine ($"Diagnostic error: {ex.GetType ().Name}: {ex.Message}");
+         Console.WriteLine ($"Stack trace: {ex.StackTrace}");
+      }
+   }
 }
 

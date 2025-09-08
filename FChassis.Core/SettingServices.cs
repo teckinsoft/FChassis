@@ -48,10 +48,15 @@ public class SettingServices {
             settings.LoadSettingsFromJson (settingsFilePath);
          } catch (Exception) { }
          // Write to ASCII json if TESTRELEASE or DEBUG config
+         string envVariable = Environment.GetEnvironmentVariable ("__FC_AUTH__");
+         Guid expectedGuid = new ("e96e66ff-17e6-49ac-9fe1-28bb45a6c1b9");
 #if DEBUG || TESTRELEASE
-         settings.SaveSettingsToJsonASCII (settingsFilePath);
+         MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
 #else
-         settings.SaveSettingsToJson (settingsFilePath);
+         if (!string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid)
+            MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
+         else
+            MCSettings.It.SaveSettingsToJson (settingsFilePath);
 #endif
       }
    }

@@ -1,16 +1,30 @@
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 !include "x64.nsh"
-!include "StrFunc.nsh"
+!include "WinMessages.nsh"
+!include "MUI2.nsh"
 
-; Initialize string functions
-${StrStr}
+; -----------------------------------------------------------------------------
+; FIX (warning 6010): Only include/initialize StrStr IF it is actually used.
+; -----------------------------------------------------------------------------
+!macro _EnsureStrStr
+  !ifndef _STRFUNC_STRSTR_READY
+    !define _STRFUNC_STRSTR_READY
+    !include "StrFunc.nsh"
+    ${StrStr}
+  !endif
+!macroend
+
+!macro StrStrFind OUT HAYSTACK NEEDLE
+  !insertmacro _EnsureStrStr
+  ${StrStr} ${OUT} ${HAYSTACK} ${NEEDLE}
+!macroend
 
 ;--------------------------------
-; Build-time defines (from MSBuild /DVERSION=... /DINSTALLDIR=... /DPayloadDir=... /DInstallerOutputDir=...)
+; Build-time defines
 ;--------------------------------
 !ifndef VERSION
-  !define VERSION "1.0.69"
+  !define VERSION "1.0.4"
 !endif
 
 !ifndef INSTALLDIR
@@ -44,18 +58,18 @@ RequestExecutionLevel admin
 Var InstalledState ; 0 = not installed, 1 = same version, 2 = older version, 3 = newer version
 Var ExistingInstallDir
 Var ExistingVersion
+Var ExtractionCompleted
 
 ;--------------------------------
 ; Pages
 ;--------------------------------
-!include "MUI2.nsh"
-
 !define MUI_ABORTWARNING
 !define MUI_UNABORTWARNING
 
 !define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
 !insertmacro MUI_PAGE_DIRECTORY
 
+!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
 !insertmacro MUI_PAGE_INSTFILES
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -188,6 +202,7 @@ Function .onInit
   StrCpy $InstalledState 0 ; Default to not installed
   StrCpy $ExistingInstallDir "${INSTALLDIR}"
   StrCpy $ExistingVersion ""
+  StrCpy $ExtractionCompleted 0
 
   ; Check if already installed via uninstall registry
   ReadRegStr $0 HKLM "${UNINSTALL_KEY}" "UninstallString"
@@ -254,9 +269,126 @@ Function DirectoryPre
 FunctionEnd
 
 ;--------------------------------
+; Function to extract thirdParty.zip with progress feedback
+;--------------------------------
+Function ExtractThirdParty
+  ; Check if extraction is already done
+  IfFileExists "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin\TKernel.dll" extraction_complete
+  
+  DetailPrint "Extracting thirdParty.zip..."
+  DetailPrint "This may take several minutes (90,000+ files)..."
+  
+  ; Show progress message
+  SetDetailsPrint listonly
+  DetailPrint "Extracting: Please wait patiently..."
+  SetDetailsPrint both
+  
+  ; Extract using 7z with timeout
+  nsExec::ExecToStack '"$INSTDIR\7z.exe" x "$INSTDIR\thirdParty.zip" -o"$INSTDIR" -y'
+  Pop $0 ; Exit code
+  Pop $1 ; Output
+  
+  ${If} $0 != 0
+    DetailPrint "7-Zip extraction failed with code: $0"
+    DetailPrint "Output: $1"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to extract third-party components. Installation may be incomplete."
+  ${Else}
+    StrCpy $ExtractionCompleted 1
+    DetailPrint "Third-party components extraction completed successfully."
+  ${EndIf}
+  
+  extraction_complete:
+FunctionEnd
+
+;--------------------------------
+; Function to handle cancellation during installation
+;--------------------------------
+Function OnInstFilesAbort
+  ${If} ${Cmd} `MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to cancel the installation?" IDYES`
+    ; User confirmed cancellation, perform cleanup
+    MessageBox MB_OK|MB_ICONINFORMATION "Installation canceled. Cleaning up..."
+    
+    ; Remove installed files and directories
+    RMDir /r "$INSTDIR\Bin"
+    RMDir /r "$INSTDIR\cs"
+    RMDir /r "$INSTDIR\de"
+    RMDir /r "$INSTDIR\es"
+    RMDir /r "$INSTDIR\fr"
+    RMDir /r "$INSTDIR\hoops"
+    RMDir /r "$INSTDIR\it"
+    RMDir /r "$INSTDIR\ja"
+    RMDir /r "$INSTDIR\ko"
+    RMDir /r "$INSTDIR\pl"
+    RMDir /r "$INSTDIR\pt-BR"
+    RMDir /r "$INSTDIR\ru"
+    RMDir /r "$INSTDIR\runtimes"
+    RMDir /r "$INSTDIR\tr"
+    RMDir /r "$INSTDIR\zh-Hans"
+    RMDir /r "$INSTDIR\zh-Hant"
+    
+    ; Remove individual files
+    Delete "$INSTDIR\*.dll"
+    Delete "$INSTDIR\*.exe"
+    Delete "$INSTDIR\*.json"
+    Delete "$INSTDIR\*.xml"
+    Delete "$INSTDIR\*.wad"
+    Delete "$INSTDIR\*.pdb"
+    Delete "$INSTDIR\*.exp"
+    Delete "$INSTDIR\*.lib"
+    Delete "$INSTDIR\Uninstall.exe"
+    Delete "$INSTDIR\thirdParty.zip"
+    Delete "$INSTDIR\7z.exe"
+    Delete "$INSTDIR\7z.dll"
+    Delete "$INSTDIR\VC_redist.x64.exe"
+    
+    ; Remove shortcuts if they were created
+    SetShellVarContext all
+    Delete "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
+    RMDir "$SMPROGRAMS\${APPNAME}"
+    Delete "$DESKTOP\${APPNAME}.lnk"
+    
+    ; Remove registry entries if they were created
+    DeleteRegKey HKLM "${UNINSTALL_KEY}"
+    DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
+    
+    ; Remove environment variables if they were added
+    EnVar::SetHKLM
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\ffmpeg-3.3.4-64\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freeimage-3.17.0-vc14-64\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freetype-2.5.5-vc14-64\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\openvr-1.14.15-64\bin\win64"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\qt5.11.2-vc14-64\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\rapidjson-1.1.0\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin"
+    EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
+    
+    ; Remove CASROOT environment variable
+    DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "CASROOT"
+    !insertmacro BroadcastEnvChange
+    
+    ; Remove virtual drive mapping
+    nsExec::Exec '"cmd.exe" /C subst W: /D'
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "MyVirtualDrive"
+    
+    ; Remove the installation directory if it's empty
+    RMDir "$INSTDIR"
+    
+    MessageBox MB_OK|MB_ICONINFORMATION "Installation has been completely canceled and all changes have been reverted."
+  ${Else}
+    ; User changed their mind, continue installation
+    Abort
+  ${EndIf}
+FunctionEnd
+
+;--------------------------------
 ; Section: Install
 ;--------------------------------
 Section "Install"
+  SetAutoClose false ; Prevent installer from closing automatically
+  
   ; Handle existing installation scenarios
   ${Switch} $InstalledState
     ${Case} 1 ; Same version installed
@@ -319,16 +451,18 @@ Section "Install"
     Delete "$INSTDIR\*.lib"
   ${EndIf}
   
-  ; Copy all files from build output (using parameter from MSBuild)
+  ; Copy all files from build output (this should include FChassis_Splash.ico)
+  DetailPrint "Copying application files..."
   File /r "${PayloadDir}\*.*"
 
   ; --- Shortcuts ---
+  DetailPrint "Creating shortcuts..."
   ; Start Menu (All Users)
   CreateDirectory "$SMPROGRAMS\${APPNAME}"
-  CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe"
+  CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\FChassis.exe" "" "$INSTDIR\FChassis_Splash.ico" 0
 
   ; Desktop (All Users)
-  CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe"
+  CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\FChassis_Splash.ico" 0
 
   ; Include the pre-packaged files (only if they exist and we're not repairing)
   ${If} $InstalledState != 1
@@ -345,11 +479,12 @@ Section "Install"
       File "${ThirdPartyDir}\VC_redist.x64.exe"
 
     ; Extract using 7z.exe if the zip file exists
-    IfFileExists "$INSTDIR\thirdParty.zip" 0 +3
-      IfFileExists "$INSTDIR\7z.exe" 0 +2
-        nsExec::ExecToLog '"$INSTDIR\7z.exe" x "$INSTDIR\thirdParty.zip" -o"$INSTDIR" -y'
+    IfFileExists "$INSTDIR\thirdParty.zip" 0 skip_extraction
+      IfFileExists "$INSTDIR\7z.exe" 0 skip_extraction
+        Call ExtractThirdParty
   ${EndIf}
   
+  skip_extraction:
   ; Write installation information to registry
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "Installed" "1"
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "Version" "${VERSION}"
@@ -361,17 +496,18 @@ Section "Install"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayVersion" "${VERSION}"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "Publisher" "${COMPANY}"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Bin\FChassis.exe,0"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\FChassis_Splash.ico"  ; CHANGED HERE
   WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 0
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "URLInfoAbout" "http://www.teckinsoft.com"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "HelpLink" "http://www.teckinsoft.com/support"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "URLInfoAbout" "https://www.teckinsoft.in/"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "HelpLink" "https://www.teckinsoft.in/support"
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
   IntFmt $0 "0x%08X" $0
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "EstimatedSize" "$0"
 
   ; === Add third-party bin folders to PATH ===
+  DetailPrint "Updating system PATH..."
   EnVar::SetHKLM
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin"
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin"
@@ -394,11 +530,16 @@ Section "Install"
     ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
     StrCmp $0 1 vcskip
       IfFileExists "$INSTDIR\VC_redist.x64.exe" 0 vcskip
-        ExecWait '"$INSTDIR\VC_redist.x64.exe" /install /quiet /norestart'
+        DetailPrint "Installing Visual C++ Redistributable..."
+        ExecWait '"$INSTDIR\VC_redist.x64.exe" /install /quiet /norestart' $0
+        ${If} $0 != 0
+          DetailPrint "VC++ Redist installation returned code: $0"
+        ${EndIf}
     vcskip:
   ${EndIf}
   
   ; === Map W: drive persistently to thirdParty folder ===
+  DetailPrint "Setting up virtual drive mapping..."
   nsExec::Exec '"cmd.exe" /C subst W: "$INSTDIR\Map"'
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "MyVirtualDrive" '"cmd.exe" /C subst W: "$INSTDIR\Map"'
 
@@ -409,6 +550,8 @@ Section "Install"
     Delete "$INSTDIR\7z.exe"
     Delete "$INSTDIR\7z.dll"
   ${EndIf}
+  
+  DetailPrint "Installation completed successfully!"
 SectionEnd
 
 ;--------------------------------
