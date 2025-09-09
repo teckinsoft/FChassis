@@ -1,29 +1,24 @@
-﻿using System.ComponentModel;
-using System.IO;
-using System.Windows;
-using Microsoft.Win32;
-
-using Flux.API;
-using FChassis.Draw;
-using FChassis.Core;
-using FChassis.Core.GCodeGen;
-using FChassis.Core.Processes;
-using FChassis.Input;
-
-
-using SPath = System.IO.Path;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
-using FChassis.Core.AssemblyUtils;
+using System.Runtime.Serialization;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text;
-using MessagePack;
-using System.Runtime.Serialization;
-using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Controls;
-using System.Reflection;
-using System.Windows.Media.Imaging;
+using FChassis.Core;
+using FChassis.Core.AssemblyUtils;
+using FChassis.Core.GCodeGen;
+using FChassis.Core.Processes;
+using FChassis.Draw;
+using FChassis.Input;
+using Flux.API;
+using Microsoft.Win32;
+using SPath = System.IO.Path;
 
 namespace FChassis;
 /// <summary>Interaction logic for MainWindow.xaml</summary>
@@ -39,7 +34,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    ProcessSimulator mProcessSimulator;
    ProcessSimulator.ESimulationStatus mSimulationStatus = ProcessSimulator.ESimulationStatus.NotRunning;
    string mSrcDir = "W:/FChassis/Sample";
-   
+
    [IgnoreDataMember]
    Dictionary<string, string> mRecentFilesMap = [];
    public bool IsIgesAvailable { get; }
@@ -61,7 +56,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       InitializeComponent ();
 
       this.DataContext = this;
-      Library.Init ("W:/FChassis/Data", "C:/FluxSDK/Bin", this);
+      var dir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
+      Library.Init ("W:/FChassis/Data", dir, this);
       Flux.API.Settings.IGESviaHOOPS = false;
 
       Area.Child = (UIElement)Lux.CreatePanel ();
@@ -85,6 +81,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 #else
       IsTextMarkingOptionVisible = false;
 #endif
+
       //// Set icon programmatically (alternative to XAML)
       //this.Icon = new BitmapImage (new Uri ("pack://application:,,,/Images/FChassis_Splash.png"));
    }
@@ -388,7 +385,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   static void TrimRecentFilesMap (Dictionary<string,string> map) {
+   static void TrimRecentFilesMap (Dictionary<string, string> map) {
       const int MaxEntries = 30;
 
       if (map == null || map.Count <= MaxEntries)
@@ -775,11 +772,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
    #endregion
    #region JSON readers/writers
-   
+
    // --------------------------------------------------------------------
    // Saves mRecentFilesMap to JSON (keeps latest 30 by timestamp)
    // --------------------------------------------------------------------
-   public static void SaveRecentFilesToJSON (Dictionary<string,string> map, string jsonFileName) {
+   public static void SaveRecentFilesToJSON (Dictionary<string, string> map, string jsonFileName) {
       const int MaxEntries = 30;
 
       if (string.IsNullOrWhiteSpace (jsonFileName))
@@ -816,7 +813,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       File.WriteAllBytes (jsonFileName, asciiBytes);
    }
 
-   static List<string> DescendingOrderMap(Dictionary<string, string> map) {
+   static List<string> DescendingOrderMap (Dictionary<string, string> map) {
       List<string> recFiles = [];
       if (map != null) {
          // Keep newest first (by timestamp)
@@ -831,7 +828,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    public static Dictionary<string, string> LoadRecentFilesFromJSON (string jsonFileName) {
-      
+
       Dictionary<string, string> map = [];
       if (string.IsNullOrWhiteSpace (jsonFileName))
          throw new ArgumentException ("jsonFileName must be a non-empty path.", nameof (jsonFileName));
@@ -843,7 +840,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          var bytes = File.ReadAllBytes (jsonFileName);
          if (bytes.Length == 0)
             return map;
-         
+
          var json = Encoding.UTF8.GetString (bytes);
          map = JsonSerializer.Deserialize<Dictionary<string, string>> (json);
 
@@ -904,7 +901,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
                if (loadedRef == null) {
                   // Try to find this missing assembly in the Flux SDK directory
-                  var sdkPath = @"C:\FluxSDK\Bin\";
+                  var sdkPath = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
                   var possiblePaths = new[]
                   {
                         Path.Combine(sdkPath, $"{refAssembly.Name}.dll"),
