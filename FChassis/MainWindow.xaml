@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         WindowState="Maximized"
         Title="FChassis" 
-        Icon="Images/FChassis_Splash.png" Height="450" Width="800" 
+        Icon="Resources/FChassis.ico" Height="450" Width="800" 
         Loaded="OnWindowLoaded">
     <Window.Resources>
         <converters:DbgToVisibilityConverter x:Key="DebugModeVisibilityConverter" />
@@ -65,7 +65,9 @@
                   Visibility="{Binding IsSanityCheckVisible, Converter={StaticResource DebugModeVisibilityConverter}}" />
             </MenuItem>
             <MenuItem Header="Help">
-                <MenuItem Header="About" Click="OnAboutClick"/>
+                <MenuItem Header="Version" Click="OnAboutClick"/>
+                <MenuItem Header="Support" Click="OnSupportClick"/>
+                <MenuItem Header="About Us" Click="OnTeckInSoftClick"/>
             </MenuItem>
         </Menu>
         <DockPanel DockPanel.Dock="Left">

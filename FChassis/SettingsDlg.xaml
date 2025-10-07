@@ -197,20 +197,28 @@
                                 <RowDefinition />
                                 <RowDefinition />
                                 <RowDefinition />
+                                <RowDefinition />
                             </Grid.RowDefinitions>
-                            <Label Grid.Row="0">Output Directory</Label>
-                            <TextBox Name="tbDirectoryPath" Grid.Row="0" Grid.Column="1" IsReadOnly="False"/>
-                            <Button Name="btnSelOpDir" Grid.Row="0" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+
+                            <Label Grid.Row="0">Input Directory W: Maps To</Label>
+                            <TextBox Name="tbInputDirectoryWPath" Grid.Row="0" Grid.Column="1" IsReadOnly="False"/>
+                            <Button Name="btnSelIpDir" Grid.Row="0" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+                                Width="60" Height="20" Margin="5 0" Click="OnInputFolderSelect"/>
+                            
+                            <Label Grid.Row="1">Output Directory</Label>
+                            <TextBox Name="tbDirectoryPath" Grid.Row="1" Grid.Column="1" IsReadOnly="False"/>
+                            <Button Name="btnSelOpDir" Grid.Row="1" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
                                     Width="60" Height="20" Margin="5 0" Click="OnOutputFolderSelect"/>
 
-                            <Label Grid.Row="1">Simulation Step Length</Label>
-                            <TextBox Grid.Row="1" Grid.Column="1" Name="tbStepLength"></TextBox>
+                            <Label Grid.Row="2">Simulation Step Length</Label>
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="tbStepLength"></TextBox>
 
-                            <Label Grid.Row="2">Show Tooling Names</Label>
-                            <CheckBox Grid.Row="2" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
+                            <Label Grid.Row="3">Show Tooling Names</Label>
+                            <CheckBox Grid.Row="3" Grid.Column="1" Name="cbShowTlgNames"></CheckBox>
 
-                            <Label Grid.Row="3">Show Tooling Extents</Label>
-                            <CheckBox Grid.Row="3" Grid.Column="1" Name="cbShowTlgExtents"></CheckBox>
+                            <Label Grid.Row="4">Show Tooling Extents</Label>
+                            <CheckBox Grid.Row="4" Grid.Column="1" Name="cbShowTlgExtents"></CheckBox>
+
                         </Grid>
                     </StackPanel>
                 </Grid>

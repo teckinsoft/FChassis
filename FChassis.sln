@@ -50,6 +50,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.OC.Installer", "FC
 		{02B78A70-58D9-47F1-A90A-B5F946A9DD96} = {02B78A70-58D9-47F1-A90A-B5F946A9DD96}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FChassis.NSI.Installer", "FChassis.NSI.Installer\FChassis.NSI.Installer.vcxproj", "{47F3207E-EA0E-4D48-9C98-E935F3568F59}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -225,6 +227,24 @@ Global
 		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|x64.Build.0 = Release|Any CPU
 		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|x86.ActiveCfg = Release|Any CPU
 		{F868ECAE-1772-4240-B3FF-3DD195471BA0}.TestRelease|x86.Build.0 = Release|Any CPU
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Debug|Any CPU.Build.0 = Debug|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Debug|x64.ActiveCfg = Debug|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Debug|x64.Build.0 = Debug|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Debug|x86.ActiveCfg = Debug|Win32
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Debug|x86.Build.0 = Debug|Win32
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Release|Any CPU.ActiveCfg = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Release|Any CPU.Build.0 = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Release|x64.ActiveCfg = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Release|x64.Build.0 = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Release|x86.ActiveCfg = Release|Win32
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.Release|x86.Build.0 = Release|Win32
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.TestRelease|Any CPU.ActiveCfg = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.TestRelease|Any CPU.Build.0 = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.TestRelease|x64.ActiveCfg = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.TestRelease|x64.Build.0 = Release|x64
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.TestRelease|x86.ActiveCfg = Release|Win32
+		{47F3207E-EA0E-4D48-9C98-E935F3568F59}.TestRelease|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -37,7 +37,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    [IgnoreDataMember]
    Dictionary<string, string> mRecentFilesMap = [];
-   public bool IsIgesAvailable { get; }
+   public bool IsIgesAvailable { get; set; }
    public ProcessSimulator.ESimulationStatus SimulationStatus {
       get => mSimulationStatus;
       set {
@@ -52,22 +52,182 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Constructor
+   //   public MainWindow () {
+   //      InitializeComponent ();
+
+   //      SettingServices.It.LoadSettings (MCSettings.It);
+
+
+   //      //if (string.IsNullOrEmpty (MCSettings.It.WMapLocation))
+   //      //   // Initialize drive mapping first
+   //      //   InitializeDriveMapping ();
+
+   //      this.DataContext = this;
+   //      //var dir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
+   //      //Library.Init ("W:/FChassis/Data", dir, this);
+   //      //Flux.API.Settings.IGESviaHOOPS = false;
+
+   //      //Area.Child = (UIElement)Lux.CreatePanel ();
+   //      //PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
+
+   //      Sys.SelectionChanged += OnSelectionChanged;
+   //#if DEBUG
+   //      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("igesd");
+   //#else
+   //         IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("iges");
+   //#endif
+
+   //#if DEBUG
+   //      IsSanityCheckVisible = true;
+   //#else
+   //         IsSanityCheckVisible = false;
+   //#endif
+
+   //#if DEBUG || TESTRELEASE
+   //      IsTextMarkingOptionVisible = true;
+   //#else
+   //         IsTextMarkingOptionVisible = false;
+   //#endif
+
+   //      //// Set icon programmatically (alternative to XAML)
+   //      //this.Icon = new BitmapImage (new Uri ("pack://application:,,,/Images/FChassis_Splash.png"));
+   //   }
+
+
+
+
+
    public MainWindow () {
       InitializeComponent ();
 
-      this.DataContext = this;
-      var dir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
-      Library.Init ("W:/FChassis/Data", dir, this);
-      Flux.API.Settings.IGESviaHOOPS = false;
+      SettingServices.It.LoadSettings (MCSettings.It);
 
-      Area.Child = (UIElement)Lux.CreatePanel ();
-      PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
+      try {
+         // Get the application directory
+         // Get the default path from registry if FChassis is installed
+         string localAppDir = "";
+         SettingServices.It.LoadSettings (MCSettings.It);
+         if (string.IsNullOrEmpty (MCSettings.It.WMapLocation)) {
+            localAppDir = Environment.GetFolderPath (Environment.SpecialFolder.LocalApplicationData);
+            MCSettings.It.WMapLocation = localAppDir;
+            SaveSettings ();
+         } else
+            localAppDir = MCSettings.It.WMapLocation;
+
+         //#if RELEASE
+         //         fcDataDir = GetInstallLocationFromRegistry ();
+         //#else
+         //         fcDataDir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
+         //#endif
+         //bool fchassInstalled = true;
+         //if (string.IsNullOrEmpty (fcDataDir)) {
+         //   fcDataDir = Environment.GetFolderPath (Environment.SpecialFolder.LocalApplicationData);
+         //   //fchassInstalled = false;
+         //}
+         //string mapDir;
+         //if (fchassInstalled)
+         //   mapDir = Path.Combine (fcDataDir, "Map");
+         //else mapDir = fcDataDir;
+
+         //// Ensure the Map directory exists
+         //if (!Directory.Exists (mapDir))
+         //   Directory.CreateDirectory (mapDir);
+
+         var fcDir = Path.Combine (localAppDir, "FChassis");
+         if (!Directory.Exists (fcDir))
+            Directory.CreateDirectory (fcDir);
+
+         var sampleDir = Path.Combine (fcDir, "Sample");
+         if (!Directory.Exists (sampleDir))
+            Directory.CreateDirectory (sampleDir);
+
+
+         var dataDir = Path.Combine (fcDir, "Data");
+         if (!Directory.Exists (dataDir))
+            Directory.CreateDirectory (dataDir);
+
+         //Debug.WriteLine ($"Created Map directory: {mapDir}");
+
+
+         // Step 1: Unmap W: drive if it exists (subst W: /D)
+         try {
+            ProcessStartInfo unmapInfo = new ProcessStartInfo {
+               FileName = "cmd.exe",
+               Arguments = "/C subst W: /D",
+               UseShellExecute = false,
+               CreateNoWindow = true,
+               RedirectStandardOutput = true,
+               RedirectStandardError = true
+            };
+
+            using (Process unmapProcess = Process.Start (unmapInfo)) {
+               unmapProcess.WaitForExit ();
+               string output = unmapProcess.StandardOutput.ReadToEnd ();
+               string error = unmapProcess.StandardError.ReadToEnd ();
+               if (unmapProcess.ExitCode == 0) {
+                  Debug.WriteLine ("Successfully unmapped W: drive.");
+               } else {
+                  Debug.WriteLine ($"Unmap W: failed. Error: {error}, Output: {output}");
+               }
+            }
+         } catch (Exception ex) {
+            Debug.WriteLine ($"Failed to unmap W: drive: {ex.Message}");
+         }
+
+         // Step 2: Map W: drive to dir\Map (subst W: dir\Map)
+         try {
+            ProcessStartInfo mapInfo = new () {
+               FileName = "cmd.exe",
+               Arguments = $"/C subst W: \"{localAppDir}\"",
+               UseShellExecute = false,
+               CreateNoWindow = true,
+               RedirectStandardOutput = true,
+               RedirectStandardError = true
+            };
+
+            using (Process mapProcess = Process.Start (mapInfo)) {
+               mapProcess.WaitForExit ();
+               string output = mapProcess.StandardOutput.ReadToEnd ();
+               string error = mapProcess.StandardError.ReadToEnd ();
+               if (mapProcess.ExitCode == 0) {
+                  Debug.WriteLine ($"Successfully mapped W: drive to {localAppDir}.");
+               } else {
+                  Debug.WriteLine ($"Map W: to {localAppDir} failed. Error: {error}, Output: {output}");
+                  MessageBox.Show ($"Failed to map W: drive to {localAppDir}. Please ensure the path is valid and try again.",
+                      "Drive Mapping Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                  return; // Exit constructor to prevent further initialization
+               }
+            }
+         } catch (Exception ex) {
+            Debug.WriteLine ($"Failed to map W: drive to {localAppDir}: {ex.Message}");
+            MessageBox.Show ($"Failed to map W: drive to {localAppDir}: {ex.Message}",
+                "Drive Mapping Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return; // Exit constructor to prevent further initialization
+         }
+
+         // Initialize other components after successful drive mapping
+         this.DataContext = this;
+         //var binInstallDir = Path.Combine (dataDir, "Bin");
+         var binDir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
+         //MessageBox.Show(binDir, "FChassis Binary Directory", MessageBoxButton.OK );
+         Library.Init ("W:/FChassis/Data", binDir, this);
+         // Uncomment if Flux.Base.dll is confirmed to be loaded
+         // Flux.API.Settings.IGESviaHOOPS = false;
+
+         Area.Child = (UIElement)Lux.CreatePanel ();
+         PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
+      } catch (Exception ex) {
+         Debug.WriteLine ($"Initialization failed: {ex.Message}");
+         MessageBox.Show ($"Initialization failed: {ex.Message}",
+             "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         return; // Exit constructor to prevent further initialization
+      }
 
       Sys.SelectionChanged += OnSelectionChanged;
 #if DEBUG
       IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("igesd");
 #else
-      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("iges");
+      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable("iges");
 #endif
 
 #if DEBUG
@@ -83,7 +243,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 #endif
 
       //// Set icon programmatically (alternative to XAML)
-      //this.Icon = new BitmapImage (new Uri ("pack://application:,,,/Images/FChassis_Splash.png"));
+      //this.Icon = new BitmapImage(new Uri("pack://application:,,,/Images/FChassis_Splash.png"));
    }
 
    bool _isSanityCheckVisible;
@@ -320,13 +480,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnWindowLoaded (object sender, RoutedEventArgs e) {
+      //if (string.IsNullOrEmpty (MCSettings.It.WMapLocation))
+      //   // Initialize drive mapping first
+      //   InitializeDriveMapping ();
+
+
+      //var dir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
+      //Library.Init ("W:/FChassis/Data", dir, this);
+      //Flux.API.Settings.IGESviaHOOPS = false;
+
+      //Area.Child = (UIElement)Lux.CreatePanel ();
+      //PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
+
+
       GenesysHub = new ();
       mProcessSimulator = new (mGHub, this.Dispatcher);
       mProcessSimulator.TriggerRedraw += TriggerRedraw;
       mProcessSimulator.SetSimulationStatus += status => SimulationStatus = status;
       //mProcessSimulator.zoomExtentsWithBound3Delegate += bound => Dispatcher.Invoke (() => ZoomWithExtents (bound));
 
-      SettingServices.It.LoadSettings (MCSettings.It);
+      //SettingServices.It.LoadSettings (MCSettings.It);
       if (String.IsNullOrEmpty (MCSettings.It.NCFilePath))
          MCSettings.It.NCFilePath = mGHub?.Workpiece?.NCFilePath ?? "";
    }
@@ -1007,6 +1180,185 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       } catch (Exception ex) {
          Console.WriteLine ($"Diagnostic error: {ex.GetType ().Name}: {ex.Message}");
          Console.WriteLine ($"Stack trace: {ex.StackTrace}");
+      }
+   }
+
+   private void InitializeDriveMapping () {
+      try {
+         // 1. Check if W: is already mapped with required structure
+         if (DriveMapper.IsDriveMapped ("W:")) {
+            string mappedPath = DriveMapper.GetMappedPath ("W:");
+            if (!string.IsNullOrEmpty (mappedPath) && DriveMapper.HasRequiredFolderStructure (mappedPath)) {
+               mSrcDir = "W:/FChassis/Sample";
+               PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
+               var dir = Path.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
+               Library.Init ("W:/FChassis/Data", dir, this);
+               return;
+            } else {
+               DriveMapper.UnmapDrive ("W:");
+            }
+         }
+
+         // 2. Get default folder from registry
+         string defaultInstallPath = GetInstallLocationFromRegistry ();
+         string defaultMapPath = defaultInstallPath != null ? Path.Combine (defaultInstallPath, "Map") : null;
+
+         System.Diagnostics.Debug.WriteLine ($"Registry InstallPath: {defaultInstallPath}");
+         System.Diagnostics.Debug.WriteLine ($"Default MapPath: {defaultMapPath}");
+
+         // 3. Create and configure FolderPicker
+         var dlg = new FolderPicker {
+            Title = "Select Folder to Map to W: Drive",
+            OkButtonLabel = "Select Folder",
+            ForceFileSystem = true
+         };
+
+         if (!string.IsNullOrEmpty (defaultMapPath) && Directory.Exists (defaultMapPath)) {
+            dlg.InputPath = defaultMapPath;
+            System.Diagnostics.Debug.WriteLine ($"Setting InputPath to: {defaultMapPath}");
+         } else {
+            string fallbackPath = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
+            if (Directory.Exists (fallbackPath)) {
+               dlg.InputPath = fallbackPath;
+               System.Diagnostics.Debug.WriteLine ($"Fallback InputPath to: {fallbackPath}");
+            } else {
+               System.Diagnostics.Debug.WriteLine ("No valid fallback path found");
+            }
+         }
+
+         // 4. Show dialog with explicit owner window
+         bool? dialogResult = null;
+         Application.Current.Dispatcher.Invoke (() => {
+            dialogResult = dlg.ShowDialog (this, throwOnError: true); // Enable throwOnError for debugging
+         });
+
+         System.Diagnostics.Debug.WriteLine ($"Dialog result: {dialogResult}");
+
+         if (dialogResult == true) {
+            string selectedPath = dlg.ResultPath;
+            System.Diagnostics.Debug.WriteLine ($"Selected path: {selectedPath}");
+
+            // 5. Map W: to user selected folder
+            bool success = DriveMapper.MapDrive ("W:", selectedPath, true);
+
+            if (success) {
+               MessageBox.Show ($"Successfully mapped W: drive to {selectedPath}\n" +
+                               $"FChassis/Sample/Data folders created/verified.",
+                   "Drive Mapping", MessageBoxButton.OK, MessageBoxImage.Information);
+
+               mSrcDir = "W:/FChassis/Sample";
+               PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
+               var dir = Path.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
+               Library.Init ("W:/FChassis/Data", dir, this);
+            } else {
+               MessageBox.Show ("Failed to map W: drive. Please try again.",
+                   "Drive Mapping Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+         } else {
+            System.Diagnostics.Debug.WriteLine ("Dialog was cancelled or failed to show");
+            MessageBox.Show ("Drive mapping is required. Please restart and select a folder.",
+                "Drive Mapping Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+         }
+      } catch (Exception ex) {
+         System.Diagnostics.Debug.WriteLine ($"Drive mapping failed: {ex}");
+         MessageBox.Show ($"Drive mapping failed: {ex.Message}",
+             "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+      }
+   }
+
+
+   string GetInstallLocationFromRegistry () {
+      try {
+         string[] registryPathsToCheck =
+         {
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FChassis",
+            @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\FChassis",
+            // Add other possible registry paths if needed
+        };
+
+         foreach (string registryPath in registryPathsToCheck) {
+            using (RegistryKey key = Registry.LocalMachine.OpenSubKey (registryPath)) {
+               if (key != null) {
+                  object installLocation = key.GetValue ("InstallLocation");
+                  if (installLocation != null && !string.IsNullOrEmpty (installLocation.ToString ())) {
+                     string path = installLocation.ToString ();
+
+                     // Validate that the path exists and is accessible
+                     if (Directory.Exists (path)) {
+                        return path;
+                     }
+                  }
+               }
+            }
+         }
+
+         return null;
+      } catch (Exception ex) {
+         Debug.WriteLine ($"Error reading registry: {ex.Message}");
+         return null;
+      }
+   }
+
+   private bool LoadFluxBaseAssembly () {
+      try {
+         // Option 1: Use AssemblyLoader if it supports loading
+         // Replace "Flux.Base" with the correct assembly name if different
+         //if (AssemblyLoader.IsAssemblyLoadable ("Flux.Base")) {
+         //   // Assume AssemblyLoader loads the assembly internally or check if it provides a LoadAssembly method
+         //   // If AssemblyLoader has a LoadAssembly method, use it:
+         //   // var fluxAssembly = AssemblyLoader.LoadAssembly("Flux.Base");
+         //   return true;
+         //}
+
+         // Option 2: Fallback to standard .NET assembly loading if AssemblyLoader doesn't load explicitly
+         string assemblyPath = Path.Combine (
+             Path.GetDirectoryName (Assembly.GetExecutingAssembly ().Location),
+             "Flux.Base.dll");
+
+         if (!File.Exists (assemblyPath)) {
+            System.Diagnostics.Debug.WriteLine ($"Flux.Base.dll not found at: {assemblyPath}");
+            return false;
+         }
+
+         // Load the assembly
+         Assembly fluxAssembly = Assembly.LoadFrom (assemblyPath);
+         System.Diagnostics.Debug.WriteLine ($"Successfully loaded Flux.Base.dll from: {assemblyPath}");
+         return fluxAssembly != null;
+      } catch (Exception ex) {
+         System.Diagnostics.Debug.WriteLine ($"Failed to load Flux.Base.dll: {ex.Message}");
+         return false;
+      }
+   }
+
+   void OnSupportClick (object sender, RoutedEventArgs e) {
+      OpenWebsite ("https://www.teckinsoft.in/support");
+   }
+
+   void OnTeckInSoftClick (object sender, RoutedEventArgs e) {
+      OpenWebsite ("https://www.teckinsoft.in");
+   }
+
+   private void OpenWebsite (string url) {
+      try {
+         // Use ProcessStartInfo to open Microsoft Edge with the specified URL
+         ProcessStartInfo psi = new ProcessStartInfo {
+            FileName = "msedge.exe",
+            Arguments = url,
+            UseShellExecute = true
+         };
+
+         Process.Start (psi);
+      } catch (Exception ex) {
+         // Fallback: if Edge fails, try using the default browser
+         try {
+            Process.Start (new ProcessStartInfo {
+               FileName = url,
+               UseShellExecute = true
+            });
+         } catch (Exception fallbackEx) {
+            MessageBox.Show ($"Failed to open browser: {fallbackEx.Message}",
+                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         }
       }
    }
 }

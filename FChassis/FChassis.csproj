@@ -52,6 +52,7 @@
 
 	<ItemGroup>
 	  <None Remove="Images\FChassis_Splash.png" />
+	  <None Remove="Resources\FChassis.ico" />
 	</ItemGroup>
 	
 	<ItemGroup>
@@ -67,6 +68,9 @@
 		</Reference>
 		<Reference Include="Flux.API">
 			<HintPath>$(OutDir)Flux.API.dll</HintPath>
+		</Reference>
+		<Reference Include="Flux.Base">
+		  <HintPath>$(OutDir)Flux.Base.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
@@ -100,6 +104,13 @@
 	  <None Update="App.config">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <Resource Include="Resources\FChassis.ico">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Resource>
 	</ItemGroup>
 </Project>
 

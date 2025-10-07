@@ -2044,13 +2044,15 @@ public class GCodeGenerator {
    /// G17 or G18
    /// </summary>
    /// <param name="isFromWebFlange">If true, then it is G17, else writes G18</param>
-   /// <param name="angleCorrection">An extra token added to print D=BlockAngle
+   /// <param name="isNotchCut">If true, its a notch cut. 
    /// specific to the 2 laser headed cutting machine with multipass.
    /// </param>
    public void WritePlaneForCircularMotionCommand (bool isFromWebFlange, bool isNotchCut = false) {
       string gcode;
-      if (isFromWebFlange) gcode = $"G17";
-      else gcode = $"G17";
+      if (isFromWebFlange) 
+         gcode = $"G17";
+      else 
+         gcode = $"G18";
       if (isNotchCut)
          gcode += $" D=BlockAngle";
       gcode += "\t( Plane Selection : G17-XY Plane, G18-XZ Plane )";

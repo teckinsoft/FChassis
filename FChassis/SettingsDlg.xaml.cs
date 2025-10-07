@@ -122,6 +122,12 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
          Settings.NCFilePath = b;
          IsModified = true;
       });
+      tbInputDirectoryWPath.Bind (() => {
+         return Settings.WMapLocation;
+      }, b => {
+         Settings.WMapLocation = b;
+         IsModified = true;
+      });
       cbLCMMachine.ItemsSource = Enum.GetValues (typeof (MachineType)).Cast<MachineType> ();
       cbLCMMachine.Bind (() => {
          chbMPC.IsEnabled = tbMaxFrameLength.IsEnabled = tbDeadBandWidth.IsEnabled = (Settings.Machine == MachineType.LCMMultipass2H);
@@ -158,7 +164,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
    }
 
    // Event handler for the Browse button click
-   private void OnOutputFolderSelect (object sender, RoutedEventArgs e) {
+   void OnOutputFolderSelect (object sender, RoutedEventArgs e) {
       // Create an OpenFileDialog to select a folder (we'll trick it for folder selection)
       var dialog = new OpenFileDialog {
          Title = "Select a Folder",
@@ -191,6 +197,10 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
          string selectedFile = dialog.FileName;
          tbWPOptions.Text = selectedFile;
       }
+   }
+
+   void OnInputFolderSelect( object sender, RoutedEventArgs e) {
+
    }
    void TbNotchWireJointDistanceValueChanged (object sender, TextChangedEventArgs e) {
       if (double.TryParse (tbNotchWireJointDistance.Text, out double value) && (value.SGT (5) || value.SLT (0))) {

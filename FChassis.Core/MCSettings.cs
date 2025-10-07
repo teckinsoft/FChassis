@@ -401,6 +401,16 @@ public partial class MCSettings : INotifyPropertyChanged {
    [IgnoreMember] // Ignore this field for MessagePack serialization
    double mNotchWireDistance;
 
+   [JsonPropertyName ("WMapLocation")]
+   [Key (51)]
+   public string WMapLocation {
+      get => mWMapLocation;
+      set => SetProperty (ref mWMapLocation, value);
+   }
+
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   string mWMapLocation;
+
    [JsonPropertyName ("flexOffset")]
    [Key (52)]
    public double FlexOffset {
