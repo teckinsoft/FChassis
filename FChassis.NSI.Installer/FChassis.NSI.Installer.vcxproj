@@ -18,6 +18,9 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="FChassisInstallerBuild-V21.nsi" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -83,7 +86,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>"C:\Program Files (x86)\NSIS\makensis.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
+      <Command>"C:\Program Files (x86)\NSIS\makensisw.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -102,7 +105,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>"C:\Program Files (x86)\NSIS\makensis.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
+      <Command>"C:\Program Files (x86)\NSIS\makensisw.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -117,7 +120,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>"C:\Program Files (x86)\NSIS\makensis.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
+      <Command>"C:\Program Files (x86)\NSIS\makensisw.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -136,12 +139,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>"C:\Program Files (x86)\NSIS\makensis.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
+      <Command>"C:\Program Files (x86)\NSIS\makensisw.exe" "$(ProjectDir)FChassisInstallerBuild-V21.nsi"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <None Include="FChassisInstallerBuild-V21-Map-LicAgreement-APPDATA-FCHassis-JSON-DS.nsi" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
