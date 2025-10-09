@@ -51,6 +51,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FChassis.OC.Installer", "FC
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FChassis.NSI.Installer", "FChassis.NSI.Installer\FChassis.NSI.Installer.vcxproj", "{47F3207E-EA0E-4D48-9C98-E935F3568F59}"
+	ProjectSection(ProjectDependencies) = postProject
+		{02B78A70-58D9-47F1-A90A-B5F946A9DD96} = {02B78A70-58D9-47F1-A90A-B5F946A9DD96}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

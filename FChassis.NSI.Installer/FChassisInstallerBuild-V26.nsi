@@ -18,6 +18,14 @@
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 !define INSTALL_FLAG_KEY "Software\${COMPANY}\${APPNAME}"
 
+; Put this RTF next to this .nsi (or adjust the subfolder)
+!define LICENSE_FILE "${__FILEDIR__}\FChassis-License-Agreement.txt"
+
+; (Optional) fail early with a clear error if not found:
+!if ! /FileExists "${LICENSE_FILE}"
+  !error "LICENSE_FILE not found at: ${LICENSE_FILE}"
+!endif
+
 Name "${APPNAME} ${VERSION}"
 OutFile "FChassis-Installer-${VERSION}.exe"
 InstallDir "${INSTALLDIR}"
@@ -26,35 +34,13 @@ RequestExecutionLevel admin
 ; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
-Var InstalledState ; 0 = not installed, 1 = same version, 2 = older version, 3 = newer version
+Var InstalledState
 Var ExistingInstallDir
 Var ExistingVersion
 Var ExtractionCompleted
 Var LogFileHandle
 Var LocalAppDataDir
 Var AppDataDir
-Var LicenseAgree ; Tracks radio button selection (1 = agree, 0 = disagree)
-
-; -----------------------------------------------------------------------------
-; Pages
-; -----------------------------------------------------------------------------
-!define MUI_ABORTWARNING
-!define MUI_UNABORTWARNING
-
-; Custom license agreement page
-Page custom LicensePre LicenseShow LicenseLeave
-
-!define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
-!insertmacro MUI_PAGE_DIRECTORY
-
-!define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
-!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
-!insertmacro MUI_PAGE_INSTFILES
-
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-
-!insertmacro MUI_LANGUAGE "English"
 
 ; -----------------------------------------------------------------------------
 ; Logging Macros
@@ -87,57 +73,33 @@ Page custom LicensePre LicenseShow LicenseLeave
 !macroend
 
 ; -----------------------------------------------------------------------------
+; Pages
+; -----------------------------------------------------------------------------
+!define MUI_ABORTWARNING
+!define MUI_UNABORTWARNING
+
+; *** Built-in License page reads the file at compile time ***
+!insertmacro MUI_PAGE_LICENSE "${LICENSE_FILE}"
+
+!define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
+!insertmacro MUI_PAGE_DIRECTORY
+
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
+!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
+!insertmacro MUI_PAGE_INSTFILES
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+!insertmacro MUI_LANGUAGE "English"
+
+; -----------------------------------------------------------------------------
 ; Helper: broadcast env change
 ; -----------------------------------------------------------------------------
 !macro BroadcastEnvChange
   !insertmacro LogMessage "Broadcasting environment change..."
   System::Call 'USER32::SendMessageTimeout(i ${HWND_BROADCAST}, i ${WM_SETTINGCHANGE}, i 0, w "Environment", i 0, i 5000, i 0)'
   !insertmacro LogMessage "Environment change broadcast completed"
-!macroend
-
-; -----------------------------------------------------------------------------
-; String manipulation functions
-; -----------------------------------------------------------------------------
-Function StrContains
-  Exch $R0 ; substring
-  Exch
-  Exch $R1 ; string
-  Push $R2
-  Push $R3
-  Push $R4
-  Push $R5
-  
-  StrCpy $R2 0
-  StrLen $R3 $R0
-  StrLen $R4 $R1
-  StrCpy $R5 0
-  
-  ${Do}
-    StrCpy $R2 $R1 $R3 $R5
-    ${If} $R2 == $R0
-      StrCpy $R0 1
-      ${ExitDo}
-    ${EndIf}
-    ${If} $R5 >= $R4
-      StrCpy $R0 0
-      ${ExitDo}
-    ${EndIf}
-    IntOp $R5 $R5 + 1
-  ${Loop}
-  
-  Pop $R5
-  Pop $R4
-  Pop $R3
-  Pop $R2
-  Pop $R1
-  Exch $R0
-FunctionEnd
-
-!macro StrContains result string substring
-  Push "${string}"
-  Push "${substring}"
-  Call StrContains
-  Pop "${result}"
 !macroend
 
 ; -----------------------------------------------------------------------------
@@ -172,123 +134,12 @@ FunctionEnd
 ; Function called when installation succeeds
 ; -----------------------------------------------------------------------------
 Function .onInstSuccess
-  Call CreateShortcuts
-  
   ; Notify system about changes
   !insertmacro BroadcastEnvChange
-  
+
+  Call CreateShortcuts
+
   !insertmacro LogMessage "Installation completed successfully!"
-FunctionEnd
-
-; -----------------------------------------------------------------------------
-; Custom License Page Functions
-; -----------------------------------------------------------------------------
-Var Dialog
-Var Label
-Var RadioAgree
-Var RadioDisagree
-Var LicenseText
-
-Function LicensePre
-  !insertmacro LogMessage "=== Starting LicensePre function ==="
-  ; Initialize LicenseAgree to 1 (agree by default)
-  StrCpy $LicenseAgree 1
-FunctionEnd
-
-Function LicenseShow
-  !insertmacro LogMessage "=== Starting LicenseShow function ==="
-  
-  ; Create custom dialog
-  nsDialogs::Create 1018
-  Pop $Dialog
-  ${If} $Dialog == error
-    !insertmacro LogError "Failed to create license dialog"
-    Abort
-  ${EndIf}
-  
-  ; Add label
-  ${NSD_CreateLabel} 0 0u 100% 20u "Please review the license agreement below:"
-  Pop $Label
-  
-  ; Create text box for license content
-  ${NSD_CreateText} 0 20u 100% 120u ""
-  Pop $LicenseText
-  SendMessage $LicenseText ${EM_SETREADONLY} 1 0 ; Make it read-only
-  
-  ; Add radio buttons
-  ${NSD_CreateRadioButton} 0 150u 100% 12u "I Agree"
-  Pop $RadioAgree
-  ${NSD_OnClick} $RadioAgree OnRadioAgree
-  
-  ${NSD_CreateRadioButton} 0 165u 100% 12u "I do not agree"
-  Pop $RadioDisagree
-  ${NSD_OnClick} $RadioDisagree OnRadioDisagree
-  
-  ; Set default selection to "I Agree"
-  ${NSD_Check} $RadioAgree
-  
-  ; Load license text from file
-  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.txt" license_exists license_missing
-  
-license_exists:
-  !insertmacro LogMessage "Loading license text from: ${FluxSDKDir}\FChassis-License-Agreement.txt"
-  FileOpen $0 "${FluxSDKDir}\FChassis-License-Agreement.txt" r
-  ${If} $0 == ""
-    !insertmacro LogError "Failed to open license file"
-    Goto show_dialog
-  ${EndIf}
-  
-  ; Read file content
-  StrCpy $1 ""
-  ${Do}
-    FileRead $0 $2
-    ${If} ${Errors}
-      ${ExitDo}
-    ${EndIf}
-    StrCpy $1 "$1$2"
-  ${Loop}
-  FileClose $0
-  
-  ; Set text in the text box
-  SendMessage $LicenseText ${WM_SETTEXT} 0 "STR:$1"
-  Goto show_dialog
-  
-license_missing:
-  !insertmacro LogError "License file not found: ${FluxSDKDir}\FChassis-License-Agreement.txt"
-  SendMessage $LicenseText ${WM_SETTEXT} 0 "STR:License agreement file not found at: ${FluxSDKDir}\FChassis-License-Agreement.txt"
-  
-show_dialog:
-  nsDialogs::Show
-FunctionEnd
-
-Function OnRadioAgree
-  Pop $0
-  StrCpy $LicenseAgree 1
-  !insertmacro LogMessage "User selected: I Agree"
-FunctionEnd
-
-Function OnRadioDisagree
-  Pop $0
-  StrCpy $LicenseAgree 0
-  !insertmacro LogMessage "User selected: I do not agree"
-FunctionEnd
-
-Function LicenseLeave
-  !insertmacro LogMessage "=== Starting LicenseLeave function ==="
-  ${If} $LicenseAgree == 0
-    !insertmacro LogMessage "User did not agree to license, aborting installation"
-    MessageBox MB_OK|MB_ICONINFORMATION "You must agree to the license agreement to proceed with the installation."
-    
-    ; Perform uninstall if already installed
-    ${If} $InstalledState != 0
-      !insertmacro LogMessage "Performing uninstall due to license disagreement"
-      ExecWait '"$INSTDIR\Uninstall.exe" /S _?=$INSTDIR'
-    ${EndIf}
-    
-    Call DeleteInstaller
-    Abort
-  ${EndIf}
-  !insertmacro LogMessage "User agreed to license, proceeding to next page"
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
@@ -380,112 +231,134 @@ done:
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
-; CreateShortcuts Function
+; CreateShortcuts Function with Icon Support
 ; -----------------------------------------------------------------------------
 Function CreateShortcuts
   !insertmacro LogMessage "=== Creating shortcuts ==="
 
-  ; ---------- Define icon path ----------
-  StrCpy $R1 "$INSTDIR\Resources\FChassis.ico"
+  ; ---------- Define paths ----------
+  StrCpy $R1 "$INSTDIR\Bin\Resources\FChassis.ico" ; Icon path
+  StrCpy $R2 "$INSTDIR\Bin\FChassis.exe"           ; Executable path
   !insertmacro LogVar "Icon path" $R1
+  !insertmacro LogVar "Executable path" $R2
 
-  ; ---------- Ensure target executable and icon exist ----------
-  IfFileExists "$INSTDIR\Bin\FChassis.exe" +2
-    Goto _ExeMissing
-    
-  IfFileExists "$R1" +2
+  ; ---------- Ensure target executable exists ----------
+  IfFileExists "$R2" exe_found
+    !insertmacro LogError "Target executable not found: $R2"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Error: FChassis.exe not found at $R2. Shortcuts cannot be created."
+    Goto _Done
+exe_found:
+  !insertmacro LogMessage "Target executable found: $R2"
+
+  ; ---------- Ensure icon file exists ----------
+  ${If} ${FileExists} "$R1"
+    !insertmacro LogMessage "Icon file found: $R1"
+  ${Else}
     !insertmacro LogError "Icon file not found: $R1"
-
-  !insertmacro LogMessage "Target executable found: $INSTDIR\Bin\FChassis.exe"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Icon file not found at $R1. Using default icon."
+  ${EndIf}
 
   ; ---------- Try ALL USERS Start Menu ----------
   SetShellVarContext all
   StrCpy $R0 "all"
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
-  !insertmacro LogMessage "Ensuring Start Menu folder (all users): $9"
+  !insertmacro LogMessage "Creating Start Menu folder (all users): $9"
 
-  ; Create folder if it does not exist
-  IfFileExists "$9\*.*" +3
-    ClearErrors
-    CreateDirectory "$9"
-    IfErrors 0 +2
-      Goto _TryUserContext
+  ; Create Start Menu folder
+  CreateDirectory "$9"
+  IfErrors 0 folder_created_all
+    !insertmacro LogError "Failed to create Start Menu directory (all users): $9"
+    Goto _TryUserContext
+folder_created_all:
+  !insertmacro LogMessage "Start Menu folder created/exists (all users): $9"
 
-  !insertmacro LogVar "Start Menu directory (all users)" "$9"
-  Goto _MakeSMShortcut
+  ; Create Start Menu shortcut
+  ClearErrors
+  Delete "$9\${APPNAME}.lnk" ; Remove stale shortcut
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 sm_shortcut_created
+    !insertmacro LogError "Failed to create Start Menu shortcut (all users): $9\${APPNAME}.lnk"
+    Goto _TryUserContext
+sm_shortcut_created:
+  !insertmacro LogMessage "Start Menu shortcut created (all users): $9\${APPNAME}.lnk"
 
-  ; ---------- Fallback: CURRENT USER ----------
+  ; ---------- Fallback to CURRENT USER for Start Menu ----------
 _TryUserContext:
-  !insertmacro LogMessage "Falling back to current user context for Start Menu"
   SetShellVarContext current
   StrCpy $R0 "current"
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
+  !insertmacro LogMessage "Creating Start Menu folder (current user): $9"
 
-  IfFileExists "$9\*.*" +3
-    ClearErrors
-    CreateDirectory "$9"
-    IfErrors 0 +2
-      Goto _CreateDesktop
-
-  !insertmacro LogVar "Start Menu directory (current user)" "$9"
-
-  ; ---------- Create Start Menu shortcut (with existence verification) ----------
-_MakeSMShortcut:
-  !insertmacro LogMessage "Creating Start Menu shortcut: $9\${APPNAME}.lnk -> $INSTDIR\Bin\FChassis.exe"
-
-  ; Remove stale link; ignore errors
-  ClearErrors
-  Delete "$9\${APPNAME}.lnk"
-  ClearErrors
-
-  ; Create shortcut with icon - check if icon file exists first
-  ${If} ${FileExists} "$R1"
-    CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
-    !insertmacro LogMessage "Start Menu shortcut created with icon: $R1"
-  ${Else}
-    CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
-    !insertmacro LogError "Icon file not found, using executable as icon: $R1"
-  ${EndIf}
-
-  ; Trust-but-verify: file existence is the ground truth
-  IfFileExists "$9\${APPNAME}.lnk" +3
-    !insertmacro LogError "Failed to create Start Menu shortcut in $R0 context"
+  ; Create Start Menu folder
+  CreateDirectory "$9"
+  IfErrors 0 folder_created_user
+    !insertmacro LogError "Failed to create Start Menu directory (current user): $9"
     Goto _CreateDesktop
-  ClearErrors
-  !insertmacro LogMessage "Start Menu shortcut created in $R0 context."
+folder_created_user:
+  !insertmacro LogMessage "Start Menu folder created/exists (current user): $9"
 
-  ; ---------- Create Desktop shortcut (always for current user) ----------
+  ; Create Start Menu shortcut
+  ClearErrors
+  Delete "$9\${APPNAME}.lnk" ; Remove stale shortcut
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 user_sm_shortcut_created
+    !insertmacro LogError "Failed to create Start Menu shortcut (current user): $9\${APPNAME}.lnk"
+    Goto _CreateDesktop
+user_sm_shortcut_created:
+  !insertmacro LogMessage "Start Menu shortcut created (current user): $9\${APPNAME}.lnk"
+
+  ; ---------- Create Desktop shortcut (try CURRENT USER first) ----------
 _CreateDesktop:
   SetShellVarContext current
-  !insertmacro LogVar "Desktop directory" "$DESKTOP"
+  !insertmacro LogVar "Desktop directory (current user)" "$DESKTOP"
 
-  ; Remove stale desktop link; ignore errors
+  ; Remove stale desktop shortcut
   ClearErrors
   Delete "$DESKTOP\${APPNAME}.lnk"
-  ClearErrors
 
-  ; Create desktop link with icon - check if icon file exists first
+  ; Create Desktop shortcut for current user
   ${If} ${FileExists} "$R1"
-    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
-    !insertmacro LogMessage "Desktop shortcut created with icon: $R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
   ${Else}
-    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
-    !insertmacro LogError "Icon file not found, using executable as icon: $R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
   ${EndIf}
-
-  ; Verify by existence; clear any stray error on success
-  IfFileExists "$DESKTOP\${APPNAME}.lnk" +3
-    !insertmacro LogError "Creation of Desktop link failed: $DESKTOP\${APPNAME}.lnk"
-    Goto _Done
-  ClearErrors
-  !insertmacro LogMessage "Desktop shortcut created."
-
+  IfErrors 0 desktop_shortcut_created
+    !insertmacro LogError "Failed to create Desktop shortcut (current user): $DESKTOP\${APPNAME}.lnk"
+    Goto _TryAllUsersDesktop
+desktop_shortcut_created:
+  !insertmacro LogMessage "Desktop shortcut created (current user): $DESKTOP\${APPNAME}.lnk"
   Goto _Done
 
-  ; ---------- Missing EXE ----------
-_ExeMissing:
-  !insertmacro LogError "Target executable not found: $INSTDIR\Bin\FChassis.exe"
-  MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: FChassis.exe not found at installation location. Shortcuts cannot be created."
+  ; ---------- Fallback to ALL USERS Desktop ----------
+_TryAllUsersDesktop:
+  !insertmacro LogMessage "Falling back to all users context for Desktop shortcut"
+  SetShellVarContext all
+  !insertmacro LogVar "Desktop directory (all users)" "$DESKTOP"
+
+  ; Remove stale desktop shortcut
+  ClearErrors
+  Delete "$DESKTOP\${APPNAME}.lnk"
+
+  ; Create Desktop shortcut for all users
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 all_users_desktop_created
+    !insertmacro LogError "Failed to create Desktop shortcut (all users): $DESKTOP\${APPNAME}.lnk"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Error: Could not create Desktop shortcut for FChassis."
+    Goto _Done
+all_users_desktop_created:
+  !insertmacro LogMessage "Desktop shortcut created (all users): $DESKTOP\${APPNAME}.lnk"
 
   ; ---------- Wrap up ----------
 _Done:
@@ -498,31 +371,30 @@ FunctionEnd
 Function .onInit
   ; Set 64-bit registry view for initialization
   SetRegView 64
-  
+
   ; Initialize variables
   StrCpy $InstalledState 0 ; Default to not installed
   StrCpy $ExistingInstallDir "${INSTALLDIR}"
   StrCpy $ExistingVersion ""
   StrCpy $ExtractionCompleted 0
   StrCpy $LogFileHandle 0 ; Initialize to 0 (invalid handle)
-  StrCpy $LicenseAgree 1 ; Initialize license agreement to agree
 
   ; Get LOCALAPPDATA for log file
   ReadRegStr $LocalAppDataDir HKCU "Volatile Environment" "LOCALAPPDATA"
   ${If} $LocalAppDataDir == ""
     StrCpy $LocalAppDataDir "$TEMP" ; Fallback to TEMP directory
   ${EndIf}
-  
+
   ; Get APPDATA for user settings
   ReadRegStr $AppDataDir HKCU "Volatile Environment" "APPDATA"
   ${If} $AppDataDir == ""
     StrCpy $AppDataDir "$LocalAppDataDir" ; Fallback to LOCALAPPDATA if APPDATA is not available
   ${EndIf}
   !insertmacro LogVar "AppDataDir" $AppDataDir
-  
+
   ; Ensure log directory exists
   CreateDirectory "$LocalAppDataDir"
-  
+
   ; Initialize logging with error handling
   FileOpen $LogFileHandle "$LocalAppDataDir\FChassis_Install.log" w
   ${If} $LogFileHandle == ""
@@ -544,7 +416,6 @@ Function .onInit
     DetailPrint "Log file opened: $LocalAppDataDir\FChassis_Install.log"
   ${EndIf}
 
-  ; Now log the start message using our macro (handles invalid file handles)
   !insertmacro LogMessage "=== Starting .onInit function ==="
   !insertmacro LogVar "LocalAppDataDir" $LocalAppDataDir
 
@@ -555,26 +426,26 @@ Function .onInit
   IfErrors check_install_flag
   !insertmacro LogMessage "Found uninstall registry key"
   !insertmacro LogVar "UninstallString" $0
-  
+
   ; Get existing installation directory
   ReadRegStr $ExistingInstallDir HKLM "${UNINSTALL_KEY}" "InstallLocation"
   StrCmp $ExistingInstallDir "" 0 get_version
   StrCpy $ExistingInstallDir "${INSTALLDIR}"
   !insertmacro LogVar "ExistingInstallDir" $ExistingInstallDir
-  
-  get_version:
+
+get_version:
   ; Get installed version
   ReadRegStr $ExistingVersion HKLM "${UNINSTALL_KEY}" "DisplayVersion"
   IfErrors check_install_flag
   !insertmacro LogVar "ExistingVersion" $ExistingVersion
-  
+
   ; Compare versions
   Push $ExistingVersion
   Push "${VERSION}"
   Call CompareVersions
   Pop $1
   !insertmacro LogVar "Version comparison result" $1
-  
+
   ${If} $1 == "0"
     StrCpy $InstalledState 1 ; Same version installed
     !insertmacro LogMessage "Same version already installed"
@@ -585,21 +456,21 @@ Function .onInit
     StrCpy $InstalledState 2 ; Older version installed
     !insertmacro LogMessage "Older version installed"
   ${EndIf}
-  
+
   Goto done
-  
-  check_install_flag:
+
+check_install_flag:
   !insertmacro LogMessage "Checking custom install flag registry..."
   ; Check our custom install flag
   ReadRegStr $0 HKLM "${INSTALL_FLAG_KEY}" "Installed"
   StrCmp $0 "1" 0 done
   !insertmacro LogMessage "Found custom install flag"
-  
+
   ReadRegStr $ExistingVersion HKLM "${INSTALL_FLAG_KEY}" "Version"
   ReadRegStr $ExistingInstallDir HKLM "${INSTALL_FLAG_KEY}" "InstallPath"
   !insertmacro LogVar "ExistingVersion from custom key" $ExistingVersion
   !insertmacro LogVar "ExistingInstallDir from custom key" $ExistingInstallDir
-  
+
   ; Compare versions if we found version info
   StrCmp $ExistingVersion "" done 0
   Push $ExistingVersion
@@ -607,7 +478,7 @@ Function .onInit
   Call CompareVersions
   Pop $1
   !insertmacro LogVar "Version comparison result (custom key)" $1
-  
+
   ${If} $1 == "0"
     StrCpy $InstalledState 1 ; Same version installed
     !insertmacro LogMessage "Same version installed (custom key)"
@@ -618,13 +489,13 @@ Function .onInit
     StrCpy $InstalledState 2 ; Older version installed
     !insertmacro LogMessage "Older version installed (custom key)"
   ${EndIf}
-  
-  done:
+
+done:
   ; Set install directory to existing installation path
   StrCpy $INSTDIR $ExistingInstallDir
   !insertmacro LogVar "Final INSTDIR set to" $INSTDIR
   !insertmacro LogVar "InstalledState" $InstalledState
-  
+
   !insertmacro LogMessage "=== .onInit function completed ==="
 FunctionEnd
 
@@ -633,11 +504,11 @@ Function DirectoryPre
   ${If} $InstalledState == 3
     !insertmacro LogMessage "Newer version detected, showing warning message"
     MessageBox MB_OK|MB_ICONEXCLAMATION "A newer version ($ExistingVersion) of ${APPNAME} is already installed.$\nCannot downgrade to version ${VERSION}.$\n$\nPlease uninstall the newer version first."
-    
+
     ; Delete installer after showing message
     !insertmacro LogMessage "Deleting installer due to version conflict..."
     Call DeleteInstaller
-    
+
     Abort
   ${EndIf}
   !insertmacro LogMessage "=== DirectoryPre function completed ==="
@@ -645,6 +516,14 @@ FunctionEnd
 
 Function InstFilesShow
   !insertmacro LogMessage "=== InstFiles page shown ==="
+
+  ; Ensure Cancel button is enabled on the InstFiles page
+  GetDlgItem $0 $HWNDPARENT 2
+  EnableWindow $0 1
+
+  ; (Optional) also ensure the button is visible and has focus if you want
+  ; ShowWindow $0 ${SW_SHOW}
+  ; ${NSD_SetFocus} $0
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
@@ -652,26 +531,26 @@ FunctionEnd
 ; -----------------------------------------------------------------------------
 Function ExtractThirdParty
   !insertmacro LogMessage "=== Starting ExtractThirdParty function ==="
-  
+
   ; Check if extraction is already done
   IfFileExists "$INSTDIR\Bin\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin\TKernel.dll" extraction_complete
   !insertmacro LogMessage "ThirdParty extraction needed"
-  
+
   DetailPrint "Extracting thirdParty.zip..."
   DetailPrint "This may take several minutes (90,000+ files)..."
   !insertmacro LogMessage "Extracting thirdParty.zip (90,000+ files, may take several minutes)"
-  
+
   ; Show progress message
   SetDetailsPrint listonly
   DetailPrint "Extracting: Please wait patiently..."
   SetDetailsPrint both
-  
+
   ; Extract using 7z with timeout
   !insertmacro LogMessage "Starting 7z extraction process..."
   nsExec::ExecToStack '"$INSTDIR\7z.exe" x "$INSTDIR\thirdParty.zip" -o"$INSTDIR" -y'
   Pop $0 ; Exit code
   Pop $1 ; Output
-  
+
   ${If} $0 != 0
     !insertmacro LogError "7-Zip extraction failed with code: $0"
     !insertmacro LogError "7-Zip output: $1"
@@ -683,8 +562,8 @@ Function ExtractThirdParty
     !insertmacro LogMessage "Third-party components extraction completed successfully"
     DetailPrint "Third-party components extraction completed successfully."
   ${EndIf}
-  
-  extraction_complete:
+
+extraction_complete:
   !insertmacro LogMessage "ThirdParty extraction already complete or completed"
   !insertmacro LogMessage "=== ExtractThirdParty function completed ==="
 FunctionEnd
@@ -696,10 +575,10 @@ Function OnInstFilesAbort
   !insertmacro LogMessage "=== Installation abort requested ==="
   MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to cancel the installation?" IDYES +2
   Return
-  
+
   !insertmacro LogMessage "User confirmed cancellation, performing cleanup"
   MessageBox MB_OK|MB_ICONINFORMATION "Installation canceled. Cleaning up..."
-  
+
   ; Remove installed files and directories
   !insertmacro LogMessage "Removing installed files and directories..."
   RMDir /r "$INSTDIR\Bin"
@@ -718,7 +597,8 @@ Function OnInstFilesAbort
   RMDir /r "$INSTDIR\tr"
   RMDir /r "$INSTDIR\zh-Hans"
   RMDir /r "$INSTDIR\zh-Hant"
-  
+  RMDir /r "$INSTDIR\Resources"  ; Remove Resources directory
+
   ; Remove individual files
   !insertmacro LogMessage "Removing individual files..."
   Delete "$INSTDIR\*.dll"
@@ -735,13 +615,13 @@ Function OnInstFilesAbort
   Delete "$INSTDIR\7z.exe"
   Delete "$INSTDIR\7z.dll"
   Delete "$INSTDIR\VC_redist.x64.exe"
-  
+
   ; Remove user settings files from %APPDATA%\FChassis
   !insertmacro LogMessage "Removing user settings files..."
   Delete "$AppDataDir\FChassis\FChassis.User.RecentFiles.JSON"
   Delete "$AppDataDir\FChassis\FChassis.User.Settings.JSON"
   RMDir "$AppDataDir\FChassis" ; Remove directory if empty
-  
+
   ; Remove shortcuts if they were created
   !insertmacro LogMessage "Removing shortcuts..."
   SetShellVarContext all
@@ -751,13 +631,13 @@ Function OnInstFilesAbort
   Delete "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
   RMDir "$SMPROGRAMS\${APPNAME}"
   Delete "$DESKTOP\${APPNAME}.lnk"
-  
+
   ; Remove registry entries if they were created
   !insertmacro LogMessage "Removing registry entries..."
   SetRegView 64 ; Ensure 64-bit registry view for cleanup
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
-  
+
   ; Remove environment variables if they were added
   !insertmacro LogMessage "Removing environment variables..."
   EnVar::SetHKLM
@@ -773,16 +653,16 @@ Function OnInstFilesAbort
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\rapidjson-1.1.0\bin"
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin"
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
-  
+
   ; Broadcast environment change
   !insertmacro BroadcastEnvChange
-  
+
   ; Delete installer
   Call DeleteInstaller
-  
+
   ; Close log file
   FileClose $LogFileHandle
-  
+
   Abort
 FunctionEnd
 
@@ -792,62 +672,62 @@ FunctionEnd
 Section "Main Installation" SecMain
   !insertmacro LogMessage "=== Starting Main Installation Section ==="
   SetRegView 64 ; Ensure 64-bit registry view for installation
-  
+
   ; Set output path to the installation directory
   SetOutPath "$INSTDIR"
-  
+
   ; Ensure Bin directory exists
   CreateDirectory "$INSTDIR\Bin"
   !insertmacro LogMessage "Created directory: $INSTDIR\Bin"
-  
+
   ; Check if we need to uninstall previous version
   ${If} $InstalledState == 1
     !insertmacro LogMessage "Same version already installed, proceeding with reinstallation"
   ${ElseIf} $InstalledState == 2
     !insertmacro LogMessage "Older version detected, proceeding with upgrade"
   ${EndIf}
-  
+
   ; Copy main application files
   !insertmacro LogMessage "Copying main application files..."
   File /r "${FluxSDKDir}\*.*"
-  
+
   ; Copy license file to installation directory
   !insertmacro LogMessage "Copying license file to installation directory..."
-  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.txt" license_file_exists license_file_missing
-  
+  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.rtf" license_file_exists license_file_missing
+
 license_file_exists:
-  CopyFiles /SILENT "${FluxSDKDir}\FChassis-License-Agreement.txt" "$INSTDIR"
-  !insertmacro LogMessage "License file copied to: $INSTDIR\FChassis-License-Agreement.txt"
+  CopyFiles /SILENT "${FluxSDKDir}\FChassis-License-Agreement.rtf" "$INSTDIR"
+  !insertmacro LogMessage "License file copied to: $INSTDIR\FChassis-License-Agreement.rtf"
   Goto license_file_done
-  
+
 license_file_missing:
-  !insertmacro LogError "License file not found at source: ${FluxSDKDir}\FChassis-License-Agreement.txt"
-  
+  !insertmacro LogError "License file not found at source: ${FluxSDKDir}\FChassis-License-Agreement.rtf"
+
 license_file_done:
-  
+
   ; Copy third-party components
   !insertmacro LogMessage "Copying third-party components..."
   File "${FluxSDKDir}\thirdParty.zip"
   File "${FluxSDKDir}\7z.exe"
   File "${FluxSDKDir}\7z.dll"
   File "${FluxSDKDir}\VC_redist.x64.exe"
-  
+
   ; Extract third-party components
   Call ExtractThirdParty
-  
-  ; Copy user settings files to %APPDATA%\FChassis
-  !insertmacro LogMessage "Copying user settings files to $AppDataDir\FChassis..."
-  CreateDirectory "$AppDataDir\FChassis"
+
+  ; Copy user settings files to %LOCALAPPDATA%\FChassis
+  !insertmacro LogMessage "Copying user settings files to $LOCALAPPDATA\FChassis..."
+  CreateDirectory "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
-    !insertmacro LogError "Failed to create directory: $AppDataDir\FChassis"
-  
+    !insertmacro LogError "Failed to create directory: $LOCALAPPDATA\FChassis"
+
   ; Copy FChassis.User.RecentFiles.JSON
   IfFileExists "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" recent_file_exists recent_file_missing
 recent_file_exists:
-  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.RecentFiles.JSON to $AppDataDir\FChassis"
-  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" "$AppDataDir\FChassis"
+  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.RecentFiles.JSON to $LOCALAPPDATA\FChassis"
+  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
-    !insertmacro LogError "Failed to copy FChassis.User.RecentFiles.JSON to $AppDataDir\FChassis"
+    !insertmacro LogError "Failed to copy FChassis.User.RecentFiles.JSON to $LOCALAPPDATA\FChassis"
   Goto recent_file_done
 recent_file_missing:
   !insertmacro LogError "FChassis.User.RecentFiles.JSON not found at ${FluxSDKBin}"
@@ -856,28 +736,28 @@ recent_file_done:
   ; Copy FChassis.User.Settings.JSON
   IfFileExists "${FluxSDKBin}\FChassis.User.Settings.JSON" settings_file_exists settings_file_missing
 settings_file_exists:
-  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.Settings.JSON to $AppDataDir\FChassis"
-  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.Settings.JSON" "$AppDataDir\FChassis"
+  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.Settings.JSON to $LOCALAPPDATA\FChassis"
+  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.Settings.JSON" "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
-    !insertmacro LogError "Failed to copy FChassis.User.Settings.JSON to $AppDataDir\FChassis"
+    !insertmacro LogError "Failed to copy FChassis.User.Settings.JSON to $LOCALAPPDATA\FChassis"
   Goto settings_file_done
 settings_file_missing:
   !insertmacro LogError "FChassis.User.Settings.JSON not found at ${FluxSDKBin}"
 settings_file_done:
-  
+
   ; Install VC++ redistributable if needed
   !insertmacro LogMessage "Checking VC++ redistributable installation..."
   nsExec::ExecToStack '"$INSTDIR\VC_redist.x64.exe" /install /quiet /norestart'
   Pop $0
   !insertmacro LogVar "VC++ redistributable installation result" $0
-  
+
   ; Add to PATH environment variable
   !insertmacro LogMessage "Adding to PATH environment variable..."
   EnVar::SetHKLM
   ; Log current PATH before modification
   ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
   !insertmacro LogVar "System PATH before modification" $0
-  
+
   EnVar::AddValue "Path" "$INSTDIR\Bin"
   Pop $0
   ${If} $0 != 0
@@ -885,7 +765,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\Bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -893,7 +773,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin"
   Pop $0
   ${If} $0 != 0
@@ -901,7 +781,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\ffmpeg-3.3.4-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -909,7 +789,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\ffmpeg-3.3.4-64\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freeimage-3.17.0-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -917,7 +797,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freeimage-3.17.0-vc14-64\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -925,7 +805,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freetype-2.5.5-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -933,7 +813,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freetype-2.5.5-vc14-64\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\openvr-1.14.15-64\bin\win64"
   Pop $0
   ${If} $0 != 0
@@ -941,7 +821,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\openvr-1.14.15-64\bin\win64 to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\qt5.11.2-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -949,7 +829,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\qt5.11.2-vc14-64\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\rapidjson-1.1.0\bin"
   Pop $0
   ${If} $0 != 0
@@ -957,7 +837,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\rapidjson-1.1.0\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -965,7 +845,7 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin to PATH"
   ${EndIf}
-  
+
   EnVar::AddValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -973,14 +853,14 @@ settings_file_done:
   ${Else}
     !insertmacro LogMessage "Successfully added $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin to PATH"
   ${EndIf}
-  
+
   ; Log PATH after modification
   ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
   !insertmacro LogVar "System PATH after modification" $0
-  
+
   ; Broadcast environment change
   !insertmacro BroadcastEnvChange
-  
+
   ; Write registry entries for uninstallation
   !insertmacro LogMessage "Writing registry entries..."
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "${APPNAME}"
@@ -988,18 +868,18 @@ settings_file_done:
   WriteRegStr HKLM "${UNINSTALL_KEY}" "Publisher" "${COMPANY}"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Resources\FChassis.ico"  ; Add this line
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Bin\Resources\FChassis.ico"  ; Use same icon path
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
-  
+
   ; Write our custom install flag
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "Installed" "1"
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "Version" "${VERSION}"
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "InstallPath" "$INSTDIR"
-  
+
   ; Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  
+
   !insertmacro LogMessage "=== Main Installation Section completed ==="
 SectionEnd
 
@@ -1009,7 +889,7 @@ SectionEnd
 Section "Uninstall"
   !insertmacro LogMessage "=== Starting Uninstallation ==="
   SetRegView 64 ; Ensure 64-bit registry view for uninstallation
-  
+
   ; Remove shortcuts
   !insertmacro LogMessage "Removing shortcuts..."
   ; Try 'all' context first
@@ -1036,14 +916,14 @@ user_sm_dir_removed:
 user_sm_dir_done:
   ; Delete desktop shortcut
   Delete "$DESKTOP\${APPNAME}.lnk"
-  
+
   ; Remove from PATH environment variable
   !insertmacro LogMessage "Removing from PATH environment variable..."
   EnVar::SetHKLM
   ; Log current PATH before modification
   ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
   !insertmacro LogVar "System PATH before uninstall modification" $0
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\Bin"
   Pop $0
   ${If} $0 != 0
@@ -1051,7 +931,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\Bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -1059,7 +939,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin"
   Pop $0
   ${If} $0 != 0
@@ -1067,7 +947,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\opencascade-7.7.0\win64\vc14\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\ffmpeg-3.3.4-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -1075,7 +955,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\ffmpeg-3.3.4-64\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freeimage-3.17.0-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -1083,15 +963,15 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freeimage-3.17.0-vc14-64\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
     !insertmacro LogError "Failed to remove $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin from PATH, error code: $0"
   ${Else}
-    !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tbb_2021.5-vc14-64\bin from PATH"
+    !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freetype-2.5.5-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -1099,7 +979,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\freetype-2.5.5-vc14-64\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\openvr-1.14.15-64\bin\win64"
   Pop $0
   ${If} $0 != 0
@@ -1107,7 +987,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\openvr-1.14.15-64\bin\win64 from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\qt5.11.2-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -1115,7 +995,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\qt5.11.2-vc14-64\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\rapidjson-1.1.0\bin"
   Pop $0
   ${If} $0 != 0
@@ -1123,7 +1003,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\rapidjson-1.1.0\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -1131,7 +1011,7 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin from PATH"
   ${EndIf}
-  
+
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
   Pop $0
   ${If} $0 != 0
@@ -1139,25 +1019,25 @@ user_sm_dir_done:
   ${Else}
     !insertmacro LogMessage "Successfully removed $INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin from PATH"
   ${EndIf}
-  
+
   ; Log PATH after modification
   ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
   !insertmacro LogVar "System PATH after uninstall modification" $0
-  
+
   ; Remove user settings files from %APPDATA%\FChassis
   !insertmacro LogMessage "Removing user settings files..."
   Delete "$AppDataDir\FChassis\FChassis.User.RecentFiles.JSON"
   Delete "$AppDataDir\FChassis\FChassis.User.Settings.JSON"
   RMDir "$AppDataDir\FChassis" ; Remove directory if empty
-  
+
   ; Broadcast environment change
   !insertmacro BroadcastEnvChange
-  
+
   ; Remove registry entries
   !insertmacro LogMessage "Removing registry entries..."
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
-  
+
   ; Remove files and directories
   !insertmacro LogMessage "Removing files and directories..."
   RMDir /r "$INSTDIR\Bin"
@@ -1177,7 +1057,8 @@ user_sm_dir_done:
   RMDir /r "$INSTDIR\zh-Hans"
   RMDir /r "$INSTDIR\zh-Hant"
   RMDir /r "$INSTDIR\thirdParty"
-  
+  RMDir /r "$INSTDIR\Resources"  ; Remove Resources directory
+
   ; Remove individual files including license file
   Delete "$INSTDIR\*.dll"
   Delete "$INSTDIR\*.exe"
@@ -1193,10 +1074,10 @@ user_sm_dir_done:
   Delete "$INSTDIR\7z.exe"
   Delete "$INSTDIR\7z.dll"
   Delete "$INSTDIR\VC_redist.x64.exe"
-  Delete "$INSTDIR\FChassis-License-Agreement.txt" ; Remove license file
-  
+  Delete "$INSTDIR\FChassis-License-Agreement.rtf" ; Remove license file
+
   ; Remove installation directory if empty
   RMDir "$INSTDIR"
-  
+
   !insertmacro LogMessage "=== Uninstallation completed ==="
 SectionEnd

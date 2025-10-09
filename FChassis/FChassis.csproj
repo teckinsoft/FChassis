@@ -17,60 +17,68 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Platforms>AnyCPU;x64</Platforms>
 		<Configurations>Debug;Release;TestRelease</Configurations>
+
+		<!-- Set application icon -->
+		<ApplicationIcon>Resources\FChassis.ico</ApplicationIcon>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='TestRelease|x64'">
-	  <DefineConstants>$(DefineConstants);TESTRELEASE</DefineConstants>
+		<DefineConstants>$(DefineConstants);TESTRELEASE</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="GCodeGen\**" />
-	  <Compile Remove="Geometries and XForms\**" />
-	  <Compile Remove="Tools\**" />
-	  <EmbeddedResource Remove="GCodeGen\**" />
-	  <EmbeddedResource Remove="Geometries and XForms\**" />
-	  <EmbeddedResource Remove="Tools\**" />
-	  <None Remove="GCodeGen\**" />
-	  <None Remove="Geometries and XForms\**" />
-	  <None Remove="Tools\**" />
-	  <Page Remove="GCodeGen\**" />
-	  <Page Remove="Geometries and XForms\**" />
-	  <Page Remove="Tools\**" />
+		<Compile Remove="GCodeGen\**" />
+		<Compile Remove="Geometries and XForms\**" />
+		<Compile Remove="Tools\**" />
+		<EmbeddedResource Remove="GCodeGen\**" />
+		<EmbeddedResource Remove="Geometries and XForms\**" />
+		<EmbeddedResource Remove="Tools\**" />
+		<None Remove="GCodeGen\**" />
+		<None Remove="Geometries and XForms\**" />
+		<None Remove="Tools\**" />
+		<Page Remove="GCodeGen\**" />
+		<Page Remove="Geometries and XForms\**" />
+		<Page Remove="Tools\**" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Remove="FChassisMachineSettings.cs" />
-	  <Compile Remove="SanityCheck.cs" />
-	  <Compile Remove="SanityTestData.cs" />
-	  <Compile Remove="SettingServices.cs" />
-	  <Compile Remove="Tooling.cs" />
-	  <Compile Remove="Util.cs" />
-	  <Compile Remove="Workpiece.cs" />
+		<Compile Remove="FChassisMachineSettings.cs" />
+		<Compile Remove="SanityCheck.cs" />
+		<Compile Remove="SanityTestData.cs" />
+		<Compile Remove="SettingServices.cs" />
+		<Compile Remove="Tooling.cs" />
+		<Compile Remove="Util.cs" />
+		<Compile Remove="Workpiece.cs" />
 	</ItemGroup>
 
+	<!-- Add splash screen and icon as Content to ensure they are copied to output -->
 	<ItemGroup>
-	  <None Remove="Images\FChassis_Splash.png" />
-	  <None Remove="Resources\FChassis.ico" />
+		<Resource Include="Images\FChassis_Splash.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resources\FChassis.ico">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Resource>
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<PackageReference Update="CommunityToolkit.Mvvm" Version="8.4.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Reference Include="FChassis.Core">
-		  <HintPath>c:\FluxSDK\Bin\FChassis.Core.dll</HintPath>
+			<HintPath>c:\FluxSDK\Bin\FChassis.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="FChassis.Input">
-		  <HintPath>c:\FluxSDK\Bin\FChassis.Input.dll</HintPath>
+			<HintPath>c:\FluxSDK\Bin\FChassis.Input.dll</HintPath>
 		</Reference>
 		<Reference Include="Flux.API">
 			<HintPath>$(OutDir)Flux.API.dll</HintPath>
 		</Reference>
 		<Reference Include="Flux.Base">
-		  <HintPath>$(OutDir)Flux.Base.dll</HintPath>
+			<HintPath>$(OutDir)Flux.Base.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
@@ -88,68 +96,14 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='TestRelease'">
-	  <Reference Include="iges">
-	    <HintPath>$(OutDir)iges.dll</HintPath>
-	  </Reference>
+		<Reference Include="iges">
+			<HintPath>$(OutDir)iges.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <SplashScreen Include="Images\FChassis_Splash.png">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </SplashScreen>
-	</ItemGroup>
-
-
-	<ItemGroup>
-	  <None Update="App.config">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	</ItemGroup>
-
-
-	<ItemGroup>
-	  <Resource Include="Resources\FChassis.ico">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </Resource>
+		<None Update="App.config">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 </Project>
-
-
-<!--<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-	  
-    <Nullable>disable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-	  
-    <UseWPF>true</UseWPF>
-    <PlatformTarget>x64</PlatformTarget>
-
-	<OutDir>C:\FluxSDK\Bin</OutDir>
-    <DocumentationFile>C:\FluxSDK\Bin\FChassis.xml</DocumentationFile>
-	  
-	  <DefineConstants>DEBUG_ROUND3</DefineConstants>
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<Platforms>AnyCPU;x64</Platforms>
-  </PropertyGroup>
-	
-  <ItemGroup>
-    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-  </ItemGroup>
-	
-  <ItemGroup>
-    <ProjectReference Include="..\IGES\IGES.vcxproj" />
-  </ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Update="CommunityToolkit.Mvvm" Version="8.4.0" />
-	</ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Flux.API">
-      <HintPath>C:\FluxSDK\Bin\Flux.API.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-</Project>-->

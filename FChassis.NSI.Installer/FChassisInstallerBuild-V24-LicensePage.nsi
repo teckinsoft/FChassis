@@ -18,6 +18,9 @@
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 !define INSTALL_FLAG_KEY "Software\${COMPANY}\${APPNAME}"
 
+; RTF Constants
+!define SF_RTF 0x0002
+
 Name "${APPNAME} ${VERSION}"
 OutFile "FChassis-Installer-${VERSION}.exe"
 InstallDir "${INSTALLDIR}"
@@ -33,28 +36,13 @@ Var ExtractionCompleted
 Var LogFileHandle
 Var LocalAppDataDir
 Var AppDataDir
-Var LicenseAgree ; Tracks radio button selection (1 = agree, 0 = disagree)
+Var LicenseAgree ; Tracks license agreement (1 = accept, 0 = do not accept)
 
-; -----------------------------------------------------------------------------
-; Pages
-; -----------------------------------------------------------------------------
-!define MUI_ABORTWARNING
-!define MUI_UNABORTWARNING
-
-; Custom license agreement page
-Page custom LicensePre LicenseShow LicenseLeave
-
-!define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
-!insertmacro MUI_PAGE_DIRECTORY
-
-!define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
-!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
-!insertmacro MUI_PAGE_INSTFILES
-
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-
-!insertmacro MUI_LANGUAGE "English"
+; Dialog controls for license page
+Var hwnd
+Var LicenseRichEdit
+Var AcceptButton
+Var DeclineButton
 
 ; -----------------------------------------------------------------------------
 ; Logging Macros
@@ -87,57 +75,128 @@ Page custom LicensePre LicenseShow LicenseLeave
 !macroend
 
 ; -----------------------------------------------------------------------------
+; Pages
+; -----------------------------------------------------------------------------
+!define MUI_ABORTWARNING
+!define MUI_UNABORTWARNING
+
+; Custom License Page
+Page custom LicensePageCreate LicensePageLeave
+
+!define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
+!insertmacro MUI_PAGE_DIRECTORY
+
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
+!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
+!insertmacro MUI_PAGE_INSTFILES
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+!insertmacro MUI_LANGUAGE "English"
+
+; -----------------------------------------------------------------------------
+; License Page Functions with RTF Support
+; -----------------------------------------------------------------------------
+Function LicensePageCreate
+  !insertmacro LogMessage "=== Creating License Page ==="
+  
+  StrCpy $2 "C:\FluxSDK\EULA\FChassis-License-Agreement.txt"
+  IfFileExists $2 license_file_found
+    !insertmacro LogError "License file not found"
+    MessageBox MB_OK|MB_ICONSTOP "License agreement file not found."
+    Abort
+
+license_file_found:
+  !insertmacro MUI_HEADER_TEXT "License Agreement" "Please review the license terms before installing ${APPNAME}"
+  nsDialogs::Create 1018
+  Pop $hwnd
+  ${If} $hwnd == error
+    Abort
+  ${EndIf}
+  
+  ${NSD_CreateLabel} 0 0 100% 20u "Please read the following license agreement:"
+  Pop $0
+  
+  ; Create the text control
+  ${NSD_CreateText} 0 25u 100% 130u ""
+  Pop $LicenseRichEdit
+  ${NSD_AddStyle} $LicenseRichEdit ${WS_VSCROLL}|${WS_HSCROLL}|${ES_MULTILINE}|${ES_AUTOVSCROLL}|${ES_AUTOHSCROLL}|${ES_READONLY}
+  
+  ; Read file and ensure proper Windows line endings
+  FileOpen $0 $2 r
+  ${If} $0 != ""
+    StrCpy $1 ""
+  read_loop:
+    FileRead $0 $3
+    ${If} ${Errors}
+      Goto read_done
+    ${EndIf}
+    ; Force Windows line endings
+    StrCpy $1 "$1$3$\r$\n"
+    Goto read_loop
+  read_done:
+    FileClose $0
+    ; Set the text
+    SendMessage $LicenseRichEdit ${WM_SETTEXT} 0 "STR:$1"
+  ${EndIf}
+  
+  ${NSD_CreateButton} 20% 160u 30% 14u "&Accept"
+  Pop $AcceptButton
+  ${NSD_OnClick} $AcceptButton OnAcceptLicense
+  
+  ${NSD_CreateButton} 55% 160u 30% 14u "&Do not Accept"
+  Pop $DeclineButton
+  ${NSD_OnClick} $DeclineButton OnDeclineLicense
+  
+  GetDlgItem $0 $HWNDPARENT 1
+  EnableWindow $0 0
+  ${NSD_SetFocus} $AcceptButton
+  
+  nsDialogs::Show
+FunctionEnd
+
+Function OnAcceptLicense
+  Pop $0
+  !insertmacro LogMessage "User clicked Accept button"
+  StrCpy $LicenseAgree 1
+  ; Enable Next button and proceed
+  GetDlgItem $0 $HWNDPARENT 1
+  EnableWindow $0 1
+  SendMessage $HWNDPARENT ${WM_COMMAND} 1 0
+FunctionEnd
+
+Function OnDeclineLicense
+  Pop $0
+  !insertmacro LogMessage "User clicked Do not Accept button"
+  StrCpy $LicenseAgree 0
+  
+  ; Show confirmation message
+  MessageBox MB_YESNO|MB_ICONQUESTION "You have chosen not to accept the license agreement.$\nThe installation will now exit.$\n$\nAre you sure you want to cancel the installation?" IDYES decline_confirmed
+  Return
+  
+decline_confirmed:
+  !insertmacro LogMessage "User confirmed license decline, exiting"
+  Quit
+FunctionEnd
+
+Function LicensePageLeave
+  !insertmacro LogMessage "=== License Page Leave ==="
+  ${If} $LicenseAgree == 0
+    !insertmacro LogMessage "License not accepted, staying on license page"
+    MessageBox MB_OK|MB_ICONINFORMATION "You must accept the license agreement to continue with the installation."
+    Abort
+  ${EndIf}
+  !insertmacro LogMessage "License accepted, proceeding to next page"
+FunctionEnd
+
+; -----------------------------------------------------------------------------
 ; Helper: broadcast env change
 ; -----------------------------------------------------------------------------
 !macro BroadcastEnvChange
   !insertmacro LogMessage "Broadcasting environment change..."
   System::Call 'USER32::SendMessageTimeout(i ${HWND_BROADCAST}, i ${WM_SETTINGCHANGE}, i 0, w "Environment", i 0, i 5000, i 0)'
   !insertmacro LogMessage "Environment change broadcast completed"
-!macroend
-
-; -----------------------------------------------------------------------------
-; String manipulation functions
-; -----------------------------------------------------------------------------
-Function StrContains
-  Exch $R0 ; substring
-  Exch
-  Exch $R1 ; string
-  Push $R2
-  Push $R3
-  Push $R4
-  Push $R5
-  
-  StrCpy $R2 0
-  StrLen $R3 $R0
-  StrLen $R4 $R1
-  StrCpy $R5 0
-  
-  ${Do}
-    StrCpy $R2 $R1 $R3 $R5
-    ${If} $R2 == $R0
-      StrCpy $R0 1
-      ${ExitDo}
-    ${EndIf}
-    ${If} $R5 >= $R4
-      StrCpy $R0 0
-      ${ExitDo}
-    ${EndIf}
-    IntOp $R5 $R5 + 1
-  ${Loop}
-  
-  Pop $R5
-  Pop $R4
-  Pop $R3
-  Pop $R2
-  Pop $R1
-  Exch $R0
-FunctionEnd
-
-!macro StrContains result string substring
-  Push "${string}"
-  Push "${substring}"
-  Call StrContains
-  Pop "${result}"
 !macroend
 
 ; -----------------------------------------------------------------------------
@@ -172,123 +231,12 @@ FunctionEnd
 ; Function called when installation succeeds
 ; -----------------------------------------------------------------------------
 Function .onInstSuccess
-  Call CreateShortcuts
-  
   ; Notify system about changes
   !insertmacro BroadcastEnvChange
   
+  Call CreateShortcuts
+  
   !insertmacro LogMessage "Installation completed successfully!"
-FunctionEnd
-
-; -----------------------------------------------------------------------------
-; Custom License Page Functions
-; -----------------------------------------------------------------------------
-Var Dialog
-Var Label
-Var RadioAgree
-Var RadioDisagree
-Var LicenseText
-
-Function LicensePre
-  !insertmacro LogMessage "=== Starting LicensePre function ==="
-  ; Initialize LicenseAgree to 1 (agree by default)
-  StrCpy $LicenseAgree 1
-FunctionEnd
-
-Function LicenseShow
-  !insertmacro LogMessage "=== Starting LicenseShow function ==="
-  
-  ; Create custom dialog
-  nsDialogs::Create 1018
-  Pop $Dialog
-  ${If} $Dialog == error
-    !insertmacro LogError "Failed to create license dialog"
-    Abort
-  ${EndIf}
-  
-  ; Add label
-  ${NSD_CreateLabel} 0 0u 100% 20u "Please review the license agreement below:"
-  Pop $Label
-  
-  ; Create text box for license content
-  ${NSD_CreateText} 0 20u 100% 120u ""
-  Pop $LicenseText
-  SendMessage $LicenseText ${EM_SETREADONLY} 1 0 ; Make it read-only
-  
-  ; Add radio buttons
-  ${NSD_CreateRadioButton} 0 150u 100% 12u "I Agree"
-  Pop $RadioAgree
-  ${NSD_OnClick} $RadioAgree OnRadioAgree
-  
-  ${NSD_CreateRadioButton} 0 165u 100% 12u "I do not agree"
-  Pop $RadioDisagree
-  ${NSD_OnClick} $RadioDisagree OnRadioDisagree
-  
-  ; Set default selection to "I Agree"
-  ${NSD_Check} $RadioAgree
-  
-  ; Load license text from file
-  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.txt" license_exists license_missing
-  
-license_exists:
-  !insertmacro LogMessage "Loading license text from: ${FluxSDKDir}\FChassis-License-Agreement.txt"
-  FileOpen $0 "${FluxSDKDir}\FChassis-License-Agreement.txt" r
-  ${If} $0 == ""
-    !insertmacro LogError "Failed to open license file"
-    Goto show_dialog
-  ${EndIf}
-  
-  ; Read file content
-  StrCpy $1 ""
-  ${Do}
-    FileRead $0 $2
-    ${If} ${Errors}
-      ${ExitDo}
-    ${EndIf}
-    StrCpy $1 "$1$2"
-  ${Loop}
-  FileClose $0
-  
-  ; Set text in the text box
-  SendMessage $LicenseText ${WM_SETTEXT} 0 "STR:$1"
-  Goto show_dialog
-  
-license_missing:
-  !insertmacro LogError "License file not found: ${FluxSDKDir}\FChassis-License-Agreement.txt"
-  SendMessage $LicenseText ${WM_SETTEXT} 0 "STR:License agreement file not found at: ${FluxSDKDir}\FChassis-License-Agreement.txt"
-  
-show_dialog:
-  nsDialogs::Show
-FunctionEnd
-
-Function OnRadioAgree
-  Pop $0
-  StrCpy $LicenseAgree 1
-  !insertmacro LogMessage "User selected: I Agree"
-FunctionEnd
-
-Function OnRadioDisagree
-  Pop $0
-  StrCpy $LicenseAgree 0
-  !insertmacro LogMessage "User selected: I do not agree"
-FunctionEnd
-
-Function LicenseLeave
-  !insertmacro LogMessage "=== Starting LicenseLeave function ==="
-  ${If} $LicenseAgree == 0
-    !insertmacro LogMessage "User did not agree to license, aborting installation"
-    MessageBox MB_OK|MB_ICONINFORMATION "You must agree to the license agreement to proceed with the installation."
-    
-    ; Perform uninstall if already installed
-    ${If} $InstalledState != 0
-      !insertmacro LogMessage "Performing uninstall due to license disagreement"
-      ExecWait '"$INSTDIR\Uninstall.exe" /S _?=$INSTDIR'
-    ${EndIf}
-    
-    Call DeleteInstaller
-    Abort
-  ${EndIf}
-  !insertmacro LogMessage "User agreed to license, proceeding to next page"
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
@@ -380,112 +328,134 @@ done:
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
-; CreateShortcuts Function
+; CreateShortcuts Function with Icon Support
 ; -----------------------------------------------------------------------------
 Function CreateShortcuts
   !insertmacro LogMessage "=== Creating shortcuts ==="
 
-  ; ---------- Define icon path ----------
-  StrCpy $R1 "$INSTDIR\Resources\FChassis.ico"
+  ; ---------- Define paths ----------
+  StrCpy $R1 "$INSTDIR\Bin\Resources\FChassis.ico" ; Icon path
+  StrCpy $R2 "$INSTDIR\Bin\FChassis.exe"           ; Executable path
   !insertmacro LogVar "Icon path" $R1
+  !insertmacro LogVar "Executable path" $R2
 
-  ; ---------- Ensure target executable and icon exist ----------
-  IfFileExists "$INSTDIR\Bin\FChassis.exe" +2
-    Goto _ExeMissing
-    
-  IfFileExists "$R1" +2
+  ; ---------- Ensure target executable exists ----------
+  IfFileExists "$R2" exe_found
+    !insertmacro LogError "Target executable not found: $R2"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Error: FChassis.exe not found at $R2. Shortcuts cannot be created."
+    Goto _Done
+exe_found:
+  !insertmacro LogMessage "Target executable found: $R2"
+
+  ; ---------- Ensure icon file exists ----------
+  ${If} ${FileExists} "$R1"
+    !insertmacro LogMessage "Icon file found: $R1"
+  ${Else}
     !insertmacro LogError "Icon file not found: $R1"
-
-  !insertmacro LogMessage "Target executable found: $INSTDIR\Bin\FChassis.exe"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Icon file not found at $R1. Using default icon."
+  ${EndIf}
 
   ; ---------- Try ALL USERS Start Menu ----------
   SetShellVarContext all
   StrCpy $R0 "all"
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
-  !insertmacro LogMessage "Ensuring Start Menu folder (all users): $9"
+  !insertmacro LogMessage "Creating Start Menu folder (all users): $9"
 
-  ; Create folder if it does not exist
-  IfFileExists "$9\*.*" +3
-    ClearErrors
-    CreateDirectory "$9"
-    IfErrors 0 +2
-      Goto _TryUserContext
+  ; Create Start Menu folder
+  CreateDirectory "$9"
+  IfErrors 0 folder_created_all
+    !insertmacro LogError "Failed to create Start Menu directory (all users): $9"
+    Goto _TryUserContext
+folder_created_all:
+  !insertmacro LogMessage "Start Menu folder created/exists (all users): $9"
 
-  !insertmacro LogVar "Start Menu directory (all users)" "$9"
-  Goto _MakeSMShortcut
+  ; Create Start Menu shortcut
+  ClearErrors
+  Delete "$9\${APPNAME}.lnk" ; Remove stale shortcut
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 sm_shortcut_created
+    !insertmacro LogError "Failed to create Start Menu shortcut (all users): $9\${APPNAME}.lnk"
+    Goto _TryUserContext
+sm_shortcut_created:
+  !insertmacro LogMessage "Start Menu shortcut created (all users): $9\${APPNAME}.lnk"
 
-  ; ---------- Fallback: CURRENT USER ----------
+  ; ---------- Fallback to CURRENT USER for Start Menu ----------
 _TryUserContext:
-  !insertmacro LogMessage "Falling back to current user context for Start Menu"
   SetShellVarContext current
   StrCpy $R0 "current"
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
+  !insertmacro LogMessage "Creating Start Menu folder (current user): $9"
 
-  IfFileExists "$9\*.*" +3
-    ClearErrors
-    CreateDirectory "$9"
-    IfErrors 0 +2
-      Goto _CreateDesktop
-
-  !insertmacro LogVar "Start Menu directory (current user)" "$9"
-
-  ; ---------- Create Start Menu shortcut (with existence verification) ----------
-_MakeSMShortcut:
-  !insertmacro LogMessage "Creating Start Menu shortcut: $9\${APPNAME}.lnk -> $INSTDIR\Bin\FChassis.exe"
-
-  ; Remove stale link; ignore errors
-  ClearErrors
-  Delete "$9\${APPNAME}.lnk"
-  ClearErrors
-
-  ; Create shortcut with icon - check if icon file exists first
-  ${If} ${FileExists} "$R1"
-    CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
-    !insertmacro LogMessage "Start Menu shortcut created with icon: $R1"
-  ${Else}
-    CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
-    !insertmacro LogError "Icon file not found, using executable as icon: $R1"
-  ${EndIf}
-
-  ; Trust-but-verify: file existence is the ground truth
-  IfFileExists "$9\${APPNAME}.lnk" +3
-    !insertmacro LogError "Failed to create Start Menu shortcut in $R0 context"
+  ; Create Start Menu folder
+  CreateDirectory "$9"
+  IfErrors 0 folder_created_user
+    !insertmacro LogError "Failed to create Start Menu directory (current user): $9"
     Goto _CreateDesktop
-  ClearErrors
-  !insertmacro LogMessage "Start Menu shortcut created in $R0 context."
+folder_created_user:
+  !insertmacro LogMessage "Start Menu folder created/exists (current user): $9"
 
-  ; ---------- Create Desktop shortcut (always for current user) ----------
+  ; Create Start Menu shortcut
+  ClearErrors
+  Delete "$9\${APPNAME}.lnk" ; Remove stale shortcut
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 user_sm_shortcut_created
+    !insertmacro LogError "Failed to create Start Menu shortcut (current user): $9\${APPNAME}.lnk"
+    Goto _CreateDesktop
+user_sm_shortcut_created:
+  !insertmacro LogMessage "Start Menu shortcut created (current user): $9\${APPNAME}.lnk"
+
+  ; ---------- Create Desktop shortcut (try CURRENT USER first) ----------
 _CreateDesktop:
   SetShellVarContext current
-  !insertmacro LogVar "Desktop directory" "$DESKTOP"
+  !insertmacro LogVar "Desktop directory (current user)" "$DESKTOP"
 
-  ; Remove stale desktop link; ignore errors
+  ; Remove stale desktop shortcut
   ClearErrors
   Delete "$DESKTOP\${APPNAME}.lnk"
-  ClearErrors
 
-  ; Create desktop link with icon - check if icon file exists first
+  ; Create Desktop shortcut for current user
   ${If} ${FileExists} "$R1"
-    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
-    !insertmacro LogMessage "Desktop shortcut created with icon: $R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
   ${Else}
-    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
-    !insertmacro LogError "Icon file not found, using executable as icon: $R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
   ${EndIf}
-
-  ; Verify by existence; clear any stray error on success
-  IfFileExists "$DESKTOP\${APPNAME}.lnk" +3
-    !insertmacro LogError "Creation of Desktop link failed: $DESKTOP\${APPNAME}.lnk"
-    Goto _Done
-  ClearErrors
-  !insertmacro LogMessage "Desktop shortcut created."
-
+  IfErrors 0 desktop_shortcut_created
+    !insertmacro LogError "Failed to create Desktop shortcut (current user): $DESKTOP\${APPNAME}.lnk"
+    Goto _TryAllUsersDesktop
+desktop_shortcut_created:
+  !insertmacro LogMessage "Desktop shortcut created (current user): $DESKTOP\${APPNAME}.lnk"
   Goto _Done
 
-  ; ---------- Missing EXE ----------
-_ExeMissing:
-  !insertmacro LogError "Target executable not found: $INSTDIR\Bin\FChassis.exe"
-  MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: FChassis.exe not found at installation location. Shortcuts cannot be created."
+  ; ---------- Fallback to ALL USERS Desktop ----------
+_TryAllUsersDesktop:
+  !insertmacro LogMessage "Falling back to all users context for Desktop shortcut"
+  SetShellVarContext all
+  !insertmacro LogVar "Desktop directory (all users)" "$DESKTOP"
+
+  ; Remove stale desktop shortcut
+  ClearErrors
+  Delete "$DESKTOP\${APPNAME}.lnk"
+
+  ; Create Desktop shortcut for all users
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 all_users_desktop_created
+    !insertmacro LogError "Failed to create Desktop shortcut (all users): $DESKTOP\${APPNAME}.lnk"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Error: Could not create Desktop shortcut for FChassis."
+    Goto _Done
+all_users_desktop_created:
+  !insertmacro LogMessage "Desktop shortcut created (all users): $DESKTOP\${APPNAME}.lnk"
 
   ; ---------- Wrap up ----------
 _Done:
@@ -505,7 +475,7 @@ Function .onInit
   StrCpy $ExistingVersion ""
   StrCpy $ExtractionCompleted 0
   StrCpy $LogFileHandle 0 ; Initialize to 0 (invalid handle)
-  StrCpy $LicenseAgree 1 ; Initialize license agreement to agree
+  StrCpy $LicenseAgree 0 ; Initialize license agreement to not accepted
 
   ; Get LOCALAPPDATA for log file
   ReadRegStr $LocalAppDataDir HKCU "Volatile Environment" "LOCALAPPDATA"
@@ -718,6 +688,7 @@ Function OnInstFilesAbort
   RMDir /r "$INSTDIR\tr"
   RMDir /r "$INSTDIR\zh-Hans"
   RMDir /r "$INSTDIR\zh-Hant"
+  RMDir /r "$INSTDIR\Resources"  ; Remove Resources directory
   
   ; Remove individual files
   !insertmacro LogMessage "Removing individual files..."
@@ -813,15 +784,15 @@ Section "Main Installation" SecMain
   
   ; Copy license file to installation directory
   !insertmacro LogMessage "Copying license file to installation directory..."
-  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.txt" license_file_exists license_file_missing
+  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.rtf" license_file_exists license_file_missing
   
 license_file_exists:
-  CopyFiles /SILENT "${FluxSDKDir}\FChassis-License-Agreement.txt" "$INSTDIR"
-  !insertmacro LogMessage "License file copied to: $INSTDIR\FChassis-License-Agreement.txt"
+  CopyFiles /SILENT "${FluxSDKDir}\FChassis-License-Agreement.rtf" "$INSTDIR"
+  !insertmacro LogMessage "License file copied to: $INSTDIR\FChassis-License-Agreement.rtf"
   Goto license_file_done
   
 license_file_missing:
-  !insertmacro LogError "License file not found at source: ${FluxSDKDir}\FChassis-License-Agreement.txt"
+  !insertmacro LogError "License file not found at source: ${FluxSDKDir}\FChassis-License-Agreement.rtf"
   
 license_file_done:
   
@@ -835,19 +806,19 @@ license_file_done:
   ; Extract third-party components
   Call ExtractThirdParty
   
-  ; Copy user settings files to %APPDATA%\FChassis
-  !insertmacro LogMessage "Copying user settings files to $AppDataDir\FChassis..."
-  CreateDirectory "$AppDataDir\FChassis"
+  ; Copy user settings files to %LOCALAPPDATA%\FChassis
+  !insertmacro LogMessage "Copying user settings files to $LOCALAPPDATA\FChassis..."
+  CreateDirectory "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
-    !insertmacro LogError "Failed to create directory: $AppDataDir\FChassis"
+    !insertmacro LogError "Failed to create directory: $LOCALAPPDATA\FChassis"
   
   ; Copy FChassis.User.RecentFiles.JSON
   IfFileExists "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" recent_file_exists recent_file_missing
 recent_file_exists:
-  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.RecentFiles.JSON to $AppDataDir\FChassis"
-  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" "$AppDataDir\FChassis"
+  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.RecentFiles.JSON to $LOCALAPPDATA\FChassis"
+  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
-    !insertmacro LogError "Failed to copy FChassis.User.RecentFiles.JSON to $AppDataDir\FChassis"
+    !insertmacro LogError "Failed to copy FChassis.User.RecentFiles.JSON to $LOCALAPPDATA\FChassis"
   Goto recent_file_done
 recent_file_missing:
   !insertmacro LogError "FChassis.User.RecentFiles.JSON not found at ${FluxSDKBin}"
@@ -856,10 +827,10 @@ recent_file_done:
   ; Copy FChassis.User.Settings.JSON
   IfFileExists "${FluxSDKBin}\FChassis.User.Settings.JSON" settings_file_exists settings_file_missing
 settings_file_exists:
-  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.Settings.JSON to $AppDataDir\FChassis"
-  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.Settings.JSON" "$AppDataDir\FChassis"
+  !insertmacro LogMessage "Copying ${FluxSDKBin}\FChassis.User.Settings.JSON to $LOCALAPPDATA\FChassis"
+  CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.Settings.JSON" "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
-    !insertmacro LogError "Failed to copy FChassis.User.Settings.JSON to $AppDataDir\FChassis"
+    !insertmacro LogError "Failed to copy FChassis.User.Settings.JSON to $LOCALAPPDATA\FChassis"
   Goto settings_file_done
 settings_file_missing:
   !insertmacro LogError "FChassis.User.Settings.JSON not found at ${FluxSDKBin}"
@@ -988,7 +959,7 @@ settings_file_done:
   WriteRegStr HKLM "${UNINSTALL_KEY}" "Publisher" "${COMPANY}"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Resources\FChassis.ico"  ; Add this line
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Bin\Resources\FChassis.ico"  ; Use same icon path
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
   
@@ -1177,6 +1148,7 @@ user_sm_dir_done:
   RMDir /r "$INSTDIR\zh-Hans"
   RMDir /r "$INSTDIR\zh-Hant"
   RMDir /r "$INSTDIR\thirdParty"
+  RMDir /r "$INSTDIR\Resources"  ; Remove Resources directory
   
   ; Remove individual files including license file
   Delete "$INSTDIR\*.dll"
@@ -1193,7 +1165,7 @@ user_sm_dir_done:
   Delete "$INSTDIR\7z.exe"
   Delete "$INSTDIR\7z.dll"
   Delete "$INSTDIR\VC_redist.x64.exe"
-  Delete "$INSTDIR\FChassis-License-Agreement.txt" ; Remove license file
+  Delete "$INSTDIR\FChassis-License-Agreement.rtf" ; Remove license file
   
   ; Remove installation directory if empty
   RMDir "$INSTDIR"

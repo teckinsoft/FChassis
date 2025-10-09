@@ -172,10 +172,10 @@ FunctionEnd
 ; Function called when installation succeeds
 ; -----------------------------------------------------------------------------
 Function .onInstSuccess
-  Call CreateShortcuts
-  
   ; Notify system about changes
   !insertmacro BroadcastEnvChange
+  
+  Call CreateShortcuts
   
   !insertmacro LogMessage "Installation completed successfully!"
 FunctionEnd
@@ -379,113 +379,260 @@ done:
   Exch $0
 FunctionEnd
 
+; ; -----------------------------------------------------------------------------
+; ; CreateShortcuts Function with Icon Support
+; ; -----------------------------------------------------------------------------
+; Function CreateShortcuts
+  ; !insertmacro LogMessage "=== Creating shortcuts ==="
+
+  ; ; ---------- Define icon path ----------
+  ; StrCpy $R1 "$INSTDIR\Bin\Resources\FChassis.ico"
+  ; !insertmacro LogVar "Icon path" $R1
+
+  ; ; ---------- Ensure target executable exists ----------
+  ; IfFileExists "$INSTDIR\Bin\FChassis.exe" exe_found
+  ; !insertmacro LogError "Target executable not found: $INSTDIR\Bin\FChassis.exe"
+  ; MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: FChassis.exe not found at installation location. Shortcuts cannot be created."
+  ; Goto _Done
+
+; exe_found:
+  ; !insertmacro LogMessage "Target executable found: $INSTDIR\Bin\FChassis.exe"
+
+  ; ; ---------- Check if icon file exists ----------
+  ; ${If} ${FileExists} "$R1"
+    ; !insertmacro LogMessage "Icon file found: $R1"
+  ; ${Else}
+    ; !insertmacro LogError "Icon file not found: $R1"
+  ; ${EndIf}
+
+  ; ; ---------- Try ALL USERS Start Menu ----------
+  ; SetShellVarContext all
+  ; StrCpy $R0 "all"
+  ; StrCpy $9 "$SMPROGRAMS\${APPNAME}"
+  ; !insertmacro LogMessage "Ensuring Start Menu folder (all users): $9"
+
+  ; ; Create folder if it does not exist
+  ; IfFileExists "$9\*.*" folder_exists_all
+    ; ClearErrors
+    ; CreateDirectory "$9"
+    ; IfErrors 0 create_sm_shortcut
+    ; !insertmacro LogError "Failed to create Start Menu directory (all users): $9"
+    ; Goto _TryUserContext
+
+; folder_exists_all:
+  ; !insertmacro LogMessage "Start Menu folder exists (all users): $9"
+
+; create_sm_shortcut:
+  ; !insertmacro LogVar "Start Menu directory (all users)" "$9"
+  ; Goto _MakeSMShortcut
+
+  ; ; ---------- Fallback: CURRENT USER ----------
+; _TryUserContext:
+  ; !insertmacro LogMessage "Falling back to current user context for Start Menu"
+  ; SetShellVarContext current
+  ; StrCpy $R0 "current"
+  ; StrCpy $9 "$SMPROGRAMS\${APPNAME}"
+
+  ; IfFileExists "$9\*.*" folder_exists_user
+    ; ClearErrors
+    ; CreateDirectory "$9"
+    ; IfErrors 0 create_user_sm_shortcut
+    ; !insertmacro LogError "Failed to create Start Menu directory (current user): $9"
+    ; Goto _CreateDesktop
+
+; folder_exists_user:
+  ; !insertmacro LogMessage "Start Menu folder exists (current user): $9"
+
+; create_user_sm_shortcut:
+  ; !insertmacro LogVar "Start Menu directory (current user)" "$9"
+
+  ; ; ---------- Create Start Menu shortcut (with existence verification) ----------
+; _MakeSMShortcut:
+  ; !insertmacro LogMessage "Creating Start Menu shortcut: $9\${APPNAME}.lnk -> $INSTDIR\Bin\FChassis.exe"
+
+  ; ; Remove stale link; ignore errors
+  ; ClearErrors
+  ; Delete "$9\${APPNAME}.lnk"
+  ; ClearErrors
+
+  ; ; Create shortcut with icon - check if icon file exists first
+  ; ${If} ${FileExists} "$R1"
+    ; CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
+    ; !insertmacro LogMessage "Start Menu shortcut created with icon: $R1"
+  ; ${Else}
+    ; CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
+    ; !insertmacro LogError "Icon file not found, using executable as icon: $R1"
+  ; ${EndIf}
+
+  ; ; Verify shortcut creation
+  ; ${If} ${FileExists} "$9\${APPNAME}.lnk"
+    ; ClearErrors
+    ; !insertmacro LogMessage "Start Menu shortcut created in $R0 context."
+  ; ${Else}
+    ; !insertmacro LogError "Failed to create Start Menu shortcut in $R0 context"
+  ; ${EndIf}
+
+  ; ; ---------- Create Desktop shortcut (always for current user) ----------
+; _CreateDesktop:
+  ; SetShellVarContext current
+  ; !insertmacro LogVar "Desktop directory" "$DESKTOP"
+
+  ; ; Remove stale desktop link; ignore errors
+  ; ClearErrors
+  ; Delete "$DESKTOP\${APPNAME}.lnk"
+  ; ClearErrors
+
+  ; ; Create desktop link with icon - check if icon file exists first
+  ; ${If} ${FileExists} "$R1"
+    ; CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
+    ; !insertmacro LogMessage "Desktop shortcut created with icon: $R1"
+  ; ${Else}
+    ; CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
+    ; !insertmacro LogError "Icon file not found, using executable as icon: $R1"
+  ; ${EndIf}
+
+  ; ; Verify desktop shortcut creation
+  ; ${If} ${FileExists} "$DESKTOP\${APPNAME}.lnk"
+    ; ClearErrors
+    ; !insertmacro LogMessage "Desktop shortcut created."
+  ; ${Else}
+    ; !insertmacro LogError "Creation of Desktop link failed: $DESKTOP\${APPNAME}.lnk"
+  ; ${EndIf}
+
+  ; ; ---------- Wrap up ----------
+; _Done:
+  ; !insertmacro LogMessage "=== Shortcut creation completed ==="
+; FunctionEnd
+
 ; -----------------------------------------------------------------------------
-; CreateShortcuts Function
+; CreateShortcuts Function with Icon Support
 ; -----------------------------------------------------------------------------
 Function CreateShortcuts
   !insertmacro LogMessage "=== Creating shortcuts ==="
 
-  ; ---------- Define icon path ----------
-  StrCpy $R1 "$INSTDIR\Resources\FChassis.ico"
+  ; ---------- Define paths ----------
+  StrCpy $R1 "$INSTDIR\Bin\Resources\FChassis.ico" ; Icon path
+  StrCpy $R2 "$INSTDIR\Bin\FChassis.exe"           ; Executable path
   !insertmacro LogVar "Icon path" $R1
+  !insertmacro LogVar "Executable path" $R2
 
-  ; ---------- Ensure target executable and icon exist ----------
-  IfFileExists "$INSTDIR\Bin\FChassis.exe" +2
-    Goto _ExeMissing
-    
-  IfFileExists "$R1" +2
+  ; ---------- Ensure target executable exists ----------
+  IfFileExists "$R2" exe_found
+    !insertmacro LogError "Target executable not found: $R2"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Error: FChassis.exe not found at $R2. Shortcuts cannot be created."
+    Goto _Done
+exe_found:
+  !insertmacro LogMessage "Target executable found: $R2"
+
+  ; ---------- Ensure icon file exists ----------
+  ${If} ${FileExists} "$R1"
+    !insertmacro LogMessage "Icon file found: $R1"
+  ${Else}
     !insertmacro LogError "Icon file not found: $R1"
-
-  !insertmacro LogMessage "Target executable found: $INSTDIR\Bin\FChassis.exe"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Icon file not found at $R1. Using default icon."
+  ${EndIf}
 
   ; ---------- Try ALL USERS Start Menu ----------
   SetShellVarContext all
   StrCpy $R0 "all"
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
-  !insertmacro LogMessage "Ensuring Start Menu folder (all users): $9"
+  !insertmacro LogMessage "Creating Start Menu folder (all users): $9"
 
-  ; Create folder if it does not exist
-  IfFileExists "$9\*.*" +3
-    ClearErrors
-    CreateDirectory "$9"
-    IfErrors 0 +2
-      Goto _TryUserContext
+  ; Create Start Menu folder
+  CreateDirectory "$9"
+  IfErrors 0 folder_created_all
+    !insertmacro LogError "Failed to create Start Menu directory (all users): $9"
+    Goto _TryUserContext
+folder_created_all:
+  !insertmacro LogMessage "Start Menu folder created/exists (all users): $9"
 
-  !insertmacro LogVar "Start Menu directory (all users)" "$9"
-  Goto _MakeSMShortcut
+  ; Create Start Menu shortcut
+  ClearErrors
+  Delete "$9\${APPNAME}.lnk" ; Remove stale shortcut
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 sm_shortcut_created
+    !insertmacro LogError "Failed to create Start Menu shortcut (all users): $9\${APPNAME}.lnk"
+    Goto _TryUserContext
+sm_shortcut_created:
+  !insertmacro LogMessage "Start Menu shortcut created (all users): $9\${APPNAME}.lnk"
 
-  ; ---------- Fallback: CURRENT USER ----------
+  ; ---------- Fallback to CURRENT USER for Start Menu ----------
 _TryUserContext:
-  !insertmacro LogMessage "Falling back to current user context for Start Menu"
   SetShellVarContext current
   StrCpy $R0 "current"
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
+  !insertmacro LogMessage "Creating Start Menu folder (current user): $9"
 
-  IfFileExists "$9\*.*" +3
-    ClearErrors
-    CreateDirectory "$9"
-    IfErrors 0 +2
-      Goto _CreateDesktop
-
-  !insertmacro LogVar "Start Menu directory (current user)" "$9"
-
-  ; ---------- Create Start Menu shortcut (with existence verification) ----------
-_MakeSMShortcut:
-  !insertmacro LogMessage "Creating Start Menu shortcut: $9\${APPNAME}.lnk -> $INSTDIR\Bin\FChassis.exe"
-
-  ; Remove stale link; ignore errors
-  ClearErrors
-  Delete "$9\${APPNAME}.lnk"
-  ClearErrors
-
-  ; Create shortcut with icon - check if icon file exists first
-  ${If} ${FileExists} "$R1"
-    CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
-    !insertmacro LogMessage "Start Menu shortcut created with icon: $R1"
-  ${Else}
-    CreateShortCut "$9\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
-    !insertmacro LogError "Icon file not found, using executable as icon: $R1"
-  ${EndIf}
-
-  ; Trust-but-verify: file existence is the ground truth
-  IfFileExists "$9\${APPNAME}.lnk" +3
-    !insertmacro LogError "Failed to create Start Menu shortcut in $R0 context"
+  ; Create Start Menu folder
+  CreateDirectory "$9"
+  IfErrors 0 folder_created_user
+    !insertmacro LogError "Failed to create Start Menu directory (current user): $9"
     Goto _CreateDesktop
-  ClearErrors
-  !insertmacro LogMessage "Start Menu shortcut created in $R0 context."
+folder_created_user:
+  !insertmacro LogMessage "Start Menu folder created/exists (current user): $9"
 
-  ; ---------- Create Desktop shortcut (always for current user) ----------
+  ; Create Start Menu shortcut
+  ClearErrors
+  Delete "$9\${APPNAME}.lnk" ; Remove stale shortcut
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 user_sm_shortcut_created
+    !insertmacro LogError "Failed to create Start Menu shortcut (current user): $9\${APPNAME}.lnk"
+    Goto _CreateDesktop
+user_sm_shortcut_created:
+  !insertmacro LogMessage "Start Menu shortcut created (current user): $9\${APPNAME}.lnk"
+
+  ; ---------- Create Desktop shortcut (try CURRENT USER first) ----------
 _CreateDesktop:
   SetShellVarContext current
-  !insertmacro LogVar "Desktop directory" "$DESKTOP"
+  !insertmacro LogVar "Desktop directory (current user)" "$DESKTOP"
 
-  ; Remove stale desktop link; ignore errors
+  ; Remove stale desktop shortcut
   ClearErrors
   Delete "$DESKTOP\${APPNAME}.lnk"
-  ClearErrors
 
-  ; Create desktop link with icon - check if icon file exists first
+  ; Create Desktop shortcut for current user
   ${If} ${FileExists} "$R1"
-    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$R1" 0
-    !insertmacro LogMessage "Desktop shortcut created with icon: $R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
   ${Else}
-    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Bin\FChassis.exe" "" "$INSTDIR\Bin\FChassis.exe" 0
-    !insertmacro LogError "Icon file not found, using executable as icon: $R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
   ${EndIf}
-
-  ; Verify by existence; clear any stray error on success
-  IfFileExists "$DESKTOP\${APPNAME}.lnk" +3
-    !insertmacro LogError "Creation of Desktop link failed: $DESKTOP\${APPNAME}.lnk"
-    Goto _Done
-  ClearErrors
-  !insertmacro LogMessage "Desktop shortcut created."
-
+  IfErrors 0 desktop_shortcut_created
+    !insertmacro LogError "Failed to create Desktop shortcut (current user): $DESKTOP\${APPNAME}.lnk"
+    Goto _TryAllUsersDesktop
+desktop_shortcut_created:
+  !insertmacro LogMessage "Desktop shortcut created (current user): $DESKTOP\${APPNAME}.lnk"
   Goto _Done
 
-  ; ---------- Missing EXE ----------
-_ExeMissing:
-  !insertmacro LogError "Target executable not found: $INSTDIR\Bin\FChassis.exe"
-  MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: FChassis.exe not found at installation location. Shortcuts cannot be created."
+  ; ---------- Fallback to ALL USERS Desktop ----------
+_TryAllUsersDesktop:
+  !insertmacro LogMessage "Falling back to all users context for Desktop shortcut"
+  SetShellVarContext all
+  !insertmacro LogVar "Desktop directory (all users)" "$DESKTOP"
+
+  ; Remove stale desktop shortcut
+  ClearErrors
+  Delete "$DESKTOP\${APPNAME}.lnk"
+
+  ; Create Desktop shortcut for all users
+  ${If} ${FileExists} "$R1"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
+  ${Else}
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
+  IfErrors 0 all_users_desktop_created
+    !insertmacro LogError "Failed to create Desktop shortcut (all users): $DESKTOP\${APPNAME}.lnk"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Error: Could not create Desktop shortcut for FChassis."
+    Goto _Done
+all_users_desktop_created:
+  !insertmacro LogMessage "Desktop shortcut created (all users): $DESKTOP\${APPNAME}.lnk"
 
   ; ---------- Wrap up ----------
 _Done:
@@ -718,6 +865,7 @@ Function OnInstFilesAbort
   RMDir /r "$INSTDIR\tr"
   RMDir /r "$INSTDIR\zh-Hans"
   RMDir /r "$INSTDIR\zh-Hant"
+  RMDir /r "$INSTDIR\Resources"  ; Remove Resources directory
   
   ; Remove individual files
   !insertmacro LogMessage "Removing individual files..."
@@ -988,7 +1136,7 @@ settings_file_done:
   WriteRegStr HKLM "${UNINSTALL_KEY}" "Publisher" "${COMPANY}"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Resources\FChassis.ico"  ; Add this line
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Bin\Resources\FChassis.ico"  ; Use same icon path
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
   
@@ -1177,6 +1325,7 @@ user_sm_dir_done:
   RMDir /r "$INSTDIR\zh-Hans"
   RMDir /r "$INSTDIR\zh-Hant"
   RMDir /r "$INSTDIR\thirdParty"
+  RMDir /r "$INSTDIR\Resources"  ; Remove Resources directory
   
   ; Remove individual files including license file
   Delete "$INSTDIR\*.dll"
