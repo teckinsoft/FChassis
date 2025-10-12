@@ -90,7 +90,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    //#endif
 
    //      //// Set icon programmatically (alternative to XAML)
-   //      //this.Icon = new BitmapImage (new Uri ("pack://application:,,,/Images/FChassis_Splash.png"));
+   //      //this.Icon = new BitmapImage (new Uri ("pack://application:,,,/Resources/FChassis.Splash.png"));
    //   }
 
 
@@ -151,7 +151,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
          // Step 1: Unmap W: drive if it exists (subst W: /D)
          try {
-            ProcessStartInfo unmapInfo = new ProcessStartInfo {
+            ProcessStartInfo unmapInfo = new () {
                FileName = "cmd.exe",
                Arguments = "/C subst W: /D",
                UseShellExecute = false,
@@ -243,7 +243,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 #endif
 
       //// Set icon programmatically (alternative to XAML)
-      //this.Icon = new BitmapImage(new Uri("pack://application:,,,/Images/FChassis_Splash.png"));
+      //this.Icon = new BitmapImage(new Uri("pack://application:,,,/Resources/FChassis.Splash.png"));
    }
 
    bool _isSanityCheckVisible;
@@ -549,7 +549,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          Directory.CreateDirectory (fChassisFolderPath);
          string recentFilesJSONPath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
          string timeStamp = DateTime.Now.ToString ("yyyy-MM-dd HH:mm:ss");
-         mRecentFilesMap[mPart.Info.FileName] = timeStamp;
+         if (mPart != null && mPart.Info != null && !string.IsNullOrEmpty(mPart.Info.FileName))
+            mRecentFilesMap[mPart.Info.FileName] = timeStamp;
          TrimRecentFilesMap (mRecentFilesMap);
 
          // Recent files JSON (MCSettings manages mRecentFilesMap internally)
@@ -1110,7 +1111,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
             if (partType != null) {
                // Check for Load method
-               var loadMethod = partType.GetMethod ("Load", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof (string) }, null);
+               var loadMethod = partType.GetMethod ("Load", BindingFlags.Public | BindingFlags.Static, null, [typeof (string)], null);
                Console.WriteLine ($"Load method: {(loadMethod != null ? "✓ FOUND" : "✗ NOT FOUND")}");
             }
          } catch (Exception ex) {
@@ -1341,14 +1342,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    private void OpenWebsite (string url) {
       try {
          // Use ProcessStartInfo to open Microsoft Edge with the specified URL
-         ProcessStartInfo psi = new ProcessStartInfo {
+         ProcessStartInfo psi = new () {
             FileName = "msedge.exe",
             Arguments = url,
             UseShellExecute = true
          };
 
          Process.Start (psi);
-      } catch (Exception ex) {
+      } catch (Exception) {
          // Fallback: if Edge fails, try using the default browser
          try {
             Process.Start (new ProcessStartInfo {

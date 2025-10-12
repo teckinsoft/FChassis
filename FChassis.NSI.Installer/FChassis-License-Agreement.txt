@@ -1,14 +1,14 @@
 SOFTWARE LICENSE AGREEMENT
 For FChassis Application Suite
 (Version 1.0.5 - (c) Teckinsoft Neuronics Pvt. Ltd., Chennai, India)
------
+---------------------------------------------------------------------
 IMPORTANT NOTICE
 This Software License Agreement ("Agreement") is a legal contract between Teckinsoft 
 Neuronics Pvt. Ltd. ("Licensor") and you ("Licensee"). By installing, copying, 
 downloading, accessing, or otherwise using the FChassis software ("Software"), you 
 acknowledge that you have read, understood, and agree to be bound by the terms of 
 this Agreement. If you do not agree to these terms, do not install or use the Software.
------
+---------------------------------------------------------------------
 Part I - Master License Agreement (EULA)
 Article 1 - Definitions
 1.	Software 
@@ -45,7 +45,7 @@ Refers to the specific computer hardware, operating system, and software
 environment under Licensee's control where FChassis is installed.
 6.	Effective Date 
 The date on which the Licensee first installs, activates, or uses the Software.
------
+---------------------------------------------------------------------
 Article 2 - Grant of License
 1.	Limited License 
 Subject to Licensee's full compliance with this Agreement, Teckinsoft Neuronics 
@@ -57,7 +57,7 @@ concurrent user requires a separate license.
 3.	Reservation of Rights 
 This Agreement constitutes a license, not a sale. All rights not expressly granted 
 remain with Teckinsoft Neuronics Pvt. Ltd.
------
+---------------------------------------------------------------------
 Article 3 - Licensee Restrictions and Obligations
 Licensee shall not, and shall not permit others to:
 1.	Reverse-engineer, decompile, or disassemble any Proprietary Component, except 
@@ -76,7 +76,7 @@ where expressly permitted by law.
 7.	Use the Software to develop or train a competing CAM product. 
 
 8.	Employ the Software for unlawful or unsafe purposes.
------
+---------------------------------------------------------------------
 Article 4 - Intellectual Property
 1.	Ownership 
 Teckinsoft Neuronics Pvt. Ltd. retains all rights, title, and interest in and to the 
@@ -116,22 +116,22 @@ Upon termination, all use must cease, and all copies must be destroyed.
 -----
 Part II - Exhibit A: Third-Party License Notice
 1. Open CASCADE Technology (OCCT)
-•	Component: Open CASCADE Technology (OCCT) Libraries, Version 7.7.0 
+ 	Component: Open CASCADE Technology (OCCT) Libraries, Version 7.7.0 
 (Windows 64-bit). 
 
-•	Purpose: Provides 3D modeling, data exchange (IGES/STEP), and visualization 
+ 	Purpose: Provides 3D modeling, data exchange (IGES/STEP), and visualization 
 capabilities. 
 
-•	License: GNU LGPL v2.1 with exception. 
+ 	License: GNU LGPL v2.1 with exception. 
 
-•	Usage: FChassis uses OCCT solely via dynamic linking without any modification to 
-its source code. 
+ 	Usage: FChassis uses OCCT solely via dynamic linking not neither by any modification to 
+OCCT source code nor by consuming the OCCT static libraries. 
 
-•	License URL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html 
+ 	License URL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html 
 
-•	Source Code: https://github.com/Open-Cascade-SAS/OCCT 
+ 	Source Code: https://github.com/Open-Cascade-SAS/OCCT 
 
-•	Acknowledgment: 
+ 	Acknowledgment: 
 We express our sincere gratitude to the developers of Open CASCADE 
 Technology for their invaluable contribution to the open-source community.
 -----

@@ -22,12 +22,20 @@
 		<ApplicationIcon>Resources\FChassis.ico</ApplicationIcon>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+	<!-- Configuration-specific constants -->
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='TestRelease|x64'">
 		<DefineConstants>$(DefineConstants);TESTRELEASE</DefineConstants>
 	</PropertyGroup>
 
+	<!-- File exclusions -->
 	<ItemGroup>
 		<Compile Remove="GCodeGen\**" />
 		<Compile Remove="Geometries and XForms\**" />
@@ -53,9 +61,9 @@
 		<Compile Remove="Workpiece.cs" />
 	</ItemGroup>
 
-	<!-- Add splash screen and icon as Content to ensure they are copied to output -->
+	<!-- Splash screen and icon -->
 	<ItemGroup>
-		<Resource Include="Images\FChassis_Splash.png">
+		<Resource Include="Resources\FChassis.Splash.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Resource>
 		<Resource Include="Resources\FChassis.ico">
@@ -63,16 +71,18 @@
 		</Resource>
 	</ItemGroup>
 
+	<!-- NuGet packages -->
 	<ItemGroup>
 		<PackageReference Update="CommunityToolkit.Mvvm" Version="8.4.0" />
 	</ItemGroup>
 
+	<!-- Common references -->
 	<ItemGroup>
 		<Reference Include="FChassis.Core">
-			<HintPath>c:\FluxSDK\Bin\FChassis.Core.dll</HintPath>
+			<HintPath>$(OutDir)FChassis.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="FChassis.Input">
-			<HintPath>c:\FluxSDK\Bin\FChassis.Input.dll</HintPath>
+			<HintPath>$(OutDir)FChassis.Input.dll</HintPath>
 		</Reference>
 		<Reference Include="Flux.API">
 			<HintPath>$(OutDir)Flux.API.dll</HintPath>
@@ -82,28 +92,26 @@
 		</Reference>
 	</ItemGroup>
 
-	<!-- Conditional References -->
-	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
+	<!-- Conditional IGES references -->
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
 		<Reference Include="igesd">
 			<HintPath>$(OutDir)igesd.dll</HintPath>
+			<Private>true</Private>
 		</Reference>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+	<ItemGroup Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='TestRelease'">
 		<Reference Include="iges">
 			<HintPath>$(OutDir)iges.dll</HintPath>
+			<Private>true</Private>
 		</Reference>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(Configuration)'=='TestRelease'">
-		<Reference Include="iges">
-			<HintPath>$(OutDir)iges.dll</HintPath>
-		</Reference>
-	</ItemGroup>
-
+	<!-- Config file -->
 	<ItemGroup>
 		<None Update="App.config">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
+
 </Project>

@@ -1500,7 +1500,13 @@ public class MultiPassCuts {
          } else if (mpc.mGC.Heads == MCSettings.EHeads.Left || mpc.mGC.Heads == MCSettings.EHeads.Right) {
             if (featsWithinByEndX.Count > 0 && featsWithinByEndX[^1].EndX.SGT (startXPos + ((maxScopeLength - mpc.DeadBandWidth) / 2.0)))
                throw new Exception ("In GetQuasiOptimalCutScopes: For Left Head, the EndX of last Feature is more than stX+(msl-db)/2");
-            startXPos = featsWithinByEndX[^1].EndX;
+            // For SM RH 7101AAM00890N_C.igs, at a stage, the count of featsWithinByEndX is 0. 
+            // In such cases, next StartX is set directly to endX.
+            // BUG_FIX
+            if (featsWithinByEndX.Count == 0)
+               startXPos = endXPos;
+            else
+               startXPos = featsWithinByEndX[^1].EndX;
             endXPos = startXPos + ((maxScopeLength - mpc.DeadBandWidth) / 2.0);
          }
 
