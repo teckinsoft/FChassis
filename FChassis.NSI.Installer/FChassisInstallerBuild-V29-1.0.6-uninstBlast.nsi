@@ -38,6 +38,7 @@ Var ExtractionCompleted
 Var LogFileHandle
 Var LocalAppDataDir
 Var AppDataDir
+Var IsInstalling
 
 ; -----------------------------------------------------------------------------
 ; Logging Macros
@@ -78,18 +79,16 @@ Var AppDataDir
 !define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
 !insertmacro MUI_PAGE_DIRECTORY
 
-; ✅ put this BEFORE page insertion and use the right symbol:
-!define MUI_PAGE_CUSTOMFUNCTION_ABORT  OnInstFilesAbort
-
+!define MUI_PAGE_CUSTOMFUNCTION_PRE PreInstFiles
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
-;!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
-!insertmacro MUI_LANGUAGE "English"
 
-; ; Register the abort callback for the instfiles page
-; !define MUI_INSTFILESPAGE_ABORTFUNCTION OnInstFilesAbort
+!define MUI_CUSTOMFUNCTION_ABORT OnInstFilesAbort
+!define MUI_INSTFILESPAGE_ABORTHEADER_TEXT "Installation Aborted"
+!define MUI_INSTFILESPAGE_ABORTHEADER_SUBTEXT "The installation was canceled and changes have been rolled back."
+!insertmacro MUI_LANGUAGE "English"
 
 ; -----------------------------------------------------------------------------
 ; Helper: broadcast env change
@@ -179,6 +178,7 @@ FunctionEnd
 ; Install failed hook
 ; -----------------------------------------------------------------------------
 Function .onInstFailed
+  StrCpy $IsInstalling 0
   !insertmacro LogMessage "Installation failed, deleting installer..."
   Call DeleteInstaller
 FunctionEnd
@@ -187,22 +187,11 @@ FunctionEnd
 ; Install success hook
 ; -----------------------------------------------------------------------------
 Function .onInstSuccess
+  StrCpy $IsInstalling 0
   !insertmacro BroadcastEnvChange
   Call CreateShortcuts
   !insertmacro LogMessage "Installation completed successfully!"
 FunctionEnd
-
-; -----------------------------------------------------------------------------
-; Install success hook
-; -----------------------------------------------------------------------------
-; Function .onUserAbort
-  ; ${If} $0 == 2  ; 2 = user clicked the "Cancel" button on instfiles page
-    ; Call OnInstFilesAbort
-  ; ${Else}
-    ; ; For other pages, use default abort behavior
-    ; Abort
-  ; ${EndIf}
-; FunctionEnd
 
 ; -----------------------------------------------------------------------------
 ; Version comparison
@@ -443,6 +432,11 @@ Function DirectoryPre
   !insertmacro LogMessage "=== DirectoryPre function completed ==="
 FunctionEnd
 
+Function PreInstFiles
+  !insertmacro LogMessage "=== Entering InstFiles page (setting IsInstalling flag) ==="
+  StrCpy $IsInstalling 1
+FunctionEnd
+
 Function InstFilesShow
   !insertmacro LogMessage "=== InstFiles page shown==="
   GetDlgItem $0 $HWNDPARENT 2
@@ -482,10 +476,13 @@ FunctionEnd
 ; -----------------------------------------------------------------------------
 Function OnInstFilesAbort
   !insertmacro LogMessage "=== Installation abort requested ==="
-  MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to cancel the installation?" IDYES +2
-  Return
 
-  !insertmacro LogMessage "User confirmed cancellation, performing cleanup (rollback)"
+  ${If} $IsInstalling != 1
+    !insertmacro LogMessage "Aborted before installation started - no cleanup needed"
+    Goto done
+  ${EndIf}
+
+  !insertmacro LogMessage "Aborted during installation - performing cleanup (rollback)"
   MessageBox MB_OK|MB_ICONINFORMATION "Installation canceled. Rolling back..."
 
   ; Shortcuts
@@ -536,9 +533,9 @@ Function OnInstFilesAbort
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${APPNAME}"
 
   ; AppData (per-user)
-  Delete "$AppDataDir\FChassis\FChassis.User.RecentFiles.JSON"
-  Delete "$AppDataDir\FChassis\FChassis.User.Settings.JSON"
-  RMDir "$AppDataDir\FChassis"
+  Delete "$LOCALAPPDATA\FChassis\FChassis.User.RecentFiles.JSON"
+  Delete "$LOCALAPPDATA\FChassis\FChassis.User.Settings.JSON"
+  RMDir "$LOCALAPPDATA\FChassis"
 
   ; Env change broadcast
   !insertmacro BroadcastEnvChange
@@ -552,8 +549,7 @@ Function OnInstFilesAbort
   ; Close log
   FileClose $LogFileHandle
 
-  ; Don't call Abort here - let the installer handle the cancellation naturally
-  Quit
+done:
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
@@ -735,9 +731,9 @@ Section "Uninstall"
   DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
 
   ; AppData cleanup
-  Delete "$AppDataDir\FChassis\FChassis.User.RecentFiles.JSON"
-  Delete "$AppDataDir\FChassis\FChassis.User.Settings.JSON"
-  RMDir "$AppDataDir\FChassis"
+  Delete "$LOCALAPPDATA\FChassis\FChassis.User.RecentFiles.JSON"
+  Delete "$LOCALAPPDATA\FChassis\FChassis.User.Settings.JSON"
+  RMDir "$LOCALAPPDATA\FChassis"
 
   ; BLOCKING purge of install directory
   !insertmacro PurgeInstDirBlocking 0

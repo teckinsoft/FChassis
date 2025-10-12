@@ -10,7 +10,7 @@
 ; General Settings
 ; -----------------------------------------------------------------------------
 !define APPNAME "FChassis"
-!define VERSION "1.0.6"
+!define VERSION "1.0.5"
 !define COMPANY "Teckinsoft Neuronics Pvt. Ltd."
 !define INSTALLDIR "C:\FChassis"
 !define FluxSDKBin "C:\FluxSDK\Bin"
@@ -18,7 +18,9 @@
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 !define INSTALL_FLAG_KEY "Software\${COMPANY}\${APPNAME}"
 
+; Put this RTF next to this .nsi (or adjust the subfolder)
 !define LICENSE_FILE "${__FILEDIR__}\FChassis-License-Agreement.txt"
+
 !if ! /FileExists "${LICENSE_FILE}"
   !error "LICENSE_FILE not found at: ${LICENSE_FILE}"
 !endif
@@ -74,22 +76,16 @@ Var AppDataDir
 ; -----------------------------------------------------------------------------
 !define MUI_ABORTWARNING
 !define MUI_UNABORTWARNING
+
 !insertmacro MUI_PAGE_LICENSE "${LICENSE_FILE}"
 !define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
 !insertmacro MUI_PAGE_DIRECTORY
-
-; ✅ put this BEFORE page insertion and use the right symbol:
-!define MUI_PAGE_CUSTOMFUNCTION_ABORT  OnInstFilesAbort
-
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
-;!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
+!define MUI_PAGE_CUSTOMFUNCTION_ABORT OnInstFilesAbort
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "English"
-
-; ; Register the abort callback for the instfiles page
-; !define MUI_INSTFILESPAGE_ABORTFUNCTION OnInstFilesAbort
 
 ; -----------------------------------------------------------------------------
 ; Helper: broadcast env change
@@ -101,67 +97,31 @@ Var AppDataDir
 !macroend
 
 ; -----------------------------------------------------------------------------
-; Helper: Purge (Blast) $INSTDIR completely, BLOCKING
-; - Optionally kills 7z.exe (when canceling during extraction)
-; - Retries RMDir /r up to ~30s, then tries cmd rmdir, then MoveFileEx on reboot
+; Helper: Purge (Blast) $INSTDIR completely
+; Tries direct removal; if blocked (e.g., Uninstall.exe running), schedules delayed rmdir.
 ; -----------------------------------------------------------------------------
-!macro PurgeInstDirBlocking KILL7Z
-  SetDetailsPrint both
-  !insertmacro LogMessage "Blasting install directory: $INSTDIR (blocking cleanup)"
-
-  ; Optionally kill 7z if extraction might be locking files
-  ${If} "${KILL7Z}" == "1"
-    !insertmacro LogMessage "Attempting to kill 7z.exe..."
-    ExecWait '"cmd.exe" /C taskkill /F /IM 7z.exe /T >nul 2>&1'
-    Sleep 1000 ; Give time for processes to terminate
-  ${EndIf}
-
-  ; Move out of the tree and clear attributes
+!macro PurgeInstDir
+  !insertmacro LogMessage "Blasting install directory: $INSTDIR"
   SetOutPath "$TEMP"
-  ExecWait '"cmd.exe" /C attrib -r -s -h "$INSTDIR\*" /S /D >nul 2>&1'
-
-  ; Try to remove the folder with retries (up to ~30s)
-  StrCpy $R9 0
-  ${Do}
-    ClearErrors
-    RMDir /r "$INSTDIR"
-    ${IfNot} ${Errors}
-      DetailPrint "Install folder removed successfully."
-      ${Break}
-    ${EndIf}
-
-    IntOp $R9 $R9 + 1
-    DetailPrint "Waiting for files to close... (attempt $R9)"
-    Sleep 1000 ; Increased sleep time
-
-    ${If} $R9 >= 30  ; Reduced to 30 attempts (30 seconds)
-      ${Break}
-    ${EndIf}
-  ${Loop}
-
-  ; If it still exists, try a forced removal
-  ${If} ${FileExists} "$INSTDIR"
-    DetailPrint "Some files still in use; attempting forced removal..."
-    ExecWait '"cmd.exe" /C rmdir /S /Q "$INSTDIR"'
-  ${EndIf}
-
-  ; If it STILL exists, schedule delete on reboot
-  ${If} ${FileExists} "$INSTDIR"
-    ; System::Call 'kernel32::MoveFileEx(t "$INSTDIR", i 0, i 4)'
-	System::Call 'kernel32::MoveFileEx(t "$INSTDIR", t "", i 4)'
-    DetailPrint "Could not remove all files now. Cleanup will complete after restart."
+  ; remove RO/hidden attributes so RMDir can work
+  ExecWait '"cmd.exe" /C attrib -r -s -h "$INSTDIR" /S /D'
+  ClearErrors
+  RMDir /r "$INSTDIR"
+  ${If} ${Errors}
+    !insertmacro LogMessage "Direct removal failed (likely in-use). Scheduling delayed purge..."
+    Exec '"cmd.exe" /C ping 127.0.0.1 -n 3 > nul & rmdir /S /Q "$INSTDIR"'
+  ${Else}
+    !insertmacro LogMessage "Install directory removed immediately."
   ${EndIf}
 !macroend
 
-
-
 ; -----------------------------------------------------------------------------
-; Delete installer EXE (self-delete for the installer)
+; Delete installer EXE (self-delete for the *installer*, not uninstaller)
 ; -----------------------------------------------------------------------------
 Function DeleteInstaller
   !insertmacro LogMessage "Deleting installer executable..."
   Sleep 1000
-  ExecWait '"cmd.exe" /C ping 127.0.0.1 -n 2 > nul & del /f /q "$EXEPATH"'
+  Exec '"cmd.exe" /C ping 127.0.0.1 -n 2 > nul & del /f /q "$EXEPATH"'
   !insertmacro LogMessage "Scheduled installer deletion: $EXEPATH"
 FunctionEnd
 
@@ -193,19 +153,7 @@ Function .onInstSuccess
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
-; Install success hook
-; -----------------------------------------------------------------------------
-; Function .onUserAbort
-  ; ${If} $0 == 2  ; 2 = user clicked the "Cancel" button on instfiles page
-    ; Call OnInstFilesAbort
-  ; ${Else}
-    ; ; For other pages, use default abort behavior
-    ; Abort
-  ; ${EndIf}
-; FunctionEnd
-
-; -----------------------------------------------------------------------------
-; Version comparison
+; Version comparison function
 ; -----------------------------------------------------------------------------
 Function CompareVersions
   Exch $0
@@ -277,6 +225,7 @@ FunctionEnd
 ; -----------------------------------------------------------------------------
 Function CreateShortcuts
   !insertmacro LogMessage "=== Creating shortcuts ==="
+
   StrCpy $R1 "$INSTDIR\Bin\Resources\FChassis.ico"
   StrCpy $R2 "$INSTDIR\Bin\FChassis.exe"
   !insertmacro LogVar "Icon path" $R1
@@ -288,33 +237,40 @@ Function CreateShortcuts
     Goto _Done
 exe_found:
 
-  IfFileExists "$R1" +2 0
+  ${If} ${FileExists} "$R1"
+    !insertmacro LogMessage "Icon file found: $R1"
+  ${Else}
     !insertmacro LogError "Icon file not found: $R1"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Icon file not found at $R1. Using default icon."
+  ${EndIf}
 
   SetShellVarContext all
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
   CreateDirectory "$9"
   Delete "$9\${APPNAME}.lnk"
-  IfFileExists "$R1" 0 +2
+  ${If} ${FileExists} "$R1"
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
-  IfFileExists "$R1" +2 0
+  ${Else}
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
 
   SetShellVarContext current
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
   CreateDirectory "$9"
   Delete "$9\${APPNAME}.lnk"
-  IfFileExists "$R1" 0 +2
+  ${If} ${FileExists} "$R1"
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
-  IfFileExists "$R1" +2 0
+  ${Else}
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
 
   SetShellVarContext current
   Delete "$DESKTOP\${APPNAME}.lnk"
-  IfFileExists "$R1" 0 +2
+  ${If} ${FileExists} "$R1"
     CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
-  IfFileExists "$R1" +2 0
+  ${Else}
     CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+  ${EndIf}
 
   !insertmacro LogMessage "=== Shortcut creation completed ==="
 _Done:
@@ -325,6 +281,7 @@ FunctionEnd
 ; -----------------------------------------------------------------------------
 Function .onInit
   SetRegView 64
+
   StrCpy $InstalledState 0
   StrCpy $ExistingInstallDir "${INSTALLDIR}"
   StrCpy $ExistingVersion ""
@@ -332,12 +289,13 @@ Function .onInit
   StrCpy $LogFileHandle 0
 
   ReadRegStr $LocalAppDataDir HKCU "Volatile Environment" "LOCALAPPDATA"
-  ${If} $LocalAppDataDir == "" 
-   StrCpy $LocalAppDataDir "$TEMP" 
+  ${If} $LocalAppDataDir == ""
+    StrCpy $LocalAppDataDir "$TEMP"
   ${EndIf}
+
   ReadRegStr $AppDataDir HKCU "Volatile Environment" "APPDATA"
-  ${If} $AppDataDir == "" 
-   StrCpy $AppDataDir "$LocalAppDataDir" 
+  ${If} $AppDataDir == ""
+    StrCpy $AppDataDir "$LocalAppDataDir"
   ${EndIf}
   !insertmacro LogVar "AppDataDir" $AppDataDir
 
@@ -363,6 +321,7 @@ Function .onInit
 
   !insertmacro LogMessage "=== Starting .onInit function ==="
   !insertmacro LogVar "LocalAppDataDir" $LocalAppDataDir
+
   !insertmacro LogMessage "Checking registry for existing installation..."
 
   ReadRegStr $0 HKLM "${UNINSTALL_KEY}" "UninstallString"
@@ -407,12 +366,14 @@ check_install_flag:
   ReadRegStr $ExistingInstallDir HKLM "${INSTALL_FLAG_KEY}" "InstallPath"
   !insertmacro LogVar "ExistingVersion from custom key" $ExistingVersion
   !insertmacro LogVar "ExistingInstallDir from custom key" $ExistingInstallDir
+
   StrCmp $ExistingVersion "" done 0
   Push $ExistingVersion
   Push "${VERSION}"
   Call CompareVersions
   Pop $1
   !insertmacro LogVar "Version comparison result (custom key)" $1
+
   ${If} $1 == "0"
     StrCpy $InstalledState 1
     !insertmacro LogMessage "Same version installed (custom key)"
@@ -444,7 +405,7 @@ Function DirectoryPre
 FunctionEnd
 
 Function InstFilesShow
-  !insertmacro LogMessage "=== InstFiles page shown==="
+  !insertmacro LogMessage "=== InstFiles page shown ==="
   GetDlgItem $0 $HWNDPARENT 2
   EnableWindow $0 1
 FunctionEnd
@@ -478,7 +439,7 @@ extraction_complete:
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
-; Installation ABORT handler  -> full rollback + BLOCKING purge of $INSTDIR
+; Installation ABORT handler  -> full rollback + blast $INSTDIR
 ; -----------------------------------------------------------------------------
 Function OnInstFilesAbort
   !insertmacro LogMessage "=== Installation abort requested ==="
@@ -512,48 +473,29 @@ Function OnInstFilesAbort
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\tcltk-86-64\bin"
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
 
-  ; === MISSING: Additional registry cleanup ===
+  ; Registry cleanup
   SetRegView 64
-  
-  ; Clean up standard uninstall registry
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
-  
-  ; === MISSING: Clean up any file associations ===
-  DeleteRegKey SHCTX "Software\Classes\Applications\FChassis.exe"
-  DeleteRegKey SHCTX "Software\Classes\FChassis.Document"
-  DeleteRegKey SHCTX "Software\Classes\.fchassis"
-  
-  ; === MISSING: Clean up any COM registration ===
-  DeleteRegKey SHCTX "Software\Classes\CLSID\{YOUR-APP-CLSID}"
-  
-  ; === MISSING: Clean up any other application-specific keys ===
-  DeleteRegKey HKLM "Software\${COMPANY}\${APPNAME}"
-  DeleteRegKey HKCU "Software\${COMPANY}\${APPNAME}"
-  
-  ; === MISSING: Clean up auto-run entries ===
-  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APPNAME}"
-  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${APPNAME}"
 
   ; AppData (per-user)
   Delete "$AppDataDir\FChassis\FChassis.User.RecentFiles.JSON"
   Delete "$AppDataDir\FChassis\FChassis.User.Settings.JSON"
   RMDir "$AppDataDir\FChassis"
 
+  ; Blast install directory entirely
+  !insertmacro PurgeInstDir
+
   ; Env change broadcast
   !insertmacro BroadcastEnvChange
 
-  ; BLOCKING purge of install directory (kill 7z if running)
-  !insertmacro PurgeInstDirBlocking 1
-
-  ; Delete installer EXE - do this BEFORE closing log
+  ; Schedule installer EXE deletion (the .exe you're running now)
   Call DeleteInstaller
 
   ; Close log
   FileClose $LogFileHandle
 
-  ; Don't call Abort here - let the installer handle the cancellation naturally
-  Quit
+  Abort
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
@@ -562,7 +504,9 @@ FunctionEnd
 Section "Main Installation" SecMain
   !insertmacro LogMessage "=== Starting Main Installation Section ==="
   SetRegView 64
+
   SetOutPath "$INSTDIR"
+
   CreateDirectory "$INSTDIR\Bin"
   !insertmacro LogMessage "Created directory: $INSTDIR\Bin"
 
@@ -576,13 +520,13 @@ Section "Main Installation" SecMain
   File /r "${FluxSDKDir}\*.*"
 
   !insertmacro LogMessage "Copying license file to installation directory..."
-  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.txt" license_file_exists license_file_missing
+  IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.rtf" license_file_exists license_file_missing
 license_file_exists:
-  CopyFiles /SILENT "${FluxSDKDir}\FChassis-License-Agreement.txt" "$INSTDIR"
-  !insertmacro LogMessage "License file copied to: $INSTDIR\FChassis-License-Agreement.txt"
+  CopyFiles /SILENT "${FluxSDKDir}\FChassis-License-Agreement.rtf" "$INSTDIR"
+  !insertmacro LogMessage "License file copied to: $INSTDIR\FChassis-License-Agreement.rtf"
   Goto license_file_done
 license_file_missing:
-  !insertmacro LogError "License file not found at source: ${FluxSDKDir}\FChassis-License-Agreement.txt"
+  !insertmacro LogError "License file not found at source: ${FluxSDKDir}\FChassis-License-Agreement.rtf"
 license_file_done:
 
   !insertmacro LogMessage "Copying third-party components..."
@@ -622,12 +566,6 @@ settings_file_done:
   nsExec::ExecToStack '"$INSTDIR\VC_redist.x64.exe" /install /quiet /norestart'
   Pop $0
   !insertmacro LogVar "VC++ redistributable installation result" $0
-
-  ; ====================================================================
-  ; ALL REGISTRY AND ENVIRONMENT CHANGES MOVED TO THE VERY END
-  ; This ensures that if user aborts during file operations, 
-  ; no system changes have been made yet
-  ; ====================================================================
 
   !insertmacro LogMessage "Adding to PATH environment variable..."
   EnVar::SetHKLM
@@ -684,7 +622,7 @@ settings_file_done:
 SectionEnd
 
 ; -----------------------------------------------------------------------------
-; Uninstaller Section  -> full rollback + BLOCKING purge of $INSTDIR
+; Uninstaller Section  -> full rollback + blast $INSTDIR
 ; -----------------------------------------------------------------------------
 Section "Uninstall"
   !insertmacro LogMessage "=== Starting Uninstallation ==="
@@ -699,10 +637,11 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\${APPNAME}"
   Delete "$DESKTOP\${APPNAME}.lnk"
 
-  ; PATH removals
+  ; PATH removals (system)
   EnVar::SetHKLM
   ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
   !insertmacro LogVar "System PATH before uninstall modification" $0
+
   EnVar::DeleteValue "Path" "$INSTDIR\Bin"
   Pop $0
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\draco-1.4.1-vc14-64\bin"
@@ -727,6 +666,7 @@ Section "Uninstall"
   Pop $0
   EnVar::DeleteValue "Path" "$INSTDIR\thirdParty\OpenCASCADE-7.7.0-vc14-64\vtk-6.1.0-vc14-64\bin"
   Pop $0
+
   ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
   !insertmacro LogVar "System PATH after uninstall modification" $0
 
@@ -734,13 +674,13 @@ Section "Uninstall"
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
 
-  ; AppData cleanup
+  ; AppData cleanup (per-user)
   Delete "$AppDataDir\FChassis\FChassis.User.RecentFiles.JSON"
   Delete "$AppDataDir\FChassis\FChassis.User.Settings.JSON"
   RMDir "$AppDataDir\FChassis"
 
-  ; BLOCKING purge of install directory
-  !insertmacro PurgeInstDirBlocking 0
+  ; Blast install directory (handles Uninstall.exe via delayed rmdir if needed)
+  !insertmacro PurgeInstDir
 
   ; Env change broadcast
   !insertmacro BroadcastEnvChange
