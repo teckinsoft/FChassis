@@ -1558,14 +1558,15 @@ public class MultiPassCuts {
             (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
             (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
          } else (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
-         mpc.ToolingScopes = splitTSS;
-         foreach (var tsi in cs.TSInScope1)
-            foreach (var ts in mpc.ToolingScopes)
-               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
 
-         foreach (var tsi in cs.TSInScope2)
-            foreach (var ts in mpc.ToolingScopes)
-               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
+         mpc.ToolingScopes = splitTSS;
+         var toolingDict = mpc.ToolingScopes.ToDictionary (ts => ts.Index);
+
+         cs.MachinableToolingScopes.AddRange (cs.TSInScope1.Where (toolingDict.ContainsKey)
+               .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 0; return ts; }));
+
+         cs.MachinableToolingScopes.AddRange (cs.TSInScope2.Where (toolingDict.ContainsKey)
+               .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 1; return ts; }));
       }
 
       return bestCutScopeSeq.Seq;
@@ -1590,17 +1591,17 @@ public class MultiPassCuts {
       (var splitTSS, _) = CutScope.SplitToolingScopesAtIxn (tss.GetRange (0, endIndex + 1), deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, end, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
-      tss = splitTSS;
+      var nontss = tss.Except (splitTSS).ToList (); ;
 
       List<int> tss1 = [], tss2 = [];
       List<ToolingScope> tssH1 = [];
       List<ToolingScope> tssH2 = [];
 
-      for (int i = 0; i < tss.Count && tss[i].EndX <= scopeMax; i++) {
-         if (start <= tss[i].StartX && tss[i].EndX <= deadMin)
-            tssH1.Add (tss[i]);
-         else if (deadMax <= tss[i].StartX && tss[i].EndX <= scopeMax)
-            tssH2.Add (tss[i]);
+      for (int i = 0; i < splitTSS.Count && splitTSS[i].EndX <= scopeMax; i++) {
+         if (start <= splitTSS[i].StartX && splitTSS[i].EndX <= deadMin)
+            tssH1.Add (splitTSS[i]);
+         else if (deadMax <= splitTSS[i].StartX && splitTSS[i].EndX <= scopeMax)
+            tssH2.Add (splitTSS[i]);
       }
 
       Point3 preH1 = Point3.Nil, preH2 = Point3.Nil;
@@ -1660,7 +1661,7 @@ public class MultiPassCuts {
          if (tracker[i]) tss1.RemoveAt (h1Index--);
          else tss2.RemoveAt (h2Index--);
 
-         List<ToolingScope> newUnProcessedTS = [.. tss];
+         List<ToolingScope> newUnProcessedTS = [.. splitTSS, ..nontss];
          processedTS.GetRange (0, i + 1).ForEach (ts => newUnProcessedTS.Remove (ts));
          (double Time, List<CutScope> Seq) newCutSeq = (cutSequence.Time + cutscope.ProcessTime, [.. cutSequence.Seq, cutscope]);
 

@@ -27,7 +27,8 @@ public class MachinableCutScope {
       StartX = cs.StartX;
       EndX = cs.EndX;
       GCGen = gCGen;
-      GCodeGenerator.CreatePartition (GCGen, ToolingScopes, MCSettings.It.OptimizePartition, /*Utils.CalculateBound3 (tlList)*/cs.Bound);
+      if (!(cs.TSInScope1.Count > 0 || cs.TSInScope2.Count > 0))
+         GCodeGenerator.CreatePartition (GCGen, ToolingScopes, MCSettings.It.OptimizePartition, cs.Bound);
       SetData ();
       Toolings = [.. ToolingScopes.Select (ts => ts.Tooling)];
       Bound = cs.Bound;
@@ -2290,20 +2291,6 @@ public static class Utils {
             mpc.ComputeQuasiOptimalCutScopes ();
             mpc.GenerateGCode ();
             GuageTime ("Spatial", mpc);
-
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-               mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            } else {
-               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            }
          } else {
             if (mpc.ToolingScopes.Count < 300) {
                mpc.ComputeBranchAndBoundCutscopes ();
@@ -2314,12 +2301,6 @@ public static class Utils {
                mpc.GenerateGCode ();
                GuageTime ("TimeOptimal", mpc);
             }
-
-            mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-              gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-            mpc.ComputeQuasiOptimalCutScopes ();
-            mpc.GenerateGCode ();
-            GuageTime ("Spatial", mpc);
          }
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
