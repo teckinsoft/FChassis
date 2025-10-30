@@ -18,6 +18,7 @@ public struct NotchAttribute (Curve3 crv, Vector3 stNormal, Vector3 endNormal, V
    public Vector3 ScrapSideDir { get; set; } = srapSideDir;//Item7
    public bool Flag { get; set; } = flag;//Item8
 }
+
 public class MachinableCutScope {
    public MachinableCutScope (CutScope cs, GCodeGenerator gCGen) {
       ArgumentNullException.ThrowIfNull (cs);
@@ -110,45 +111,6 @@ internal static class Extensions {
    public static bool IsWebFlange (this Vector3 normal, double tol = 1e-6) => normal.Normalized ().EQ (XForm4.mZAxis, tol);
    public static bool IsTopOrBottomFlange (this Vector3 normal, double tol = 1e-6) =>
       normal.Normalized ().EQ (XForm4.mYAxis, tol) || normal.Normalized ().EQ (XForm4.mNegYAxis, tol);
-}
-
-public class NegZException : Exception {
-   // Parameterless constructor
-   public NegZException () { }
-
-   // Constructor with a message
-   public NegZException (string message)
-       : base (message) { }
-
-   // Constructor with a message and an inner exception
-   public NegZException (string message, Exception innerException)
-       : base (message, innerException) { }
-}
-
-public class NotchCreationFailedException : Exception {
-   // Parameterless constructor
-   public NotchCreationFailedException () { }
-
-   // Constructor with a message
-   public NotchCreationFailedException (string message)
-       : base (message) { }
-
-   // Constructor with a message and an inner exception
-   public NotchCreationFailedException (string message, Exception innerException)
-       : base (message, innerException) { }
-}
-
-public class InfeasibleCutoutException : Exception {
-   // Parameterless constructor
-   public InfeasibleCutoutException () { }
-
-   // Constructor with a message
-   public InfeasibleCutoutException (string message)
-       : base (message) { }
-
-   // Constructor with a message and an inner exception
-   public InfeasibleCutoutException (string message, Exception innerException)
-       : base (message, innerException) { }
 }
 
 public enum OrdinateAxis {
@@ -576,7 +538,7 @@ public static class Utils {
          return EPlane.Top;
 
       if (Math.Abs (featureNormalDotZAxis + 1.0) < EpsilonVal)
-         throw new NegZException ("Negative Z axis feature normal encountered");
+         throw new NegZException ();
 
       if (Math.Abs (featureNormalDotYAxis - 1.0) < EpsilonVal)
          return EPlane.YPos;
@@ -2285,47 +2247,42 @@ public static class Utils {
          gcodeGen.ResetBookKeepers ();
       }
       if (gcodeGen.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
-         var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+         var mpc = new MultiPassCuts (gcodeGen);
+         
+#if DEBUG || TESTRELEASE
+            if (mpc.ToolingScopes.Count < 300) {
+               mpc.ComputeBranchAndBoundCutscopes ();
+               mpc.GenerateGCode ();
+               GuageTime ("TimeOptimal", mpc);
+            } else {
+               mpc.ComputeSpatialOptimizationCutscopes ();
+               mpc.GenerateGCode ();
+               GuageTime ("TimeOptimal", mpc);
+            }
+
+            mpc = new MultiPassCuts (gcodeGen);
+#endif
          if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Spatial) {
             mpc.ComputeQuasiOptimalCutScopes ();
             mpc.GenerateGCode ();
             GuageTime ("Spatial", mpc);
-
-#if DEBUG || TESTRELEASE
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-               mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            } else {
-               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            }
-#endif
-
          } else {
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            } else {
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            }
-
 #if DEBUG || TESTRELEASE
-            mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-              gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
             mpc.ComputeQuasiOptimalCutScopes ();
             mpc.GenerateGCode ();
             GuageTime ("Spatial", mpc);
+
+            mpc = new MultiPassCuts (gcodeGen);
 #endif
+            if (mpc.ToolingScopes.Count < 300) {
+               mpc.ComputeBranchAndBoundCutscopes ();
+               mpc.GenerateGCode ();
+               GuageTime ("TimeOptimal", mpc);
+            } else {
+               mpc.ComputeSpatialOptimizationCutscopes ();
+               mpc.GenerateGCode ();
+               GuageTime ("TimeOptimal", mpc);
+            }
          }
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];

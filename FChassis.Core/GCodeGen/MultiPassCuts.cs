@@ -651,7 +651,7 @@ public class CutScope {
    #endregion
 
    #region Branch and Bound Cutscope Methods
-   private void ArrangeSpatially (double deadZoneXmin, double deadZoneXmax) {
+   void ArrangeSpatially (double deadZoneXmin, double deadZoneXmax) {
       if (UnTouchedToolingScopes.LastOrDefault ().StartX <= StartX + deadZoneXmax) {
          TSInScope2 = [.. UnTouchedToolingScopes.Where (ts => ts.EndX < StartX + deadZoneXmin).Select (t => t.Index)];
          return;
@@ -689,7 +689,7 @@ public class CutScope {
          } else break;
       }
    }
-   private void SetRange (double deadZoneXmin, double deadZoneXmax) {
+   void SetRange (double deadZoneXmin, double deadZoneXmax) {
       double deadBandWidth = deadZoneXmax - deadZoneXmin;
       double deadMin = Math.Min (EndX, StartX + deadZoneXmin);
       double deadMax = Math.Min (EndX, StartX + deadZoneXmax);
@@ -729,7 +729,7 @@ public class CutScope {
       }
    }
 
-   private void SegregateToolingScopes () {
+   void SegregateToolingScopes () {
       foreach (var ts in UnTouchedToolingScopes) {
          if (ts.EndX <= deadZoneXmin) {
             TSInScope1.Add (ts.Index);
@@ -749,7 +749,7 @@ public class CutScope {
       ProcessTime = Math.Max (machiningTime1 + movingTime1, machiningTime2 + movingTime2) + initiationTime;
    }
 
-   private void GetTimes (List<ToolingScope> ts, double machiningTF, double movingTF, out double machiningTime, out double movingTime) {
+   void GetTimes (List<ToolingScope> ts, double machiningTF, double movingTF, out double machiningTime, out double movingTime) {
       machiningTime = 0;
       movingTime = 0;
 
@@ -855,61 +855,92 @@ public class MultiPassCuts {
    #endregion
 
    #region Constructor(s)
-   public MultiPassCuts (List<Tooling> ts, GCodeGenerator gen, Model3 model,
-      bool isLeftToRight,
-      double maxFrameLengthInMultipass, double deadbandWidth,
-      bool maximizeFrameLengthInMultipass,
-      double minThresholdNotchLength = 15.0) {
-      mGC = gen;
-      XMax = model.Bound.XMax;
-      XMin = model.Bound.XMin;
-      Bound = model.Bound;
-      Model = model;
-      mIsLeftToRight = isLeftToRight;
+   public MultiPassCuts (GCodeGenerator gcodeGen, double minThresholdNotchLength = 15.0) {
+      mGC = gcodeGen;
+      InitializeModelData (gcodeGen);
+      InitializeMachineParameters (gcodeGen);
+      InitializeToolingScopes (gcodeGen);
+
+      SortToolingScopes ();
+      BuildOrderedToolScopes ();
+      FilterDuplicateToolScopes ();
+      CollectActiveToolScopes ();
+
+      MinimumThresholdNotchLength = minThresholdNotchLength;
+   }
+
+   // Initialization methods -----------------------------------------------------------------------
+   void InitializeModelData (GCodeGenerator gcodeGen) {
+      Model = gcodeGen.Process.Workpiece.Model;
+      XMax = Model.Bound.XMax;
+      XMin = Model.Bound.XMin;
+      Bound = Model.Bound;
+
+      mIsLeftToRight = SettingServices.It.LeftToRightMachining;
       MaximumWorkpieceLength = XMax - XMin;
-      DeadBandWidth = deadbandWidth;
-      MaximumScopeLength = maxFrameLengthInMultipass;
-      MaximizeFrameLengthInMultipass = maximizeFrameLengthInMultipass;
+   }
+
+   void InitializeMachineParameters (GCodeGenerator gcodeGen) {
+      DeadBandWidth = gcodeGen.DeadbandWidth;
+      MaximumScopeLength = gcodeGen.MaxFrameLength;
+      MaximizeFrameLengthInMultipass = gcodeGen.MaximizeFrameLengthInMultipass;
+
       InitiationTime = 20;
       MachiningTime = 60 / (MCSettings.It.MachiningSpeed * 1000);
       MovementTime = 60 / (MCSettings.It.MovementSpeed * 1000);
-      ToolingScopes = ToolingScope.CreateToolingScopes (ts, mIsLeftToRight);
+   }
+
+   void InitializeToolingScopes (GCodeGenerator gcodeGen) {
+      List<Tooling> toolings = gcodeGen.Process.Workpiece.Cuts;
+      ToolingScopes = ToolingScope.CreateToolingScopes (toolings, mIsLeftToRight);
       CheckInfusableCutOuts ();
+   }
 
+   // Ordering logic -------------------------------------------------------------------------------
+   void SortToolingScopes () {
       if (mIsLeftToRight) {
-         ToolingScopes = [.. ToolingScopes.OrderBy (ts => ts.StartX)];
-         mTStarts = [.. ToolingScopes.OrderBy (ts => ts.StartX)];
-         mTEnds = [.. ToolingScopes.OrderBy (ts => ts.EndX)];
-         mOrderedToolScopes = [.. mOrderedToolScopes.OrderBy (e => e.Position)];
-
+         ToolingScopes = ToolingScopes.OrderBy (ts => ts.StartX).ToList ();
+         mTStarts = ToolingScopes.OrderBy (ts => ts.StartX).ToList ();
+         mTEnds = ToolingScopes.OrderBy (ts => ts.EndX).ToList ();
+         mOrderedToolScopes = mOrderedToolScopes.OrderBy (e => e.Position).ToList ();
       } else {
-         ToolingScopes = [.. ToolingScopes.OrderByDescending (ts => ts.StartX)];
-         mTStarts = [.. ToolingScopes.OrderByDescending (ts => ts.StartX)];
-         mTEnds = [.. ToolingScopes.OrderByDescending (ts => ts.EndX)];
-         mOrderedToolScopes = [.. mOrderedToolScopes.OrderByDescending (e => e.Position)];
+         ToolingScopes = ToolingScopes.OrderByDescending (ts => ts.StartX).ToList ();
+         mTStarts = ToolingScopes.OrderByDescending (ts => ts.StartX).ToList ();
+         mTEnds = ToolingScopes.OrderByDescending (ts => ts.EndX).ToList ();
+         mOrderedToolScopes = mOrderedToolScopes.OrderByDescending (e => e.Position).ToList ();
       }
+   }
 
+   void BuildOrderedToolScopes () {
       mOrderedToolScopes.AddRange (mTStarts.Select (ts => (ts.StartX, ts, true)));
       mOrderedToolScopes.AddRange (mTStarts.Select (ts => (ts.EndX, ts, false)));
       mOrderedToolScopes.AddRange (mTEnds.Select (ts => (ts.StartX, ts, true)));
       mOrderedToolScopes.AddRange (mTEnds.Select (ts => (ts.EndX, ts, false)));
+   }
 
-      // Filter out duplicates based on tolerance
-      var filteredToolScopes = new List<(double Position, ToolingScope ToolScope, bool IsStart)> ();
+   void FilterDuplicateToolScopes () {
+      var filtered = new List<(double Position, ToolingScope ToolScope, bool IsStart)> ();
       var duplicates = new Dictionary<double, bool> ();
 
       foreach (var e in mOrderedToolScopes) {
-         if (!duplicates.Any (seen => Math.Abs (seen.Key - e.Position) < 1e-6 && seen.Value == e.IsStart)) {
-            filteredToolScopes.Add (e);
+         bool isDuplicate = duplicates.Any (seen =>
+             Math.Abs (seen.Key - e.Position) < 1e-6 && seen.Value == e.IsStart);
+
+         if (!isDuplicate) {
+            filtered.Add (e);
             duplicates[e.Position] = e.IsStart;
          }
       }
-      mOrderedToolScopes = filteredToolScopes;
-      for (int ii = 0; ii < mOrderedToolScopes.Count; ii++) {
-         var (_, toolScope, isStart) = mOrderedToolScopes[ii];
-         if (isStart) mToolScopes.Add (toolScope);
+
+      mOrderedToolScopes = filtered;
+   }
+
+   void CollectActiveToolScopes () {
+      for (int i = 0; i < mOrderedToolScopes.Count; i++) {
+         var (_, toolScope, isStart) = mOrderedToolScopes[i];
+         if (isStart)
+            mToolScopes.Add (toolScope);
       }
-      MinimumThresholdNotchLength = minThresholdNotchLength;
    }
 
    void CheckInfusableCutOuts () {
@@ -1536,7 +1567,7 @@ public class MultiPassCuts {
       return resCSS;
    }
 
-   private List<CutScope> GetBranchAndBoundCutscopes (ref MultiPassCuts mpc, bool isLeftToRight,
+   List<CutScope> GetBranchAndBoundCutscopes (ref MultiPassCuts mpc, bool isLeftToRight,
    double maxScopeLength, double minXWorkPiece, double maxXWorkPiece,
    Bound3 bbox, bool maximizeScopeLength, double minimumThresholdNotchLength) {
       (double Time, List<CutScope> Seq) bestCutScopeSeq = (0, []);
@@ -1572,7 +1603,7 @@ public class MultiPassCuts {
       return bestCutScopeSeq.Seq;
    }
 
-   private void FindBestSequence (MultiPassCuts mpc, List<ToolingScope> tss, (double Time, List<CutScope> Seq) cutSequence,
+   void FindBestSequence (MultiPassCuts mpc, List<ToolingScope> tss, (double Time, List<CutScope> Seq) cutSequence,
       double start, double maxScopeLength, double deadZoneXmin, double deadZoneXmax, out (double Time, List<CutScope> Seq) bestSubSeq) {
       bestSubSeq = (0, []);
       if (cutSequence.Seq.Count > mBestSeqCount) return;
@@ -1691,7 +1722,7 @@ public class MultiPassCuts {
       }
    }
 
-   private List<CutScope> GetSpatialOptimizationCutscopes (ref MultiPassCuts mpc, bool isLeftToRight,
+   List<CutScope> GetSpatialOptimizationCutscopes (ref MultiPassCuts mpc, bool isLeftToRight,
    double maxScopeLength, double minXWorkPiece, double maxXWorkPiece,
    Bound3 bbox, bool maximizeScopeLength, double minimumThresholdNotchLength) {
       List<CutScope> cutScopeSeq = [];
