@@ -122,6 +122,8 @@ public partial class MCSettings : INotifyPropertyChanged {
       CutNotches = other.CutNotches;
       CutCutouts = other.CutCutouts;
       CutMarks = other.CutMarks;
+      CutWeb = other.CutWeb;
+      CutFlange = other.CutFlange;
       MinThresholdForPartition = other.MinThresholdForPartition;
       MinNotchLengthThreshold = other.MinNotchLengthThreshold;
       MinCutOutLengthThreshold = other.MinCutOutLengthThreshold;
@@ -641,9 +643,27 @@ public partial class MCSettings : INotifyPropertyChanged {
          SetProperty (ref mOptimizerType, value);
       }
    }
-
    [IgnoreMember] // Ignore this field for MessagePack serialization
    EOptimize mOptimizerType = EOptimize.Time;
+
+   [JsonPropertyName ("cutWeb")]
+   [Key (97)]
+   public bool CutWeb {
+      get => mCutweb;
+      set => SetProperty (ref mCutweb, value);
+   }
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   bool mCutweb;
+
+   [JsonPropertyName ("cutFlange")]
+   [Key (98)]
+   public bool CutFlange {
+      get => mCutFlange;
+      set => SetProperty (ref mCutFlange, value);
+   }
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   bool mCutFlange;
+
    #endregion
 
    #region Data Members

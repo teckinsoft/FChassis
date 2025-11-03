@@ -233,6 +233,15 @@ public class Tooling {
       }
    }
 
+   public Utils.EFlange Flange {
+      get {
+         if (this.IsFlexFeature ())
+            return Utils.EFlange.Flex;
+         else {
+            return Utils.GetArcPlaneFlangeType (this.ExtractSegs.First ().Vec0, GCodeGenerator.GetXForm (Work));
+         }
+      }
+   }
    public void DrawSegs (Color32 color, double height) {
       bool first = true;
       Lux.HLR = true;

@@ -52,6 +52,8 @@ public class GenesysHub : INotifyPropertyChanged {
       CutMark = true;
       CutNotches = true;
       Cutouts = true;
+      CutWeb = true;
+      CutFlange = true;
    }
    #endregion
 
@@ -64,6 +66,8 @@ public class GenesysHub : INotifyPropertyChanged {
    public bool CutHoles { get => mGCodeGenerator.CutHoles; set => mGCodeGenerator.CutHoles = value; }
    public bool CutMark { get => mGCodeGenerator.CutMarks; set => mGCodeGenerator.CutMarks = value; }
    public bool CutNotches { get => mGCodeGenerator.CutNotches; set => mGCodeGenerator.CutNotches = value; }
+   public bool CutWeb { get => mGCodeGenerator.CutWeb; set => mGCodeGenerator.CutWeb = value; }
+   public bool CutFlange { get => mGCodeGenerator.CutFlange; set => mGCodeGenerator.CutFlange = value; }
    public MCSettings.EHeads Heads { get => mGCodeGenerator.Heads; set => mGCodeGenerator.Heads = value; }
    public double PartitionRatio { get => mGCodeGenerator.PartitionRatio; set => mGCodeGenerator.PartitionRatio = value; }
    public double NotchWireJointDistance { get => mGCodeGenerator.NotchWireJointDistance; set => mGCodeGenerator.NotchWireJointDistance = value; }
