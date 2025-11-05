@@ -821,6 +821,10 @@ public class MultiPassCuts {
    Dictionary<string, (double Time, List<CutScope> Seq)> mSubsequences = [];
    #endregion
 
+   #region readonlies
+   public static readonly int MaxFeatures = 400;
+   #endregion
+
    #region Properties
    public List<ToolingScope> ToolingScopes { get => mTscs; set { mTscs = value; } }
    public GCodeGenerator mGC;

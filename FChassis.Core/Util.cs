@@ -2247,43 +2247,44 @@ public static class Utils {
          gcodeGen.ResetBookKeepers ();
       }
       if (gcodeGen.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
-         var mpc = new MultiPassCuts (gcodeGen);
-         
-#if DEBUG || TESTRELEASE
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            } else {
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            }
 
+         MultiPassCuts mpc;
+
+#if DEBUG || TESTRELEASE
+         mpc = new MultiPassCuts (gcodeGen);
+
+         // Comparison makes sense only when mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures
+         // otherwise, its the spatial optimization that alone is called.
+         if (mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures) {
+            // Compute branch and bound
+            mpc.ComputeBranchAndBoundCutscopes ();
+            mpc.GenerateGCode ();
+            GuageTime ("TimeOptimal", mpc);
+
+            // compute spatial optimization
             mpc = new MultiPassCuts (gcodeGen);
-#endif
-         if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Spatial) {
-            mpc.ComputeQuasiOptimalCutScopes ();
+            mpc.ComputeSpatialOptimizationCutscopes ();
             mpc.GenerateGCode ();
             GuageTime ("Spatial", mpc);
          } else {
-#if DEBUG || TESTRELEASE
-            mpc.ComputeQuasiOptimalCutScopes ();
-            mpc.GenerateGCode ();
-            GuageTime ("Spatial", mpc);
-
             mpc = new MultiPassCuts (gcodeGen);
-#endif
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            } else {
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            }
+            mpc.ComputeSpatialOptimizationCutscopes ();
+            mpc.GenerateGCode ();
+            //GuageTime ("TimeOptimal", mpc);
          }
+#elif RELEASE
+         mpc = new MultiPassCuts (gcodeGen);
+         if (mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures) {
+            mpc.ComputeBranchAndBoundCutscopes ();
+            mpc.GenerateGCode ();
+            GuageTime ("TimeOptimal", mpc);
+         } else {
+            mpc.ComputeSpatialOptimizationCutscopes ();
+            mpc.GenerateGCode ();
+            GuageTime ("TimeOptimal", mpc);
+         }
+#endif
+
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
       } else {
@@ -2302,50 +2303,51 @@ public static class Utils {
    /// <summary>Calculates machining, movement and idle time</summary>
    /// <param name="name">Name of optimization used</param>
    static double GuageTime (string name, MultiPassCuts mpc) {
-      double totalTime = 0, totalIdleTime,
-      totalMachiningTime = 0, totalMovementTime,
-      totalMachiningTimeHead1 = 0, totalMachiningTimeHead2 = 0,
-      totalMovementTimeHead1 = 0, totalMovementTimeHead2 = 0;
-      double idleTimeHead1 = 0, idleTimeHead2 = 0;
+      double totalTime = 0;
 
-#if DEBUG || TESTRELEASE
-      foreach (var cutscopeTrace in mpc.CutScopeTraces) {
-         double machiningTimeHead1 = 0, movementTimeHead1 = 0;
-         double machiningTimeHead2 = 0, movementTimeHead2 = 0;
-         if (cutscopeTrace[0] != null)
-            foreach (var gcodeSeg in cutscopeTrace[0])
-               if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
-                  machiningTimeHead1 += gcodeSeg.Length;
-               else movementTimeHead1 += gcodeSeg.Length;
+      if (Utils.HasFCAdminAccess ()) {
+         double totalIdleTime,
+         totalMachiningTime = 0, totalMovementTime,
+         totalMachiningTimeHead1 = 0, totalMachiningTimeHead2 = 0,
+         totalMovementTimeHead1 = 0, totalMovementTimeHead2 = 0;
+         double idleTimeHead1 = 0, idleTimeHead2 = 0;
+         foreach (var cutscopeTrace in mpc.CutScopeTraces) {
+            double machiningTimeHead1 = 0, movementTimeHead1 = 0;
+            double machiningTimeHead2 = 0, movementTimeHead2 = 0;
+            if (cutscopeTrace[0] != null)
+               foreach (var gcodeSeg in cutscopeTrace[0])
+                  if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
+                     machiningTimeHead1 += gcodeSeg.Length;
+                  else movementTimeHead1 += gcodeSeg.Length;
 
-         if (cutscopeTrace[1] != null)
-            foreach (var gcodeSeg in cutscopeTrace[1])
-               if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
-                  machiningTimeHead2 += gcodeSeg.Length;
-               else movementTimeHead2 += gcodeSeg.Length;
+            if (cutscopeTrace[1] != null)
+               foreach (var gcodeSeg in cutscopeTrace[1])
+                  if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
+                     machiningTimeHead2 += gcodeSeg.Length;
+                  else movementTimeHead2 += gcodeSeg.Length;
 
-         machiningTimeHead1 *= mpc.MachiningTime;
-         machiningTimeHead2 *= mpc.MachiningTime;
-         movementTimeHead1 *= mpc.MovementTime;
-         movementTimeHead2 *= mpc.MovementTime;
+            machiningTimeHead1 *= mpc.MachiningTime;
+            machiningTimeHead2 *= mpc.MachiningTime;
+            movementTimeHead1 *= mpc.MovementTime;
+            movementTimeHead2 *= mpc.MovementTime;
 
-         totalTime += Math.Max (machiningTimeHead1 + movementTimeHead1, machiningTimeHead2 + movementTimeHead2);
-         //totalTime += mpc.InitiationTime;
+            totalTime += Math.Max (machiningTimeHead1 + movementTimeHead1, machiningTimeHead2 + movementTimeHead2);
+            //totalTime += mpc.InitiationTime;
 
-         var idleTime = (machiningTimeHead1 + movementTimeHead1) - (machiningTimeHead2 + movementTimeHead2);
-         if (idleTime > 0) idleTimeHead2 += idleTime;
-         else idleTimeHead1 += Math.Abs (idleTime);
+            var idleTime = (machiningTimeHead1 + movementTimeHead1) - (machiningTimeHead2 + movementTimeHead2);
+            if (idleTime > 0) idleTimeHead2 += idleTime;
+            else idleTimeHead1 += Math.Abs (idleTime);
 
-         totalMachiningTimeHead1 += machiningTimeHead1;
-         totalMachiningTimeHead2 += machiningTimeHead2;
-         totalMovementTimeHead1 += movementTimeHead1;
-         totalMovementTimeHead2 += movementTimeHead2;
-      }
-      totalMachiningTime = totalMachiningTimeHead1 + totalMachiningTimeHead2;
-      totalMovementTime = totalMovementTimeHead1 + totalMovementTimeHead2;
-      totalIdleTime = idleTimeHead1 + idleTimeHead2;
-      var timeStats = new Dictionary<string, double>
-      {
+            totalMachiningTimeHead1 += machiningTimeHead1;
+            totalMachiningTimeHead2 += machiningTimeHead2;
+            totalMovementTimeHead1 += movementTimeHead1;
+            totalMovementTimeHead2 += movementTimeHead2;
+         }
+         totalMachiningTime = totalMachiningTimeHead1 + totalMachiningTimeHead2;
+         totalMovementTime = totalMovementTimeHead1 + totalMovementTimeHead2;
+         totalIdleTime = idleTimeHead1 + idleTimeHead2;
+         var timeStats = new Dictionary<string, double>
+         {
          {"TotalTime", totalTime },
          {"TotalIdleTime", totalIdleTime },
          {"TotalMachiningTime", totalMachiningTime },
@@ -2360,9 +2362,10 @@ public static class Utils {
          {"IdleTimeHead2", idleTimeHead2 }
       };
 
-      var filePath = "W:\\Fchassis\\" + mpc.mGC.Process.Workpiece.NCFileName + "_" + name + "_TimeStats.json";
-      Utils.WriteJsonFile<Dictionary<string, double>> (filePath, timeStats);
-#endif
+         var filePath = "W:\\Fchassis\\" + mpc.mGC.Process.Workpiece.NCFileName + "_" + name + "_TimeStats.json";
+         Utils.WriteJsonFile<Dictionary<string, double>> (filePath, timeStats);
+      }
+
       return totalTime;
    }
 
@@ -2576,5 +2579,16 @@ public static class Utils {
             return true;
       }
       return false;
+   }
+
+   public static bool HasFCAdminAccess () {
+
+#if DEBUG || TESTRELEASE
+      return true;
+#endif
+      string envVariable = Environment.GetEnvironmentVariable ("__FC_AUTH__");
+      Guid expectedGuid = new ("e96e66ff-17e6-49ac-9fe1-28bb45a6c1b9");
+      bool fcSystemLogin = !string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid;
+      return fcSystemLogin;
    }
 }
