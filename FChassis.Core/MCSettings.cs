@@ -78,7 +78,7 @@ public partial class MCSettings : INotifyPropertyChanged {
    }
 
    public enum EOptimize {
-      Spatial,
+      DP,
       Time
    }
    #endregion

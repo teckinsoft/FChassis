@@ -148,8 +148,8 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
             IsModified = true;
          }
       });
-      rbSpatial.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Spatial,
-         () => { Settings.OptimizerType = MCSettings.EOptimize.Spatial; IsModified = true; });
+      rbDP.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.DP,
+         () => { Settings.OptimizerType = MCSettings.EOptimize.DP; IsModified = true; });
       rbTime.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Time,
          () => { Settings.OptimizerType = MCSettings.EOptimize.Time; IsModified = true; });
 

@@ -2251,9 +2251,13 @@ public static class Utils {
          MultiPassCuts mpc = new(gcodeGen);
 
          // Compute using Branch and Bound only if Toolings are below max features.
-         if (mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures) 
-            mpc.ComputeBranchAndBoundCutscopes ();
-         else mpc.ComputeSpatialOptimizationCutscopes ();
+         if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Time) {
+            if (mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures)
+               mpc.ComputeBranchAndBoundCutscopes ();
+            else mpc.ComputeSpatialOptimizationCutscopes ();
+         }
+         else if (MCSettings.It.OptimizerType == MCSettings.EOptimize.DP)
+            mpc.ComputeDPOptimizationCutscopes ();            
          
          mpc.GenerateGCode ();
          traces[0] = mpc.CutScopeTraces[0][0];
@@ -2481,16 +2485,5 @@ public static class Utils {
             return true;
       }
       return false;
-   }
-
-   public static bool HasFCAdminAccess () {
-
-#if DEBUG || TESTRELEASE
-      return true;
-#endif
-      string envVariable = Environment.GetEnvironmentVariable ("__FC_AUTH__");
-      Guid expectedGuid = new ("e96e66ff-17e6-49ac-9fe1-28bb45a6c1b9");
-      bool fcSystemLogin = !string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid;
-      return fcSystemLogin;
    }
 }

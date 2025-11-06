@@ -1019,6 +1019,11 @@ public class MultiPassCuts {
       mMachinableCutScopes.ForEach (cs => cs.ComputeBoundForMachinableTS ());
    }
 
+   public void ComputeDPOptimizationCutscopes () {
+      mMachinableCutScopes = OptimalDPCutScopes();
+      mMachinableCutScopes.ForEach (cs => cs.ComputeBoundForMachinableTS ());
+   }
+
    /// <summary>
    /// This is a utility method to get all the unprocessed tool scopes.
    /// </summary>
@@ -1570,6 +1575,73 @@ public class MultiPassCuts {
       }
       return resCSS;
    }
+
+   /// <summary>
+   /// Returns the minimum total machining time and the list of optimal cut-scopes.
+   /// </summary>
+   List<CutScope> OptimalDPCutScopes () {
+      List<ToolingScope> unProcessedTS = [.. ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.StartX)];
+      int n = unProcessedTS.Count;
+
+      // dp[k] = min total time to process the first k shapes (k = 0…n)
+      double[] dp = new double[n + 1];
+      Array.Fill (dp, double.PositiveInfinity);
+      dp[0] = 0.0;
+
+      // predecessor for reconstruction
+      int[] prev = new int[n + 1];
+      Array.Fill (prev, -1);
+
+      for (int k = 1; k <= n; ++k) {
+         // try every possible previous cut-scope ending at j (0-based)
+         for (int j = 0; j < k; ++j) {
+            // shape indices inside this scope: j+1 … k  (1-based)
+            // length of the scope = x[k-1] - x[j]
+            double scopeLen = unProcessedTS[k - 1].EndX - unProcessedTS[j].StartX;
+            if (scopeLen > MaximumScopeLength) continue;               // violates max length
+
+            double c = CostFunc (j + 1, k, unProcessedTS);
+            double candidate = dp[j] + c;
+
+            if (candidate < dp[k]) {
+               dp[k] = candidate;
+               prev[k] = j;
+            }
+         }
+      }
+
+      if (dp[n] == double.PositiveInfinity)
+         throw new InvalidOperationException ("No feasible partitioning (L too small?).");
+
+      // ---- reconstruct the cut-scopes ----
+      List<CutScope> scopes = new List<CutScope> ();
+      int cur = n;
+      double deadZoneXmin = MaximumScopeLength / 2 - (MCSettings.It.DeadbandWidth / 2);
+      double deadZoneXmax = MaximumScopeLength / 2 + (MCSettings.It.DeadbandWidth / 2);
+      while (cur > 0) {
+         int prevEnd = prev[cur];                        // index of last shape of previous scope
+         scopes.Add (new CutScope (unProcessedTS[prevEnd].StartX, unProcessedTS[cur - 1].EndX,
+                                    unProcessedTS, deadZoneXmin, deadZoneXmax)); // 0-based start/end inside x[]
+         cur = prevEnd;
+      }
+      scopes.Reverse ();   // now from left to right
+
+      foreach (var cs in scopes) {
+         cs.MachinableToolingScopes = [];
+         var toolingDict = ToolingScopes.ToDictionary (ts => ts.Index);
+
+         cs.MachinableToolingScopes.AddRange (cs.TSInScope1.Where (toolingDict.ContainsKey)
+               .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 0; return ts; }));
+
+         cs.MachinableToolingScopes.AddRange (cs.TSInScope2.Where (toolingDict.ContainsKey)
+               .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 1; return ts; }));
+      }
+
+      return scopes;
+   }
+
+   double CostFunc (int i, int j, List<ToolingScope> xs)
+      => xs.Skip (i).Take (j - i + 1).Sum (t => t.Length) + 100;
 
    List<CutScope> GetBranchAndBoundCutscopes (ref MultiPassCuts mpc, bool isLeftToRight,
    double maxScopeLength, double minXWorkPiece, double maxXWorkPiece,
