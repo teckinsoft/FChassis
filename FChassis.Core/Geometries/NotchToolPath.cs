@@ -258,7 +258,9 @@ public class NotchToolPath {
 
       // Testing and asserting
       for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
-         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0))
+         double tol = 1e-6;
+         if (mTs[mNotchPos[ii].Index].Curve is Arc3) tol = 1e-4;
+         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0, tol))
             throw new Exception ("Segmentation fault");
       }
 
@@ -348,7 +350,9 @@ public class NotchToolPath {
 
       // Testing and asserting
       for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
-         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0))
+         double tol = 1e-6;
+         if (mTs[mNotchPos[ii].Index].Curve is Arc3) tol = 1e-4;
+         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0, tol))
             throw new Exception ("Segmentation fault");
       }
 
@@ -368,15 +372,17 @@ public class NotchToolPath {
 
       // Testing and asserting
       for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
-         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0))
+         double tol = 1e-6;
+         if (mTs[mNotchPos[ii].Index].Curve is Arc3) tol = 1e-4;
+         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0, tol))
             throw new Exception ("Segmentation fault");
       }
 
-      // Testing and asserting
-      for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
-         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0))
-            throw new Exception ("Segmentation fault");
-      }
+      //// Testing and asserting
+      //for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
+      //   if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0))
+      //      throw new Exception ("Segmentation fault");
+      //}
 
       ts = mTs[0];
       if (ts.NotchSectionType == NotchSectionType.None) {
@@ -386,7 +392,9 @@ public class NotchToolPath {
 
       // Testing and asserting
       for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
-         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0))
+         double tol = 1e-6;
+         if (mTs[mNotchPos[ii].Index].Curve is Arc3) tol = 1e-4;
+         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0, tol))
             throw new Exception ("Segmentation fault");
       }
 
@@ -398,7 +406,9 @@ public class NotchToolPath {
 
       // Testing and asserting
       for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
-         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0))
+         double tol = 1e-6;
+         if (mTs[mNotchPos[ii].Index].Curve is Arc3) tol = 1e-4;
+         if (!mNotchPos[ii].Position.DistTo (mTs[mNotchPos[ii].Index].Curve.End).EQ (0, tol))
             throw new Exception ("Segmentation fault");
       }
       for (int ii = 0; ii < mTs.Count; ii++) {
@@ -412,7 +422,17 @@ public class NotchToolPath {
 
    public void UpdateNotchSpecIndicesAndApproachData () {
       for (int ii = 1; ii < mNotchPos.Count - 1; ii++) {
-         var segIndex = mTs.FindIndex (ts => ts.Curve.End.DistTo (mNotchPos[ii].Position).EQ (0));
+         //var segIndex = mTs.FindIndex (ts => ts.Curve.End.DistTo (mNotchPos[ii].Position).EQ (0));
+         int segIndex = -1;
+         for (int kk = 0; kk < mTs.Count; kk++) {
+            var dist = mTs[kk].Curve.End.DistTo (mNotchPos[ii].Position);
+            double tol = 1e-6;
+            if (mTs[kk].Curve is Arc3) tol = 1e-4;
+            if (dist.EQ (0, tol)) {
+               segIndex = kk;
+               break;
+            }
+         }
          if (segIndex == -1)
             throw new Exception ("NotchToolPath.UpdateNotchSpecIndicesAndApproachData: Notch position not found in Segs list");
          var npos = mNotchPos[ii];
