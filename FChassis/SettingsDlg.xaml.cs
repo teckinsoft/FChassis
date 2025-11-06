@@ -99,6 +99,8 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       cbCutNotches.Bind (() => Settings.CutNotches, b => { Settings.CutNotches = b; IsModified = true; });
       cbCutCutouts.Bind (() => Settings.CutCutouts, b => { Settings.CutCutouts = b; IsModified = true; });
       cbCutMarks.Bind (() => Settings.CutMarks, b => { Settings.CutMarks = b; IsModified = true; });
+      cbCutWeb.Bind (() => Settings.CutWeb, b => { Settings.CutWeb = b; IsModified = true; });
+      cbCutFlange.Bind (() => Settings.CutFlange, b => { Settings.CutFlange = b; IsModified = true; });
       cbShowTlgNames.Bind (() => Settings.ShowToolingNames, b => { Settings.ShowToolingNames = b; IsModified = true; });
       cbShowTlgExtents.Bind (() => Settings.ShowToolingExtents, b => { Settings.ShowToolingExtents = b; IsModified = true; });
       tbMinThresholdPart.Bind (() => Settings.MinThresholdForPartition, b => { Settings.MinThresholdForPartition = b; IsModified = true; });
@@ -146,8 +148,8 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
             IsModified = true;
          }
       });
-      rbSpatial.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Spatial,
-         () => { Settings.OptimizerType = MCSettings.EOptimize.Spatial; IsModified = true; });
+      rbDP.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.DP,
+         () => { Settings.OptimizerType = MCSettings.EOptimize.DP; IsModified = true; });
       rbTime.Bind (() => Settings.OptimizerType == MCSettings.EOptimize.Time,
          () => { Settings.OptimizerType = MCSettings.EOptimize.Time; IsModified = true; });
 

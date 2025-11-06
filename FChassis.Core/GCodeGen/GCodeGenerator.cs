@@ -550,6 +550,8 @@ public class GCodeGenerator {
       CutNotches = mcs.CutNotches;
       Cutouts = mcs.CutCutouts;
       CutMarks = mcs.CutMarks;
+      CutWeb = mcs.CutWeb;
+      CutFlange = mcs.CutFlange;
       Machine = mcs.Machine;
       MinThresholdForPartition = mcs.MinThresholdForPartition;
       MinNotchLengthThreshold = mcs.MinNotchLengthThreshold;
@@ -603,6 +605,8 @@ public class GCodeGenerator {
    public bool Cutouts { get; set; } = true;
    public bool CutNotches { get; set; } = true;
    public bool CutMarks { get; set; } = true;
+   public bool CutWeb { get; set; } = true;
+   public bool CutFlange { get; set; } = true;
    public bool CutHoles { get; set; } = true;
    public bool EnableMultipassCut { get; set; }
    public double MaxFrameLength { get; set; }
@@ -803,6 +807,8 @@ public class GCodeGenerator {
       CutNotches = MCSettings.It.CutNotches;
       Cutouts = MCSettings.It.CutCutouts;
       CutMarks = MCSettings.It.CutMarks;
+      CutWeb = MCSettings.It.CutWeb;
+      CutFlange = MCSettings.It.CutFlange;
       Machine = MCSettings.It.Machine;
       MinThresholdForPartition = MCSettings.It.MinThresholdForPartition;
       MinNotchLengthThreshold = MCSettings.It.MinNotchLengthThreshold;
@@ -1192,7 +1198,7 @@ public class GCodeGenerator {
       string line = $"(N{startValue + 1} to N{cnt + endValue} in {p} flange)";
       sw.WriteLine (line);
    }
-
+   Point3 firstTlgStartPoint;
    /// <summary>
    /// This method is the entry point for writing G Code both for LEGACY and 
    /// LCMMultipass2H machines. 
@@ -1304,6 +1310,11 @@ public class GCodeGenerator {
          mCutScopeNo = 0; int cnnt = 0;
          mLastCutScope = false;
          BlockNumber = 1;
+
+         // The machine (inverse) transforms are computed. This transformation matrix the 
+         // key to perform all the computations
+         EvaluateToolConfigXForms (Process.Workpiece);
+
          for (int mm = 0; mm < mcCutScopes.Count; mm++) {
             // CreateDummyBlock4Master Variable to signal the g code writer
             // if no G-statements is to be output, if the Slave head is
@@ -1326,10 +1337,6 @@ public class GCodeGenerator {
             mToolPos[1] = new Point3 (cutScopeBound.XMax, cutScopeBound.YMax, mSafeClearance);
             mSafePoint[0] = new Point3 (cutScopeBound.XMin, cutScopeBound.YMin, 50);
             mSafePoint[1] = new Point3 (cutScopeBound.XMax, cutScopeBound.YMax, 50);
-
-            // The machine (inverse) transforms are computed. This transformation matrix the 
-            // key to perform all the computations
-            EvaluateToolConfigXForms (Process.Workpiece);
 
             // Allocate toolings for each head. It is assumed that partitioning is 
             // already made.
@@ -2049,9 +2056,9 @@ public class GCodeGenerator {
    /// </param>
    public void WritePlaneForCircularMotionCommand (bool isFromWebFlange, bool isNotchCut = false) {
       string gcode;
-      if (isFromWebFlange) 
+      if (isFromWebFlange)
          gcode = $"G17";
-      else 
+      else
          gcode = $"G18";
       if (isNotchCut)
          gcode += $" D=BlockAngle";
@@ -2256,6 +2263,7 @@ public class GCodeGenerator {
       if (!CreateDummyBlock4Master) {
          mTraces[(int)Head].Add (new (mSafePoint[(int)Head], mToolPos[(int)Head], XForm4.mZAxis, XForm4.mZAxis,
          EGCode.G0, EMove.Retract2SafeZ, "No tooling"));
+
          mToolVec[(int)Head] = XForm4.mZAxis;
       }
    }
@@ -2874,6 +2882,13 @@ public class GCodeGenerator {
          if (!CutNotches && toolingItem.IsNotch ()) continue;
          if (!CutMarks && toolingItem.IsMark ()) continue;
          if (!CutHoles && toolingItem.IsHole ()) continue;
+
+         // Check if the web and flanges are included to be machined.
+         if (toolingItem.Flange == EFlange.Web && !CutWeb) continue;
+         if ((toolingItem.Flange == EFlange.Top || toolingItem.Flange == EFlange.Bottom) && !CutFlange) continue;
+
+         // Debug_Debug
+         firstTlgStartPoint = toolingItem.Segs.ToList ()[0].Curve.Start;
 
          // ** Create the feature for which G Code needs to be created
          ToolingFeature feature = null;

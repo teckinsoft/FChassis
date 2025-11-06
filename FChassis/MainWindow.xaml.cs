@@ -150,59 +150,77 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
 
          // Step 1: Unmap W: drive if it exists (subst W: /D)
-         try {
-            ProcessStartInfo unmapInfo = new () {
-               FileName = "cmd.exe",
-               Arguments = "/C subst W: /D",
-               UseShellExecute = false,
-               CreateNoWindow = true,
-               RedirectStandardOutput = true,
-               RedirectStandardError = true
-            };
+         //try {
+         //   ProcessStartInfo unmapInfo = new () {
+         //      FileName = "cmd.exe",
+         //      Arguments = "/C subst W: /D",
+         //      UseShellExecute = false,
+         //      CreateNoWindow = true,
+         //      RedirectStandardOutput = true,
+         //      RedirectStandardError = true
+         //   };
 
-            using (Process unmapProcess = Process.Start (unmapInfo)) {
-               unmapProcess.WaitForExit ();
-               string output = unmapProcess.StandardOutput.ReadToEnd ();
-               string error = unmapProcess.StandardError.ReadToEnd ();
-               if (unmapProcess.ExitCode == 0) {
-                  Debug.WriteLine ("Successfully unmapped W: drive.");
-               } else {
-                  Debug.WriteLine ($"Unmap W: failed. Error: {error}, Output: {output}");
-               }
-            }
-         } catch (Exception ex) {
-            Debug.WriteLine ($"Failed to unmap W: drive: {ex.Message}");
-         }
+         //   using (Process unmapProcess = Process.Start (unmapInfo)) {
+         //      unmapProcess.WaitForExit ();
+         //      string output = unmapProcess.StandardOutput.ReadToEnd ();
+         //      string error = unmapProcess.StandardError.ReadToEnd ();
+         //      if (unmapProcess.ExitCode == 0) {
+         //         Debug.WriteLine ("Successfully unmapped W: drive.");
+         //      } else {
+         //         Debug.WriteLine ($"Unmap W: failed. Error: {error}, Output: {output}");
+         //      }
+         //   }
+         //} catch (Exception ex) {
+         //   Debug.WriteLine ($"Failed to unmap W: drive: {ex.Message}");
+         //}
 
          // Step 2: Map W: drive to dir\Map (subst W: dir\Map)
-         try {
-            ProcessStartInfo mapInfo = new () {
-               FileName = "cmd.exe",
-               Arguments = $"/C subst W: \"{localAppDir}\"",
-               UseShellExecute = false,
-               CreateNoWindow = true,
-               RedirectStandardOutput = true,
-               RedirectStandardError = true
-            };
+         // ---------------------------------------------------------------
+         // 1. Skip mapping if the REAL W:\FChassis already exists
+         // ---------------------------------------------------------------
+         if (Directory.Exists (@"W:\FChassis")) {
+            Debug.WriteLine ("W:\\FChassis is already reachable – skipping subst.");
+            // Nothing to do → continue with the rest of your app
+         } else {
+            // ---------------------------------------------------------------
+            // 2. Map W: only when the real folder is NOT there
+            // ---------------------------------------------------------------
+            try {
+               var mapInfo = new ProcessStartInfo {
+                  FileName = "cmd.exe",
+                  Arguments = $"/C subst W: \"{localAppDir}\"",
+                  UseShellExecute = false,
+                  CreateNoWindow = true,
+                  RedirectStandardOutput = true,
+                  RedirectStandardError = true
+               };
 
-            using (Process mapProcess = Process.Start (mapInfo)) {
-               mapProcess.WaitForExit ();
-               string output = mapProcess.StandardOutput.ReadToEnd ();
-               string error = mapProcess.StandardError.ReadToEnd ();
-               if (mapProcess.ExitCode == 0) {
-                  Debug.WriteLine ($"Successfully mapped W: drive to {localAppDir}.");
-               } else {
-                  Debug.WriteLine ($"Map W: to {localAppDir} failed. Error: {error}, Output: {output}");
-                  MessageBox.Show ($"Failed to map W: drive to {localAppDir}. Please ensure the path is valid and try again.",
-                      "Drive Mapping Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                  return; // Exit constructor to prevent further initialization
+               using (var mapProcess = Process.Start (mapInfo)) {
+                  mapProcess.WaitForExit ();
+                  string output = mapProcess.StandardOutput.ReadToEnd ();
+                  string error = mapProcess.StandardError.ReadToEnd ();
+
+                  if (mapProcess.ExitCode == 0) {
+                     Debug.WriteLine ($"Successfully mapped W: → {localAppDir}");
+                  } else {
+                     Debug.WriteLine ($"subst failed. Error: {error.Trim ()}");
+                     MessageBox.Show (
+                         $"Failed to map W: drive to {localAppDir}.\n\nError: {error.Trim ()}",
+                         "Drive Mapping Error",
+                         MessageBoxButton.OK,
+                         MessageBoxImage.Error);
+                     return; // stop initialization
+                  }
                }
+            } catch (Exception ex) {
+               Debug.WriteLine ($"subst exception: {ex.Message}");
+               MessageBox.Show (
+                   $"Failed to map W: drive:\n{ex.Message}",
+                   "Drive Mapping Error",
+                   MessageBoxButton.OK,
+                   MessageBoxImage.Error);
+               return;
             }
-         } catch (Exception ex) {
-            Debug.WriteLine ($"Failed to map W: drive to {localAppDir}: {ex.Message}");
-            MessageBox.Show ($"Failed to map W: drive to {localAppDir}: {ex.Message}",
-                "Drive Mapping Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            return; // Exit constructor to prevent further initialization
          }
 
          // Initialize other components after successful drive mapping
@@ -821,34 +839,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
 #if DEBUG || TESTRELEASE
          GenesysHub.ComputeGCode ();
-         string jsonPath1 = "W:\\Fchassis\\" + System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_Spatial_TimeStats.json";
-         var timeStats1 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath1);
-         string jsonPath2 = "W:\\Fchassis\\" + System.IO.Path.GetFileNameWithoutExtension (mPart.Info.FileName) + "_TimeOptimal_TimeStats.json";
-         var timeStats2 = Utils.ReadJsonFile<Dictionary<string, double>> (jsonPath2);
-
-         try {
-            string message =
-            $"{"Metric(Secs)",-35} {"Spacial",15} {"TimeOptimal",15}\n" +
-            new string ('-', 70) + "\n" +
-            $"{"Total Time",-30} {timeStats1["TotalTime"],15:F2} {timeStats2["TotalTime"],15:F2}     \n" +
-            $"{"Total Idle Time",-25} {timeStats1["TotalIdleTime"],15:F2} {timeStats2["TotalIdleTime"],15:F2}     \n" +
-            $"{"Total Machining Time",-15} {timeStats1["TotalMachiningTime"],15:F2} {timeStats2["TotalMachiningTime"],15:F2}     \n" +
-            $"{"Total Movement Time",-15} {timeStats1["TotalMovementTime"],15:F2} {timeStats2["TotalMovementTime"],15:F2}     \n\n" +
-            $"{"Machining Time (Head 1)",-15} {timeStats1["MachiningTimeHead1"],15:F2} {timeStats2["MachiningTimeHead1"],15:F2}     \n" +
-            $"{"Movement Time (Head 1)",-15} {timeStats1["MovementTimeHead1"],15:F2} {timeStats2["MovementTimeHead1"],15:F2}     \n" +
-            $"{"Idle Time (Head 1)",-25} {timeStats1["IdleTimeHead1"],15:F2} {timeStats2["IdleTimeHead1"],15:F2}     \n\n" +
-            $"{"Machining Time (Head 2)",-15} {timeStats1["MachiningTimeHead2"],15:F2} {timeStats2["MachiningTimeHead2"],15:F2}     \n" +
-            $"{"Movement Time (Head 2)",-15} {timeStats1["MovementTimeHead2"],15:F2} {timeStats2["MovementTimeHead2"],15:F2}     \n" +
-            $"{"Idle Time (Head 2)",-25} {timeStats1["IdleTimeHead2"],15:F2} {timeStats2["IdleTimeHead2"],15:F2}     ";
-
-            MessageBox.Show (message, "Time Stats Comparison", MessageBoxButton.OK, MessageBoxImage.Information);
-            Work.Dirty = false;
-         } catch (Exception) { }
-
 #else
          try {
             GenesysHub.ComputeGCode ();
-            Work.Dirty = false; // This line is optional here since it will be set in finally
          } catch (InfeasibleCutoutException ex) {
             MessageBox.Show (ex.Message, "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);

@@ -18,6 +18,7 @@ public struct NotchAttribute (Curve3 crv, Vector3 stNormal, Vector3 endNormal, V
    public Vector3 ScrapSideDir { get; set; } = srapSideDir;//Item7
    public bool Flag { get; set; } = flag;//Item8
 }
+
 public class MachinableCutScope {
    public MachinableCutScope (CutScope cs, GCodeGenerator gCGen) {
       ArgumentNullException.ThrowIfNull (cs);
@@ -110,45 +111,6 @@ internal static class Extensions {
    public static bool IsWebFlange (this Vector3 normal, double tol = 1e-6) => normal.Normalized ().EQ (XForm4.mZAxis, tol);
    public static bool IsTopOrBottomFlange (this Vector3 normal, double tol = 1e-6) =>
       normal.Normalized ().EQ (XForm4.mYAxis, tol) || normal.Normalized ().EQ (XForm4.mNegYAxis, tol);
-}
-
-public class NegZException : Exception {
-   // Parameterless constructor
-   public NegZException () { }
-
-   // Constructor with a message
-   public NegZException (string message)
-       : base (message) { }
-
-   // Constructor with a message and an inner exception
-   public NegZException (string message, Exception innerException)
-       : base (message, innerException) { }
-}
-
-public class NotchCreationFailedException : Exception {
-   // Parameterless constructor
-   public NotchCreationFailedException () { }
-
-   // Constructor with a message
-   public NotchCreationFailedException (string message)
-       : base (message) { }
-
-   // Constructor with a message and an inner exception
-   public NotchCreationFailedException (string message, Exception innerException)
-       : base (message, innerException) { }
-}
-
-public class InfeasibleCutoutException : Exception {
-   // Parameterless constructor
-   public InfeasibleCutoutException () { }
-
-   // Constructor with a message
-   public InfeasibleCutoutException (string message)
-       : base (message) { }
-
-   // Constructor with a message and an inner exception
-   public InfeasibleCutoutException (string message, Exception innerException)
-       : base (message, innerException) { }
 }
 
 public enum OrdinateAxis {
@@ -576,7 +538,7 @@ public static class Utils {
          return EPlane.Top;
 
       if (Math.Abs (featureNormalDotZAxis + 1.0) < EpsilonVal)
-         throw new NegZException ("Negative Z axis feature normal encountered");
+         throw new NegZException ();
 
       if (Math.Abs (featureNormalDotYAxis - 1.0) < EpsilonVal)
          return EPlane.YPos;
@@ -2285,48 +2247,19 @@ public static class Utils {
          gcodeGen.ResetBookKeepers ();
       }
       if (gcodeGen.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
-         var mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-         if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Spatial) {
-            mpc.ComputeQuasiOptimalCutScopes ();
-            mpc.GenerateGCode ();
-            GuageTime ("Spatial", mpc);
 
-#if DEBUG || TESTRELEASE
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
+         MultiPassCuts mpc = new(gcodeGen);
+
+         // Compute using Branch and Bound only if Toolings are below max features.
+         if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Time) {
+            if (mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures)
                mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            } else {
-               mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-               gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            }
-#endif
-
-         } else {
-            if (mpc.ToolingScopes.Count < 300) {
-               mpc.ComputeBranchAndBoundCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            } else {
-               mpc.ComputeSpatialOptimizationCutscopes ();
-               mpc.GenerateGCode ();
-               GuageTime ("TimeOptimal", mpc);
-            }
-
-#if DEBUG || TESTRELEASE
-            mpc = new MultiPassCuts (gcodeGen.Process.Workpiece.Cuts, gcodeGen, gcodeGen.Process.Workpiece.Model, SettingServices.It.LeftToRightMachining,
-              gcodeGen.MaxFrameLength, gcodeGen.DeadbandWidth, gcodeGen.MaximizeFrameLengthInMultipass);
-            mpc.ComputeQuasiOptimalCutScopes ();
-            mpc.GenerateGCode ();
-            GuageTime ("Spatial", mpc);
-#endif
+            else mpc.ComputeSpatialOptimizationCutscopes ();
          }
+         else if (MCSettings.It.OptimizerType == MCSettings.EOptimize.DP)
+            mpc.ComputeDPOptimizationCutscopes ();            
+         
+         mpc.GenerateGCode ();
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
       } else {
@@ -2340,73 +2273,6 @@ public static class Utils {
          gcodeGen.EnableMultipassCut = prevVal;
       }
       return traces;
-   }
-
-   /// <summary>Calculates machining, movement and idle time</summary>
-   /// <param name="name">Name of optimization used</param>
-   static double GuageTime (string name, MultiPassCuts mpc) {
-      double totalTime = 0, totalIdleTime,
-      totalMachiningTime = 0, totalMovementTime,
-      totalMachiningTimeHead1 = 0, totalMachiningTimeHead2 = 0,
-      totalMovementTimeHead1 = 0, totalMovementTimeHead2 = 0;
-      double idleTimeHead1 = 0, idleTimeHead2 = 0;
-
-#if DEBUG || TESTRELEASE
-      foreach (var cutscopeTrace in mpc.CutScopeTraces) {
-         double machiningTimeHead1 = 0, movementTimeHead1 = 0;
-         double machiningTimeHead2 = 0, movementTimeHead2 = 0;
-         if (cutscopeTrace[0] != null)
-            foreach (var gcodeSeg in cutscopeTrace[0])
-               if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
-                  machiningTimeHead1 += gcodeSeg.Length;
-               else movementTimeHead1 += gcodeSeg.Length;
-
-         if (cutscopeTrace[1] != null)
-            foreach (var gcodeSeg in cutscopeTrace[1])
-               if (gcodeSeg.GCode is EGCode.G1 or EGCode.G2 or EGCode.G3)
-                  machiningTimeHead2 += gcodeSeg.Length;
-               else movementTimeHead2 += gcodeSeg.Length;
-
-         machiningTimeHead1 *= mpc.MachiningTime;
-         machiningTimeHead2 *= mpc.MachiningTime;
-         movementTimeHead1 *= mpc.MovementTime;
-         movementTimeHead2 *= mpc.MovementTime;
-
-         totalTime += Math.Max (machiningTimeHead1 + movementTimeHead1, machiningTimeHead2 + movementTimeHead2);
-         //totalTime += mpc.InitiationTime;
-
-         var idleTime = (machiningTimeHead1 + movementTimeHead1) - (machiningTimeHead2 + movementTimeHead2);
-         if (idleTime > 0) idleTimeHead2 += idleTime;
-         else idleTimeHead1 += Math.Abs (idleTime);
-
-         totalMachiningTimeHead1 += machiningTimeHead1;
-         totalMachiningTimeHead2 += machiningTimeHead2;
-         totalMovementTimeHead1 += movementTimeHead1;
-         totalMovementTimeHead2 += movementTimeHead2;
-      }
-      totalMachiningTime = totalMachiningTimeHead1 + totalMachiningTimeHead2;
-      totalMovementTime = totalMovementTimeHead1 + totalMovementTimeHead2;
-      totalIdleTime = idleTimeHead1 + idleTimeHead2;
-      var timeStats = new Dictionary<string, double>
-      {
-         {"TotalTime", totalTime },
-         {"TotalIdleTime", totalIdleTime },
-         {"TotalMachiningTime", totalMachiningTime },
-         {"TotalMovementTime", totalMovementTime },
-
-         {"MachiningTimeHead1", totalMachiningTimeHead1 },
-         {"MovementTimeHead1", totalMovementTimeHead1 },
-         { "IdleTimeHead1", idleTimeHead1 },
-
-         { "MachiningTimeHead2", totalMachiningTimeHead2 },
-         {"MovementTimeHead2", totalMovementTimeHead2 },
-         {"IdleTimeHead2", idleTimeHead2 }
-      };
-
-      var filePath = "W:\\Fchassis\\" + mpc.mGC.Process.Workpiece.NCFileName + "_" + name + "_TimeStats.json";
-      Utils.WriteJsonFile<Dictionary<string, double>> (filePath, timeStats);
-#endif
-      return totalTime;
    }
 
    /// <summary>
