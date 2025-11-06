@@ -293,8 +293,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
 
    void OnFilesHeaderItemClicked (object sender, RoutedEventArgs e) {
-      string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
-      string fChassisFolderPath = System.IO.Path.Combine (userHomePath, "FChassis");
+      //string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
+      string fChassisFolderPath = System.IO.Path.Combine ($"W:\\", "FChassis");
       string recentFilesJSONFilePath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
 
       mRecentFilesMap = LoadRecentFilesFromJSON (recentFilesJSONFilePath);
@@ -452,8 +452,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    protected override void OnClosing (CancelEventArgs e) {
       try {
          // ~/FChassis
-         string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
-         string fChassisFolderPath = Path.Combine (userHomePath, "FChassis");
+         //string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
+         string fChassisFolderPath = Path.Combine ($"W:\\", "FChassis");
          Directory.CreateDirectory (fChassisFolderPath);
 
          // Settings JSON
@@ -483,15 +483,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void WriteRecentFiles (string file = null) {
       try {
-         string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
-         string fChassisFolderPath = Path.Combine (userHomePath, "FChassis");
+         //string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
+         string fChassisFolderPath = Path.Combine ($"W:\\", "FChassis");
          Directory.CreateDirectory (fChassisFolderPath);
          string recentFilesJSONPath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
          string timeStamp = DateTime.Now.ToString ("yyyy-MM-dd HH:mm:ss");
          if (!string.IsNullOrEmpty (file)) {
-            mRecentFilesMap[PathUtils.ConvertToWindowsPath (file)] = timeStamp;
+            mRecentFilesMap[PathUtils.ConvertToWindowsPath (file, isFile: true)] = timeStamp;
          } else if (mPart != null && mPart.Info != null && !string.IsNullOrEmpty (mPart.Info.FileName))
-            mRecentFilesMap[PathUtils.ConvertToWindowsPath (mPart.Info.FileName)] = timeStamp;
+            mRecentFilesMap[PathUtils.ConvertToWindowsPath (mPart.Info.FileName, isFile: true)] = timeStamp;
 
          TrimRecentFilesMap (mRecentFilesMap);
 
