@@ -10,6 +10,8 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Threading;
 using FChassis.Core;
 using FChassis.Core.AssemblyUtils;
 using FChassis.Core.GCodeGen;
@@ -51,54 +53,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    public event PropertyChangedEventHandler PropertyChanged;
    #endregion
 
-   #region Constructor
-   //   public MainWindow () {
-   //      InitializeComponent ();
-
-   //      SettingServices.It.LoadSettings (MCSettings.It);
-
-
-   //      //if (string.IsNullOrEmpty (MCSettings.It.WMapLocation))
-   //      //   // Initialize drive mapping first
-   //      //   InitializeDriveMapping ();
-
-   //      this.DataContext = this;
-   //      //var dir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
-   //      //Library.Init ("W:/FChassis/Data", dir, this);
-   //      //Flux.API.Settings.IGESviaHOOPS = false;
-
-   //      //Area.Child = (UIElement)Lux.CreatePanel ();
-   //      //PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
-
-   //      Sys.SelectionChanged += OnSelectionChanged;
-   //#if DEBUG
-   //      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("igesd");
-   //#else
-   //         IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("iges");
-   //#endif
-
-   //#if DEBUG
-   //      IsSanityCheckVisible = true;
-   //#else
-   //         IsSanityCheckVisible = false;
-   //#endif
-
-   //#if DEBUG || TESTRELEASE
-   //      IsTextMarkingOptionVisible = true;
-   //#else
-   //         IsTextMarkingOptionVisible = false;
-   //#endif
-
-   //      //// Set icon programmatically (alternative to XAML)
-   //      //this.Icon = new BitmapImage (new Uri ("pack://application:,,,/Resources/FChassis.Splash.png"));
-   //   }
-
-
-
-
-
+   #region Constructor   
    public MainWindow () {
       InitializeComponent ();
+      // Initialize other components after successful drive mapping
+      this.DataContext = this;
 
       SettingServices.It.LoadSettings (MCSettings.It);
 
@@ -114,25 +73,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          } else
             localAppDir = MCSettings.It.WMapLocation;
 
-         //#if RELEASE
-         //         fcDataDir = GetInstallLocationFromRegistry ();
-         //#else
-         //         fcDataDir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
-         //#endif
-         //bool fchassInstalled = true;
-         //if (string.IsNullOrEmpty (fcDataDir)) {
-         //   fcDataDir = Environment.GetFolderPath (Environment.SpecialFolder.LocalApplicationData);
-         //   //fchassInstalled = false;
-         //}
-         //string mapDir;
-         //if (fchassInstalled)
-         //   mapDir = Path.Combine (fcDataDir, "Map");
-         //else mapDir = fcDataDir;
-
-         //// Ensure the Map directory exists
-         //if (!Directory.Exists (mapDir))
-         //   Directory.CreateDirectory (mapDir);
-
          var fcDir = Path.Combine (localAppDir, "FChassis");
          if (!Directory.Exists (fcDir))
             Directory.CreateDirectory (fcDir);
@@ -146,42 +86,31 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          if (!Directory.Exists (dataDir))
             Directory.CreateDirectory (dataDir);
 
-         //Debug.WriteLine ($"Created Map directory: {mapDir}");
+         bool wMapExists = false;
+         try {
+            if (!Directory.Exists (@"W:\")) {
+               Debug.WriteLine ("W: drive not found. Nothing to do.");
+               return;
+            }
 
+            string[] required = {
+                @"W:\FChassis",
+                @"W:\FChassis\Sample",
+                @"W:\FChassis\Data"
+            };
 
-         // Step 1: Unmap W: drive if it exists (subst W: /D)
-         //try {
-         //   ProcessStartInfo unmapInfo = new () {
-         //      FileName = "cmd.exe",
-         //      Arguments = "/C subst W: /D",
-         //      UseShellExecute = false,
-         //      CreateNoWindow = true,
-         //      RedirectStandardOutput = true,
-         //      RedirectStandardError = true
-         //   };
-
-         //   using (Process unmapProcess = Process.Start (unmapInfo)) {
-         //      unmapProcess.WaitForExit ();
-         //      string output = unmapProcess.StandardOutput.ReadToEnd ();
-         //      string error = unmapProcess.StandardError.ReadToEnd ();
-         //      if (unmapProcess.ExitCode == 0) {
-         //         Debug.WriteLine ("Successfully unmapped W: drive.");
-         //      } else {
-         //         Debug.WriteLine ($"Unmap W: failed. Error: {error}, Output: {output}");
-         //      }
-         //   }
-         //} catch (Exception ex) {
-         //   Debug.WriteLine ($"Failed to unmap W: drive: {ex.Message}");
-         //}
-
-         // Step 2: Map W: drive to dir\Map (subst W: dir\Map)
-         // ---------------------------------------------------------------
-         // 1. Skip mapping if the REAL W:\FChassis already exists
-         // ---------------------------------------------------------------
-         if (Directory.Exists (@"W:\FChassis")) {
-            Debug.WriteLine ("W:\\FChassis is already reachable – skipping subst.");
-            // Nothing to do → continue with the rest of your app
-         } else {
+            foreach (string path in required) {
+               if (!Directory.Exists (path)) {
+                  Directory.CreateDirectory (path);
+                  Debug.WriteLine ($"Created: {path}");
+               }
+            }
+            wMapExists = true;
+            Debug.WriteLine ("FChassis folder structure is ready on W:.");
+         } catch (Exception ex) {
+            Debug.WriteLine ($"FChassis setup failed: {ex.Message}");
+         }
+         if (!wMapExists) {
             // ---------------------------------------------------------------
             // 2. Map W: only when the real folder is NOT there
             // ---------------------------------------------------------------
@@ -223,8 +152,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             }
          }
 
-         // Initialize other components after successful drive mapping
-         this.DataContext = this;
+
          //var binInstallDir = Path.Combine (dataDir, "Bin");
          var binDir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
          //MessageBox.Show(binDir, "FChassis Binary Directory", MessageBoxButton.OK );
@@ -245,7 +173,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 #if DEBUG
       IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("igesd");
 #else
-      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable("iges");
+      IsIgesAvailable = AssemblyLoader.IsAssemblyLoadable ("iges");
 #endif
 
 #if DEBUG
@@ -320,9 +248,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    void OnSimulationFinished ()
       => mProcessSimulator.SimulationStatus = ProcessSimulator.ESimulationStatus.NotRunning;
 
-   //protected virtual void OnPropertyChanged (string propertyName)
-   //   => PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
-
    void OnFileSelected (object sender, RoutedEventArgs e) {
       if (Files.SelectedItem != null)
          LoadPart (SPath.Combine (mSrcDir, (string)Files.SelectedItem));
@@ -340,23 +265,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    void OnMenuFileOpen (object sender, RoutedEventArgs e) {
       OpenFileDialog openFileDialog;
+      if (string.IsNullOrEmpty (mSrcDir))
+         mSrcDir = @"W:\FChassis\Sample";
       string inputFileType = Environment.GetEnvironmentVariable ("FC_INPUT_FILE_TYPE");
       if (!string.IsNullOrEmpty (inputFileType) && inputFileType.ToUpper ().Equals ("FX")) {
          openFileDialog = new () {
             Filter = "IGS Files (*.igs;*.iges)|*.igs;*.iges|STEP Files (*.stp;*.step)|*.stp;*.step|FX Files (*.fx)|*.fx|CSV Files (*.csv)|*.csv|All files (*.*)|*.*",
-            InitialDirectory = @"W:\FChassis\Sample"
+            InitialDirectory = PathUtils.ConvertToWindowsPath (mSrcDir)
          };
       } else {
+         if (string.IsNullOrEmpty (mSrcDir))
+            mSrcDir = @"W:\FChassis\Sample";
          openFileDialog = new () {
             Filter = "IGS Files (*.igs;*.iges)|*.igs;*.iges|STEP Files (*.stp;*.step)|*.stp;*.step|CSV Files (*.csv)|*.csv|All files (*.*)|*.*",
-            InitialDirectory = @"W:\FChassis\Sample"
+            InitialDirectory = PathUtils.ConvertToWindowsPath (mSrcDir)
          };
       }
 
       if (openFileDialog.ShowDialog () == true) {
          // Handle file opening, e.g., load the file into your application
-         if (!string.IsNullOrEmpty (openFileDialog.FileName))
+         if (!string.IsNullOrEmpty (openFileDialog.FileName)) {
             LoadPart (openFileDialog.FileName);
+            mSrcDir = PathUtils.ConvertToLinuxPath (Path.GetDirectoryName (openFileDialog.FileName));
+         }
       }
    }
 
@@ -415,9 +346,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnMenuImportFile (object sender, RoutedEventArgs e) {
+      if (string.IsNullOrEmpty (mSrcDir))
+         mSrcDir = @"W:\FChassis\Sample";
       OpenFileDialog openFileDialog = new () {
          Filter = "GCode Files (*.din)|*.din|All files (*.*)|*.*",
-         InitialDirectory = @"W:\FChassis\Sample"
+         InitialDirectory = PathUtils.ConvertToWindowsPath (mSrcDir)
       };
       if (openFileDialog.ShowDialog () == true) {
 
@@ -481,6 +414,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
 
       Files.SelectedItem = null;
+      CurrentFile = null;
    }
 
    void OnSettings (object sender, RoutedEventArgs e) {
@@ -498,19 +432,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void OnWindowLoaded (object sender, RoutedEventArgs e) {
-      //if (string.IsNullOrEmpty (MCSettings.It.WMapLocation))
-      //   // Initialize drive mapping first
-      //   InitializeDriveMapping ();
-
-
-      //var dir = SPath.GetDirectoryName (Assembly.GetExecutingAssembly ().Location);
-      //Library.Init ("W:/FChassis/Data", dir, this);
-      //Flux.API.Settings.IGESviaHOOPS = false;
-
-      //Area.Child = (UIElement)Lux.CreatePanel ();
-      //PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
-
-
       GenesysHub = new ();
       mProcessSimulator = new (mGHub, this.Dispatcher);
       mProcessSimulator.TriggerRedraw += TriggerRedraw;
@@ -560,15 +481,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       base.OnClosing (e);
    }
 
-   void WriteRecentFiles () {
+   void WriteRecentFiles (string file = null) {
       try {
          string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
          string fChassisFolderPath = Path.Combine (userHomePath, "FChassis");
          Directory.CreateDirectory (fChassisFolderPath);
          string recentFilesJSONPath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
          string timeStamp = DateTime.Now.ToString ("yyyy-MM-dd HH:mm:ss");
-         if (mPart != null && mPart.Info != null && !string.IsNullOrEmpty(mPart.Info.FileName))
-            mRecentFilesMap[mPart.Info.FileName] = timeStamp;
+         if (!string.IsNullOrEmpty (file)) {
+            mRecentFilesMap[PathUtils.ConvertToWindowsPath (file)] = timeStamp;
+         } else if (mPart != null && mPart.Info != null && !string.IsNullOrEmpty (mPart.Info.FileName))
+            mRecentFilesMap[PathUtils.ConvertToWindowsPath (mPart.Info.FileName)] = timeStamp;
+
          TrimRecentFilesMap (mRecentFilesMap);
 
          // Recent files JSON (MCSettings manages mRecentFilesMap internally)
@@ -594,6 +518,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    #endregion
 
    #region Properties
+   private string _currentFile = "";
+   public string CurrentFile {
+      get => _currentFile;
+      set {
+         _currentFile = value;
+         OnPropertyChanged ();
+         OnPropertyChanged (nameof (WindowTitle)); // <-- This updates the title
+      }
+   }
+
+   public string WindowTitle => string.IsNullOrEmpty (CurrentFile)
+       ? "FChassis"
+       : $"FChassis :: {CurrentFile}";
+
+
    public ObservableCollection<string> RecentFiles { get; set; } = [];
 
    public Workpiece Work {
@@ -643,7 +582,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          }
       }
    }
-   #endregion
+   #endregion Properties
 
    #region Draw Related Methods
    void DrawOverlay () {
@@ -710,42 +649,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    #region Part Preparation Methods
    void LoadPart (string file) {
-      VerifyFluxAssemblies ();
-      //string userHomePath = Environment.GetFolderPath (Environment.SpecialFolder.UserProfile);
-      //string fChassisFolderPath = System.IO.Path.Combine (userHomePath, "FChassis");
-      //string recentFilesJSONPath = System.IO.Path.Combine (fChassisFolderPath, "FChassis.User.RecentFiles.JSON");
-      //string timeStamp = DateTime.Now.ToString ("yyyy-MM-dd HH:mm:ss");
-      ////SaveRecentFilesToJSON (file, timeStamp, recentFilesJSONPath);
-      //mRecentFilesMap[file] = timeStamp;
-      //static DateTimeOffset ParseTs (string ts)
-      //      => DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
-      //RecentFiles = [];
-      //foreach (var kv in mRecentFilesMap.OrderByDescending (kv => ParseTs (kv.Value))) {
-      //   RecentFiles.Add ($"{kv.Key} {kv.Value}");
-      //}
-      file = file.Replace ('\\', '/');
-
-      // Create DXF file from .CSV file.
-      bool isCsv = System.IO.Path.GetExtension (file).Equals (".csv", StringComparison.OrdinalIgnoreCase);
-      if (isCsv) {
-         var origCSVFile = file;
-         try {
-            var csvPartData = CsvReader.ReadPartData (file);
-            file += ".dxf";
-            FChassis.Input.DXFWriter dxfW = new (file, csvPartData);
-            dxfW.WriteDXF ();
-            PopulateFilesFromDir (mSrcDir);
-         } catch (Exception ex) {
-            MessageBox.Show ($"Part defined by {origCSVFile} can not be created. Error: {ex.Message}"
-            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-         }
-      }
-      mPart = Part.Load (file);
-      mPart.Info.FileName = file;
-      if (mPart.Info.MatlName == "NONE")
-         mPart.Info.MatlName = "1.0038";
+      // 1. Show busy cursor ONCE at start
+      this.Cursor = Cursors.Wait;
+      this.ForceCursor = true;
+      // Force immediate UI update
+      this.Dispatcher.Invoke (() => { }, DispatcherPriority.Background);
 
       try {
+         WriteRecentFiles (file);
+         var windowsFile = file;
+         VerifyFluxAssemblies ();
+         file = file.Replace ('\\', '/');
+
+         // CSV → DXF conversion
+         bool isCsv = Path.GetExtension (file).Equals (".csv", StringComparison.OrdinalIgnoreCase);
+         if (isCsv) {
+            var origCSVFile = file;
+            var csvPartData = CsvReader.ReadPartData (file);
+            file += ".dxf";
+            new FChassis.Input.DXFWriter (file, csvPartData).WriteDXF ();
+            PopulateFilesFromDir (mSrcDir);
+         }
+
+         // Main heavy load
+         mPart = Part.Load (file);
+         mPart.Info.FileName = file;
+         if (mPart.Info.MatlName == "NONE")
+            mPart.Info.MatlName = "1.0038";
+
          if (mPart.CanExplode) {
             var parts = mPart.ExplodePart ();
             foreach (var part in parts) {
@@ -753,35 +684,37 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                mSubParts.Add (part);
             }
          }
-      } catch (Exception) { }
 
-      if (mPart.Model == null) {
-         try {
+         if (mPart.Model == null) {
             if (mPart.Dwg != null)
                mPart.FoldTo3D ();
             else if (mPart.SurfaceModel != null)
                mPart.SheetMetalize ();
             else
                throw new Exception ("Invalid part");
-         } catch (NullReferenceException) {
-            MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
-            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-         } catch (Exception) {
-            MessageBox.Show ($"Part {mPart.Info.FileName} is invalid"
-            , "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
          }
+
+         mOverlay = new SimpleVM (DrawOverlay);
+         Lux.UIScene = mScene = new Scene (
+             new GroupVModel (VModel.For (mPart.Model), mOverlay),
+             mPart.Model.Bound);
+
+         Work = new Workpiece (mPart.Model, mPart);
+         CurrentFile = windowsFile;
+         GenesysHub?.ClearZombies ();
+      } catch (Exception ex) {
+         string msg = ex is NullReferenceException || ex.Message.Contains ("invalid", StringComparison.OrdinalIgnoreCase)
+             ? $"Part {Path.GetFileName (file)} is invalid"
+             : $"Failed to load part: {ex.Message}";
+
+         MessageBox.Show (msg, "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+      } finally {
+         // 2. Restore cursor ONCE at the end — guaranteed
+         this.Dispatcher.Invoke (() => {
+            this.Cursor = Cursors.Arrow;
+            this.ForceCursor = true;
+         });
       }
-      //mPart.Dwg?.SaveDXF ("C:\\temp\\xyz.dxf");
-
-      mOverlay = new SimpleVM (DrawOverlay);
-      Lux.UIScene = mScene = new Scene (new GroupVModel (VModel.For (mPart.Model),
-                                        mOverlay), mPart.Model.Bound);
-      Work = new Workpiece (mPart.Model, mPart);
-
-      // Clear the zombies if any
-      GenesysHub?.ClearZombies ();
    }
    bool _cutHoles = false, _cutNotches = false, _cutMarks = false;
    void DoAlign (object sender, RoutedEventArgs e) {
@@ -834,29 +767,54 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
    }
 
    void DoGenerateGCode (object sender, RoutedEventArgs e) {
-
       if (!HandleNoWorkpiece ()) {
+         // Set busy cursor at start
+         this.Cursor = Cursors.Wait;
+         this.ForceCursor = true;
+
+         // Force immediate UI update to show busy cursor
+         this.Dispatcher.Invoke (() => { }, DispatcherPriority.Background);
 
 #if DEBUG || TESTRELEASE
-         GenesysHub.ComputeGCode ();
+         try {
+            GenesysHub.ComputeGCode ();
+         } catch (Exception ex) {
+            // 2. Restore cursor ONCE at the end — guaranteed
+            this.Dispatcher.Invoke (() => {
+               this.Cursor = Cursors.Arrow;
+               this.ForceCursor = true;
+            });
+            throw;
+         } finally {
+            this.Dispatcher.Invoke (() => {
+               this.Cursor = Cursors.Arrow;
+               this.ForceCursor = true;
+            });
+         }
 #else
          try {
             GenesysHub.ComputeGCode ();
          } catch (InfeasibleCutoutException ex) {
             MessageBox.Show (ex.Message, "Error",
-                              MessageBoxButton.OK, MessageBoxImage.Error);
+                          MessageBoxButton.OK, MessageBoxImage.Error);
          } catch (Exception ex) {
             if (ex is NegZException)
                MessageBox.Show ("Part might not be aligned", "Error",
-                              MessageBoxButton.OK, MessageBoxImage.Error);
+                          MessageBoxButton.OK, MessageBoxImage.Error);
             else if (ex is NotchCreationFailedException ex1)
                MessageBox.Show (ex1.Message, "Error",
-                              MessageBoxButton.OK, MessageBoxImage.Error);
+                          MessageBoxButton.OK, MessageBoxImage.Error);
             else
                MessageBox.Show ("G Code generation failed", "Error",
-                              MessageBoxButton.OK, MessageBoxImage.Error);
+                          MessageBoxButton.OK, MessageBoxImage.Error);
          } finally {
             Work.Dirty = false; // This will always execute
+
+            // 2. Restore cursor ONCE at the end — guaranteed
+            this.Dispatcher.Invoke (() => {
+               this.Cursor = Cursors.Arrow;
+               this.ForceCursor = true;
+            });
          }
 #endif
          mOverlay.Redraw ();
@@ -996,7 +954,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
    public static Dictionary<string, string> LoadRecentFilesFromJSON (string jsonFileName) {
 
-      Dictionary<string, string> map = [];
+      Dictionary<string, string> map = [], recentFiles = [];
       if (string.IsNullOrWhiteSpace (jsonFileName))
          throw new ArgumentException ("jsonFileName must be a non-empty path.", nameof (jsonFileName));
 
@@ -1010,7 +968,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
          var json = Encoding.UTF8.GetString (bytes);
          map = JsonSerializer.Deserialize<Dictionary<string, string>> (json);
+         if (map != null) {
+            static DateTimeOffset ParseTs (string ts)
+                => DateTimeOffset.TryParse (ts, out var dto) ? dto : DateTimeOffset.MinValue;
+            foreach (var kv in map.OrderByDescending (kv => ParseTs (kv.Value)))
+               recentFiles[PathUtils.ConvertToWindowsPath (kv.Key, isFile: true)] = kv.Value;
 
+         }
          //if (map != null) {
          //   // Keep newest first (by timestamp)
          //   static DateTimeOffset ParseTs (string ts)
@@ -1024,7 +988,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          // swallow exceptions -> return whatever was parsed so far (empty on error)
       }
 
-      return map;
+      return recentFiles;
    }
 
 

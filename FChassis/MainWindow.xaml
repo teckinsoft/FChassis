@@ -7,7 +7,7 @@
         xmlns:converters="clr-namespace:FChassis.VisibilityConverters"
         mc:Ignorable="d"
         WindowState="Maximized"
-        Title="FChassis" 
+        Title="{Binding WindowTitle, RelativeSource={RelativeSource Self}}"
         Icon="Resources/FChassis.ico" Height="450" Width="800" 
         Loaded="OnWindowLoaded">
     <Window.Resources>

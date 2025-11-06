@@ -13,7 +13,7 @@ public class PathUtils {
    /// </summary>
    /// <param name="inputPath">The input path to be converted.</param>
    /// <returns>A valid Windows folder path.</returns>
-   public static string ConvertToWindowsPath (string inputPath) {
+   public static string ConvertToWindowsPath (string inputPath, bool isFile = false) {
       if (string.IsNullOrWhiteSpace (inputPath)) {
          throw new ArgumentException ("Input path cannot be null or empty.");
       }
@@ -31,16 +31,46 @@ public class PathUtils {
       windowsPath = Path.GetFullPath (windowsPath);
 
       // Step 4: Verify the path is a directory (and not a file path)
-      if (!windowsPath.EndsWith ("\\")) {
+      if (!windowsPath.EndsWith ("\\") && !isFile) {
          windowsPath += "\\";
       }
 
       // Step 5: Check if the path exists
-      if (!Directory.Exists (windowsPath)) {
+      if (!Directory.Exists (windowsPath) && !isFile) {
          throw new DirectoryNotFoundException ($"The directory does not exist: {windowsPath}");
       }
 
       return windowsPath;
+   }
+
+   public static string ConvertToLinuxPath (string inputPath, bool isFile = false) {
+      if (string.IsNullOrWhiteSpace (inputPath)) {
+         throw new ArgumentException ("Input path cannot be null or empty.");
+      }
+
+      // Step 1: Replace forward slashes with backslashes
+      string linuxPath = inputPath.Replace ('\\', '/');
+
+      // Step 2: Remove invalid characters
+      char[] invalidChars = Path.GetInvalidPathChars ();
+      foreach (char invalidChar in invalidChars) {
+         linuxPath = linuxPath.Replace (invalidChar.ToString (), string.Empty);
+      }
+
+      // Step 3: Ensure the path is absolute
+      //windowsPath = Path.GetFullPath (windowsPath);
+
+      // Step 4: Verify the path is a directory (and not a file path)
+      if (!linuxPath.EndsWith ("/") && !isFile) {
+         linuxPath += "/";
+      }
+
+      // Step 5: Check if the path exists
+      if (!Directory.Exists (ConvertToWindowsPath(linuxPath)) && !isFile) {
+         throw new DirectoryNotFoundException ($"The directory does not exist: {ConvertToWindowsPath (linuxPath)}");
+      }
+
+      return linuxPath;
    }
 }
 
