@@ -111,45 +111,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             Debug.WriteLine ($"FChassis setup failed: {ex.Message}");
          }
          if (!wMapExists) {
-            // ---------------------------------------------------------------
-            // 2. Map W: only when the real folder is NOT there
-            // ---------------------------------------------------------------
-            try {
-               var mapInfo = new ProcessStartInfo {
-                  FileName = "cmd.exe",
-                  Arguments = $"/C subst W: \"{localAppDir}\"",
-                  UseShellExecute = false,
-                  CreateNoWindow = true,
-                  RedirectStandardOutput = true,
-                  RedirectStandardError = true
-               };
-
-               using (var mapProcess = Process.Start (mapInfo)) {
-                  mapProcess.WaitForExit ();
-                  string output = mapProcess.StandardOutput.ReadToEnd ();
-                  string error = mapProcess.StandardError.ReadToEnd ();
-
-                  if (mapProcess.ExitCode == 0) {
-                     Debug.WriteLine ($"Successfully mapped W: → {localAppDir}");
-                  } else {
-                     Debug.WriteLine ($"subst failed. Error: {error.Trim ()}");
-                     MessageBox.Show (
-                         $"Failed to map W: drive to {localAppDir}.\n\nError: {error.Trim ()}",
-                         "Drive Mapping Error",
-                         MessageBoxButton.OK,
-                         MessageBoxImage.Error);
-                     return; // stop initialization
-                  }
-               }
-            } catch (Exception ex) {
-               Debug.WriteLine ($"subst exception: {ex.Message}");
-               MessageBox.Show (
-                   $"Failed to map W: drive:\n{ex.Message}",
-                   "Drive Mapping Error",
-                   MessageBoxButton.OK,
-                   MessageBoxImage.Error);
-               return;
-            }
+            MapWDrive (localAppDir);
          }
 
 
@@ -190,6 +152,41 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       //// Set icon programmatically (alternative to XAML)
       //this.Icon = new BitmapImage(new Uri("pack://application:,,,/Resources/FChassis.Splash.png"));
+   }
+
+
+   static void MapWDrive (string folderPath) {
+      string batPath = Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "MapW.bat");
+
+      if (!Directory.Exists (folderPath)) {
+         Console.WriteLine ($"Folder not found: {folderPath}");
+         return;
+      }
+
+      var startInfo = new ProcessStartInfo {
+         FileName = batPath,
+         Arguments = $"\"{folderPath}\"",
+
+         UseShellExecute = true,           // Required for elevation
+         Verb = "runas",                   // Triggers UAC prompt
+         CreateNoWindow = false,
+         WindowStyle = ProcessWindowStyle.Normal
+      };
+
+      try {
+         using (var process = Process.Start (startInfo)) {
+            process.WaitForExit ();
+            if (process.ExitCode == 0)
+               Console.WriteLine ("W: drive mapped permanently!");
+            else
+               Console.WriteLine ("Failed or cancelled.");
+         }
+      } catch (System.ComponentModel.Win32Exception ex) {
+         if (ex.NativeErrorCode == 1223)
+            Console.WriteLine ("UAC was cancelled by user.");
+         else
+            Console.WriteLine ("Error: " + ex.Message);
+      }
    }
 
    bool _isSanityCheckVisible;
@@ -492,6 +489,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             mRecentFilesMap[PathUtils.ConvertToWindowsPath (file, isFile: true)] = timeStamp;
          } else if (mPart != null && mPart.Info != null && !string.IsNullOrEmpty (mPart.Info.FileName))
             mRecentFilesMap[PathUtils.ConvertToWindowsPath (mPart.Info.FileName, isFile: true)] = timeStamp;
+
+         // The old recent files FChassis.User.RecentFiles.JSON
+         // should be concatanated with new one mRecentFilesMap.
+         // If no file was ever opened, the old recent files will be overwritten 
+         // with nothing. This has to be avoided
+         var oldRecentFiles = LoadRecentFilesFromJSON (recentFilesJSONPath);
+         mRecentFilesMap = mRecentFilesMap
+          .Concat (oldRecentFiles)
+          .GroupBy (kvp => kvp.Key)
+          .ToDictionary (
+              g => g.Key,
+              g => g.Max (kvp => kvp.Value)  // Keeps the LATEST timestamp
+          );
 
          TrimRecentFilesMap (mRecentFilesMap);
 
