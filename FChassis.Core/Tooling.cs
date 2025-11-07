@@ -197,8 +197,31 @@ public class Tooling {
       return t;
    }
 
-   public bool IsClosed (double tol) => End.Pt.DistTo (Start.Pt) <= tol;
+   public bool IsClosed (double tol) => End.Pt.DistTo (Start.Pt) <= tol;   
+   
+   // If the tooling exists in more than one flange, then it returns true
+   public bool IsDualFlangeTooling () {
+      if (ProfileKind == ECutKind.Top2YNeg ||
+         ProfileKind == ECutKind.Top2YPos ||
+         ProfileKind == ECutKind.YNegToYPos ||
+         Utils.IsDualFlangeSameSideNotch (this, Segs))
+         return true;
+      return false;
+   }
 
+   // If the tooling completely exists on one of the flange,
+   // then it returns true
+   public bool IsSingleFlangeTooling () {
+      if (ProfileKind == ECutKind.Top ||
+         ProfileKind == ECutKind.YPos ||
+         ProfileKind == ECutKind.YNeg )
+         return true;
+      return false;
+   }
+
+   // If the tooling exists in more than one flange, but starting and ending of
+   // the tooling is on same flange, then this returns true.
+   public bool IsDualFlangeSameSideNotch () => Utils.IsDualFlangeSameSideNotch (this, Segs);
    public void IdentifyCutout () {
       // If closed tooling, it is marked as CUTOUT
       if (IsClosed (mJoinableLengthToClose)) {
