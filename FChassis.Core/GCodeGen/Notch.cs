@@ -296,11 +296,7 @@ public class Notch : ToolingFeature {
       if (!mTwoFlangeNotchStartAndEndOnSameSideFlange &&
          toolingItem.EdgeNotch)
          EdgeNotch = true;
-      else if (mToolingPerimeter < MinNotchLengthThreshold && mToolingItem.Segs[0].Vec0.Normalized ().EQ (mToolingItem.Segs[^1].Vec1.Normalized ())) {
-         mShortPerimeterNotch = true;
-         mPercentLength = [0.5];
-         mIsWireJointsNeeded = false;
-      } else {
+      else {
          mShortPerimeterNotch = false;
          if (mShortPerimeterNotch || !isWireJointsNeeded)
             mIsWireJointsNeeded = false;
