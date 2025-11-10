@@ -1653,12 +1653,17 @@ public class MultiPassCuts {
       List<ToolingScope> unProcessedTS = mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.EndX).ToList ();
 
       double start = unProcessedTS.Min (ts => ts.StartX);
-      FindBestSequence (mpc, unProcessedTS, (0, []), start, maxScopeLength, deadZoneXmin, deadZoneXmax, out bestCutScopeSeq);
+      if (MCSettings.It.Heads == MCSettings.EHeads.Both)
+         FindBestSequence (mpc, unProcessedTS, (0, []), start, maxScopeLength, deadZoneXmin, deadZoneXmax, out bestCutScopeSeq);
+      else
+         FindBestSequence (mpc, unProcessedTS, (0, []), start, deadZoneXmin, deadZoneXmin, deadZoneXmax, out bestCutScopeSeq);
 
       foreach (var cs in bestCutScopeSeq.Seq) {
          cs.MachinableToolingScopes = [];
-         double deadMin = cs.StartX + deadZoneXmin;
-         double deadMax = cs.StartX + deadZoneXmax;
+         if (MCSettings.It.Heads == MCSettings.EHeads.Right) {
+            cs.TSInScope2 = [.. cs.TSInScope1];cs.TSInScope1.Clear ();}
+
+         double deadMin = cs.StartX + deadZoneXmin, deadMax = cs.StartX + deadZoneXmax;
          List<ToolingScope> splitTSS = [];
          if (deadMax < cs.EndX) {
             (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
@@ -1848,7 +1853,6 @@ public class MultiPassCuts {
       if (!mGC.OptimizePartition) mGC.PartitionRatio = 0.5;
       if (mGC.Heads == MCSettings.EHeads.Left || mGC.Heads == MCSettings.EHeads.Right) mGC.PartitionRatio = 1.0;
       mGC.BlockNumber = 0;
-      //if (mGC.Heads == MCSettings.EHeads.Both) {
       mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Master, mcCutScopes);
       mGC.GenerateGCode (GCodeGenerator.ToolHeadType.Slave, mcCutScopes);
 
