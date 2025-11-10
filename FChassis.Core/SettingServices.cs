@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Windows;
 
 namespace FChassis.Core;
 public class SettingServices {
@@ -46,12 +47,23 @@ public class SettingServices {
       if (File.Exists (settingsFilePath)) {
          try {
             settings.LoadSettingsFromJson (settingsFilePath);
-         } catch (Exception) { }
+         } catch (Exception ex) {
+#if DEBUG
+            MessageBox.Show ($"Error encountered when loading settings: {ex.Message}",
+             "Settings Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+#endif
+            throw;
+         }
          // Write to ASCII json if TESTRELEASE or DEBUG config
          string envVariable = Environment.GetEnvironmentVariable ("__FC_AUTH__");
          Guid expectedGuid = new ("e96e66ff-17e6-49ac-9fe1-28bb45a6c1b9");
 #if DEBUG || TESTRELEASE
-         MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
+         try {
+            MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
+         } catch (Exception ex) {
+            MessageBox.Show ($"Error encountered when loading settings: {ex.Message}",
+             "Settings Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+         }
 #else
          if (!string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid)
             MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);

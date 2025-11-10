@@ -125,7 +125,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          Area.Child = (UIElement)Lux.CreatePanel ();
          PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
       } catch (Exception ex) {
-         Debug.WriteLine ($"Initialization failed: {ex.Message}");
+          Debug.WriteLine ($"Initialization failed: {ex.Message}");
          MessageBox.Show ($"Initialization failed: {ex.Message}",
              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return; // Exit constructor to prevent further initialization

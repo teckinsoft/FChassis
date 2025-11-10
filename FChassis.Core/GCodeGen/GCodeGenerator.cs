@@ -975,6 +975,38 @@ public class GCodeGenerator {
    ///   </remarks>
    /// </param>
    /// <returns>The list of toolings ordered by the specified priority.</returns>
+   //public List<Tooling> GetToolings4Head (List<Tooling> cuts, int headNo) {
+   //   List<Tooling> res;
+   //   if (!LeftToRightMachining)
+   //      res = [..cuts.Where (cut => cut.Head == headNo)
+   //   .OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
+   //   .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
+   //   .ThenByDescending (cut => cut.Start.Pt.X)];
+   //   else
+   //      res = [..cuts.Where (cut => cut.Head == headNo && ( cut.Kind==EKind.Hole ||
+   //      (cut.Kind==EKind.Notch && ( cut.ProfileKind == ECutKind.YPosFlex || cut.ProfileKind == ECutKind.YNegFlex ||
+   //      cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg || /* TRIPLE_FLANGE_NOTCH */cut.ProfileKind == ECutKind.YNegToYPos))) )];
+   //   res = [..res.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
+   //   .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
+   //   .ThenBy (cut => cut.Start.Pt.X)];
+
+   //   // Order CutOuts
+   //   var cutouts = (cuts.Where (cut => cut.Kind == EKind.Cutout));
+   //   cutouts = [..cutouts.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
+   //   .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
+   //   .ThenBy (cut => cut.Start.Pt.X)];
+
+   //   // Order dual flange notches
+   //   var notches = cuts.Where (cut => cut.Kind == EKind.Notch && (cut.ProfileKind == ECutKind.Top2YNeg || cut.ProfileKind == ECutKind.Top2YPos));
+   //   notches = [..notches.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
+   //   .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
+   //   .ThenBy (cut => cut.Start.Pt.X)];
+
+   //   // Concat all
+   //   res = [.. res, .. cutouts, .. notches];
+
+   //   return res;
+   //}
    public List<Tooling> GetToolings4Head (List<Tooling> cuts, int headNo) {
       // New priorities are set as per task FCH-35
       List<Tooling> res, holes = [];
@@ -993,20 +1025,19 @@ public class GCodeGenerator {
       .ThenBy (cut => cut.Start.Pt.X)];
 
       // Collect CutOuts, then order by by flange priority ( flangeCutPriority ),  then by ascending order of X
-      var cutouts = (cuts.Where (cut => cut.Kind == EKind.Cutout));
+      var cutouts = (cuts.Where (cut => cut.Kind == EKind.Cutout && cut.Head == headNo));
       cutouts = [..cutouts.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
       //.ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
       .ThenBy (cut => cut.Start.Pt.X)];
 
       // Collect single plane notches, then order by flange priority ( flangeCutPriority ),  then by ascending order of X
-      var singlePlaneNotches = cuts.Where (cut => cut.Kind == EKind.Notch && cut.IsSingleFlangeTooling ());
+      var singlePlaneNotches = cuts.Where (cut => cut.Kind == EKind.Notch && cut.Head == headNo && cut.IsSingleFlangeTooling ());
       singlePlaneNotches = [..singlePlaneNotches.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
       .ThenBy (cut => cut.Start.Pt.X)];
 
       // Collect dual plane notches , then order by flange priority ( flangeCutPriority ),  then by ascending order of X
-      var dualPlaneNotches = cuts.Where (cut => cut.Kind == EKind.Notch && cut.IsDualFlangeTooling ());
+      var dualPlaneNotches = cuts.Where (cut => cut.Kind == EKind.Notch && cut.Head == headNo && cut.IsDualFlangeTooling ());
       dualPlaneNotches = [..dualPlaneNotches.OrderBy (cut => Array.IndexOf (flangeCutPriority, Utils.GetFlangeType (cut,PartConfigType==PartConfigType.LHComponent?mXformLHInv:mXformRHInv)))
-      .ThenBy (cut => MCSettings.It.ToolingPriority.ToList().IndexOf (cut.Kind))
       .ThenBy (cut => cut.Start.Pt.X)];
 
       // Concat all
@@ -1014,6 +1045,7 @@ public class GCodeGenerator {
 
       return res;
    }
+
    #endregion
 
    #region Partition Implementation 
@@ -1205,7 +1237,7 @@ public class GCodeGenerator {
       string line = $"(N{startValue + 1} to N{cnt + endValue} in {p} flange)";
       sw.WriteLine (line);
    }
-   
+   Point3 firstTlgStartPoint;
    /// <summary>
    /// This method is the entry point for writing G Code both for LEGACY and 
    /// LCMMultipass2H machines. 
@@ -1318,10 +1350,6 @@ public class GCodeGenerator {
          mLastCutScope = false;
          BlockNumber = 1;
 
-         // The machine (inverse) transforms are computed. This transformation matrix the 
-         // key to perform all the computations
-         EvaluateToolConfigXForms (Process.Workpiece);
-
          for (int mm = 0; mm < mcCutScopes.Count; mm++) {
             // CreateDummyBlock4Master Variable to signal the g code writer
             // if no G-statements is to be output, if the Slave head is
@@ -1344,6 +1372,10 @@ public class GCodeGenerator {
             mToolPos[1] = new Point3 (cutScopeBound.XMax, cutScopeBound.YMax, mSafeClearance);
             mSafePoint[0] = new Point3 (cutScopeBound.XMin, cutScopeBound.YMin, 50);
             mSafePoint[1] = new Point3 (cutScopeBound.XMax, cutScopeBound.YMax, 50);
+
+            // The machine (inverse) transforms are computed. This transformation matrix the 
+            // key to perform all the computations
+            EvaluateToolConfigXForms (Process.Workpiece);
 
             // Allocate toolings for each head. It is assumed that partitioning is 
             // already made.
@@ -2890,9 +2922,12 @@ public class GCodeGenerator {
          if (!CutMarks && toolingItem.IsMark ()) continue;
          if (!CutHoles && toolingItem.IsHole ()) continue;
 
-         // Check if the web and flanges are included to be machined in the settings.
+         // Check if the web and flanges are included to be machined.
          if (toolingItem.Flange == EFlange.Web && !CutWeb) continue;
          if ((toolingItem.Flange == EFlange.Top || toolingItem.Flange == EFlange.Bottom) && !CutFlange) continue;
+
+         // Debug_Debug
+         firstTlgStartPoint = toolingItem.Segs.ToList ()[0].Curve.Start;
 
          // ** Create the feature for which G Code needs to be created
          ToolingFeature feature = null;

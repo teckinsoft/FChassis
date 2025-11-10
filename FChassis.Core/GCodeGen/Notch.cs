@@ -332,7 +332,6 @@ public class Notch : ToolingFeature {
    public EPlane PrevPlane { get => mPrevPlane; set => mPrevPlane = value; }
    public Tooling PreviousTooling { get; set; }
    public ToolingSegment? PreviousToolingSegment { get; set; }
-   NotchSectionType mPrevNotchSectionType = NotchSectionType.None;
    #endregion
 
    #region Tunable Parameters / Setting Prescriptions
@@ -1953,7 +1952,6 @@ public class Notch : ToolingFeature {
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
                   continueMachining = true;
                   mFirstTooling = false;
-                  mPrevNotchSectionType = notchSequence.SectionType;
                }
                break;
             case NotchSectionType.ApproachOnReEntry: {
@@ -1992,7 +1990,6 @@ public class Notch : ToolingFeature {
 
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
                }
-               mPrevNotchSectionType = notchSequence.SectionType;
                break;
             case NotchSectionType.GambitPostApproachMachining:
             case NotchSectionType.GambitPreApproachMachining: {
@@ -2013,9 +2010,8 @@ public class Notch : ToolingFeature {
                      mBlockCutLength += segment.Curve.Length;
                   }
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
+                  break;
                }
-               mPrevNotchSectionType = notchSequence.SectionType;
-               break;
             case NotchSectionType.WireJointTraceJumpForward:
             case NotchSectionType.WireJointTraceJumpReverse:
             case NotchSectionType.WireJointTraceJumpReverseOnFlex:
@@ -2107,7 +2103,6 @@ public class Notch : ToolingFeature {
                PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
                continueMachining = true;
-               mPrevNotchSectionType = notchSequence.SectionType;
                break;
             case NotchSectionType.MachineToolingForward: {
                   if (notchSequence.StartIndex > notchSequence.EndIndex)
@@ -2139,15 +2134,6 @@ public class Notch : ToolingFeature {
                         mGCodeGen.EnableMachiningDirective ();
                      }
 
-                     // Retrace the gambit machining part for continuity. 
-                     // Fix FCH-37
-                     if (mPrevNotchSectionType == NotchSectionType.GambitPreApproachMachining ||
-                        mPrevNotchSectionType == NotchSectionType.GambitPostApproachMachining) {
-                        var prevGambitSegment = Geom.GetReversedToolingSegment (PreviousToolingSegment.Value, 
-                           tolerance: mSplit ? 1e-4 : 1e-6);
-                        mGCodeGen.WriteCurve (prevGambitSegment, mToolingItem.Name, relativeCoords: relCoords,
-                           refStPt: prevRapidPos);
-                     }
                      for (int jj = notchSequence.StartIndex; jj <= notchSequence.EndIndex; jj++) {
                         mExitTooling = mSegments[jj];
                         //if (jj == notchSequence.StartIndex)
@@ -2166,7 +2152,6 @@ public class Notch : ToolingFeature {
                   mGCodeGen.FinalizeNotchToolingBlock (mToolingItem, mBlockCutLength, mTotalToolingsCutLength);
                   continueMachining = false;
                }
-               mPrevNotchSectionType = notchSequence.SectionType;
                break;
             case NotchSectionType.MachineToolingReverse: {
                   if (notchSequence.StartIndex < notchSequence.EndIndex)
@@ -2196,17 +2181,6 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
                      mGCodeGen.EnableMachiningDirective ();
                   }
-
-                  // Retrace the gambit machining part for continuity. 
-                  // Fix FCH-37
-                  if (mPrevNotchSectionType == NotchSectionType.GambitPreApproachMachining ||
-                     mPrevNotchSectionType == NotchSectionType.GambitPostApproachMachining) {
-                     var prevGambitSegment = Geom.GetReversedToolingSegment (PreviousToolingSegment.Value,
-                        tolerance: mSplit ? 1e-4 : 1e-6);
-                     mGCodeGen.WriteCurve (prevGambitSegment, mToolingItem.Name, relativeCoords: relCoords,
-                        refStPt: prevRapidPos);
-                  }
-
                   for (int jj = notchSequence.StartIndex; jj >= notchSequence.EndIndex; jj--) {
                      mExitTooling = Geom.GetReversedToolingSegment (mSegments[jj], tolerance: mSplit ? 1e-4 : 1e-6);
                      mGCodeGen.WriteCurve (mExitTooling.Value, mToolingItem.Name, relativeCoords: relCoords,
@@ -2224,7 +2198,6 @@ public class Notch : ToolingFeature {
                   mGCodeGen.FinalizeNotchToolingBlock (mToolingItem, mBlockCutLength, mTotalToolingsCutLength);
                }
                continueMachining = false;
-               mPrevNotchSectionType = notchSequence.SectionType;
                break;
             case NotchSectionType.MachineFlexToolingReverse: {
                   if (notchSequence.StartIndex < notchSequence.EndIndex)
@@ -2267,7 +2240,6 @@ public class Notch : ToolingFeature {
                   mGCodeGen.FinalizeNotchToolingBlock (mToolingItem, mBlockCutLength, mTotalToolingsCutLength);
                }
                continueMachining = false;
-               mPrevNotchSectionType = notchSequence.SectionType;
                break;
             case NotchSectionType.MachineFlexToolingForward: {
                   if (notchSequence.StartIndex > notchSequence.EndIndex)
@@ -2314,7 +2286,6 @@ public class Notch : ToolingFeature {
                   mGCodeGen.FinalizeNotchToolingBlock (mToolingItem, mBlockCutLength, mTotalToolingsCutLength);
                }
                continueMachining = false;
-               mPrevNotchSectionType = notchSequence.SectionType;
                break;
             case NotchSectionType.MoveToMidApproach: {
                   string titleComment = GCodeGenerator.GetGCodeComment ("NotchSequence: Rapid Move from one end of the notch tooling to the mid approach");
@@ -2377,7 +2348,6 @@ public class Notch : ToolingFeature {
                   mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
                   mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: false);
                }
-               mPrevNotchSectionType = notchSequence.SectionType;
                break;
             default:
                throw new Exception ("Undefined notch sequence");
