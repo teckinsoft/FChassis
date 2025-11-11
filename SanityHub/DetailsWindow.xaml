@@ -1,0 +1,27 @@
+﻿<Window x:Class="SanityHub.DetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SanityHub"
+        mc:Ignorable="d"
+        Title="Run details" Height="360" Width="560" WindowStartupLocation="CenterOwner" Background="#F8FAFC">
+    <Border CornerRadius="8" Background="White" Padding="10" Margin="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Details" FontSize="16" FontWeight="Bold"/>
+            <TextBlock Text="File: " Grid.Row="0" Margin="0,22,0,0"/>
+
+            <TextBox Grid.Row="1" Text="{Binding Details}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"/>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Close" Click="Close_Click" Margin="4" Padding="8,4"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
