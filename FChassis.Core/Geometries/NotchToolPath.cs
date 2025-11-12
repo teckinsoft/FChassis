@@ -859,6 +859,10 @@ public class NotchToolPath {
                else if (JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.End &&
                   JustLesserThanWJTEnd.Value.SegPositionType == SegmentedPositionType.GambitPostApproach)
                   prevPos = mNotchPos.FirstOrDefault (n => n.SegPositionType == SegmentedPositionType.GambitPostApproach);
+               else if (JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.GambitPreApproach ||
+                  JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.Approach || 
+                  JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.GambitPostApproach)
+                  prevPos = mNotchPos.FirstOrDefault (n => n.SegPositionType == SegmentedPositionType.GambitPostApproach);
                continue;
             }
 
