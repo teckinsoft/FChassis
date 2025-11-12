@@ -1828,14 +1828,26 @@ public class MultiPassCuts {
 
       foreach (var cs in cutScopeSeq) {
          cs.MachinableToolingScopes = [];
+         if (MCSettings.It.Heads == MCSettings.EHeads.Right) {
+            cs.TSInScope2 = [.. cs.TSInScope1]; cs.TSInScope1.Clear ();
+         }
 
-         foreach (var tsi in cs.TSInScope1)
-            foreach (var ts in mpc.ToolingScopes)
-               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
+         double deadMin = cs.StartX + deadZoneXmin, deadMax = cs.StartX + deadZoneXmax;
+         List<ToolingScope> splitTSS = [];
+         if (deadMax < cs.EndX) {
+            (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+            (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+            (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+         } else (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
 
-         foreach (var tsi in cs.TSInScope2)
-            foreach (var ts in mpc.ToolingScopes)
-               if (ts.Index == tsi) cs.MachinableToolingScopes.Add (ts);
+         mpc.ToolingScopes = splitTSS;
+         var toolingDict = mpc.ToolingScopes.ToDictionary (ts => ts.Index);
+
+         cs.MachinableToolingScopes.AddRange (cs.TSInScope1.Where (toolingDict.ContainsKey)
+               .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 0; return ts; }));
+
+         cs.MachinableToolingScopes.AddRange (cs.TSInScope2.Where (toolingDict.ContainsKey)
+               .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 1; return ts; }));
       }
 
       return cutScopeSeq;
