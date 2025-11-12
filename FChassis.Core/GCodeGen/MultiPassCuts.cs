@@ -822,7 +822,7 @@ public class MultiPassCuts {
    #endregion
 
    #region readonlies
-   public static readonly int MaxFeatures = 400;
+   public static readonly int MaxFeatures = 300;
    #endregion
 
    #region Properties
