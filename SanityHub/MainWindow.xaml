@@ -5,10 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SanityHub"
         mc:Ignorable="d"
+        WindowState="Maximized" WindowStyle="None"
         Title="Sanity Hub" Height="520" Width="900"
-        WindowStartupLocation="CenterScreen"
-        Background="#F4F7FA"
-        FontFamily="Segoe UI">
+        Background="#F4F7FA" FontFamily="Segoe UI">
 
     <Window.Resources>
         <!-- Modern card style -->
@@ -53,19 +52,27 @@
         </Grid.RowDefinitions>
 
         <Border Style="{StaticResource Card}">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="Sanity Hub" FontSize="20" FontWeight="Bold" Foreground="#111827" VerticalAlignment="Center"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <ComboBox Width="180" 
-                          ItemsSource="{Binding Combinations}" 
-                          DisplayMemberPath="Name"
-                          SelectedItem="{Binding SelectedCombination}" Margin="0,0,16,0"/>
-                    <Button Content="Browse files" Command="{Binding BrowseFilesCommand}" Margin="8,0" Padding="10,6" 
-                            Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="Transparent"/>
-                    <Button Content="Run all" Command="{Binding RunAllCommand}" Margin="8,0" Padding="10,6" 
-                            Background="Transparent" BorderBrush="{StaticResource AccentBrush}" Foreground="{StaticResource AccentBrush}"/>
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Sanity Hub" FontSize="20" FontWeight="Bold" Foreground="#111827" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
+                        <Button Content="Browse files" Command="{Binding BrowseFilesCommand}" Margin="8,0" Padding="10,6" 
+                                Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="Transparent"/>
+
+                        <Button Content="Run all" Command="{Binding RunAllCommand}" Margin="8,0" Padding="10,6" 
+                                Background="Transparent" BorderBrush="{StaticResource AccentBrush}" Foreground="{StaticResource AccentBrush}"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding SelectedSetting}" Margin="8,0" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                <Button Content="Close" Grid.Column="2" Click="Close_Clicked" Margin="8,0" Padding="10,6" 
+                                Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="Transparent"/>
+            </Grid>
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource Card}">

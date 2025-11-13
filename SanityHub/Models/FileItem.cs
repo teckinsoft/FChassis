@@ -7,7 +7,6 @@ public enum RunStatus { None, Running, Passed, Failed }
 public partial class FileItem : ObservableObject {
    public string FullPath { get; set; } = string.Empty;
    public string FileName => System.IO.Path.GetFileName (FullPath);
-   public string CombinationName { get; set; } = string.Empty;
 
    [ObservableProperty] RunStatus status = RunStatus.None;
    [ObservableProperty] string details = string.Empty;
@@ -34,5 +33,10 @@ public partial class FileItem : ObservableObject {
             _ => new SolidColorBrush ((Color)ColorConverter.ConvertFromString ("#9CA3AF")),
          };
       }
+   }
+
+   partial void OnStatusChanged (RunStatus value) {
+      OnPropertyChanged (nameof (StatusText));
+      OnPropertyChanged (nameof (StatusBackground));
    }
 }
