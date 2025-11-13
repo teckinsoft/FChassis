@@ -1,17 +1,16 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace SanityHub.Models; 
+namespace SanityHub.Models;
 public enum RunStatus { None, Running, Passed, Failed }
 
 public partial class FileItem : ObservableObject {
    public string FullPath { get; set; } = string.Empty;
    public string FileName => System.IO.Path.GetFileName (FullPath);
+   public string CombinationName { get; set; } = string.Empty;
 
-   [ObservableProperty]RunStatus status = RunStatus.None;
-   [ObservableProperty]string details = string.Empty;
+   [ObservableProperty] RunStatus status = RunStatus.None;
+   [ObservableProperty] string details = string.Empty;
 
    public string StatusText {
       get {
