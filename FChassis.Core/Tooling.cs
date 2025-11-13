@@ -116,7 +116,7 @@ public class Tooling {
       return clonedTooling;
    }
 
-   public const double mJoinableLengthToClose = 1.0;
+   public const double mJoinableLengthToClose = 2.0;
    public const double mNotchJoinableLengthToClose = 5.0;
    public readonly Workpiece Work;
    public readonly List<(E3Thick Ent, Pline Trace)> Traces = [];

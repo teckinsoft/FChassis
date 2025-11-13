@@ -687,14 +687,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          if (mPart.Info.MatlName == "NONE")
             mPart.Info.MatlName = "1.0038";
 
-         if (mPart.CanExplode) {
-            var parts = mPart.ExplodePart ();
-            foreach (var part in parts) {
-               part.Info.FileName = file;
-               mSubParts.Add (part);
-            }
-         }
-
          if (mPart.Model == null) {
             if (mPart.Dwg != null)
                mPart.FoldTo3D ();
@@ -703,7 +695,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             else
                throw new Exception ("Invalid part");
          }
-
+         
          mOverlay = new SimpleVM (DrawOverlay);
          Lux.UIScene = mScene = new Scene (
              new GroupVModel (VModel.For (mPart.Model), mOverlay),
