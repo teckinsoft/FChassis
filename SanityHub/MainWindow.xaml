@@ -56,6 +56,10 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="Sanity Hub" FontSize="20" FontWeight="Bold" Foreground="#111827" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="20,0,0,0">
+                    <ComboBox Width="180" 
+                          ItemsSource="{Binding Combinations}" 
+                          DisplayMemberPath="Name"
+                          SelectedItem="{Binding SelectedCombination}" Margin="0,0,16,0"/>
                     <Button Content="Browse files" Command="{Binding BrowseFilesCommand}" Margin="8,0" Padding="10,6" 
                             Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="Transparent"/>
                     <Button Content="Run all" Command="{Binding RunAllCommand}" Margin="8,0" Padding="10,6" 
@@ -76,7 +80,8 @@
                         <DataGridTemplateColumn Width="48">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Style="{StaticResource IconButton}" Command="{Binding DataContext.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                                    <Button Style="{StaticResource IconButton}" Command="{Binding DataContext.DeleteFileCommand, 
+                                                    RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
                                         <TextBlock FontFamily="Segoe MDL2 Assets" Text="" FontSize="16" Foreground="#EF4444"/>
                                     </Button>
                                 </DataTemplate>
@@ -101,7 +106,8 @@
                         <DataGridTemplateColumn Header="Details" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Command="{Binding DataContext.ShowDetailsCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="6" BorderBrush="Transparent" Background="{StaticResource AccentLight}">
+                                    <Button Command="{Binding DataContext.ShowDetailsCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            CommandParameter="{Binding}" Padding="6" BorderBrush="Transparent" Background="{StaticResource AccentLight}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="" Margin="0,0,6,0"/>
                                             <TextBlock Text="View"/>
@@ -110,12 +116,9 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-
                     </DataGrid.Columns>
                 </DataGrid>
-
             </Grid>
         </Border>
-
     </Grid>
 </Window>

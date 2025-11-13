@@ -11,6 +11,9 @@ using CommunityToolkit.Mvvm.Input;
 using FChassis.Core.Processes;
 using FChassis.Core;
 using Flux.API;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using System.IO;
 
 namespace SanityHub {
    public partial class MainViewModel : ObservableObject {
@@ -18,7 +21,27 @@ namespace SanityHub {
       public Part Part { get; private set; }
       public GenesysHub GenesysHub { get; private set; }
 
-      public MainViewModel () {}
+      public ObservableCollection<Combination> Combinations = [];
+      public Combination SelectedCombination { get; set; }
+
+      public MainViewModel () {
+         CollectCombinations ();
+
+      }
+
+      void CollectCombinations () {
+         var mJSONReadOptions = new JsonSerializerOptions {
+            Converters = { new JsonStringEnumConverter () } // Converts Enums from their string representation
+         };
+
+         string folderPath = "C:\\D drive\\Projects\\Fchassis\\Main FChassis\\FChassis\\TestData\\MCSetting Combinatoins";
+         foreach (string filePath in Directory.GetFiles (folderPath, "*.json")) {
+            if (File.Exists (filePath)) {
+               var json = File.ReadAllText (filePath);
+               var jsonObject = JsonSerializer.Deserialize<JsonElement> (json, mJSONReadOptions);
+            }
+         }
+      }
 
       [RelayCommand]
       private void BrowseFiles () {
@@ -73,24 +96,23 @@ namespace SanityHub {
          GenesysHub.Workpiece = new Workpiece (Part.Model, Part);
       }
 
-
       private void RunFile(FileItem file) {
          file.Status = RunStatus.Running;
          file.Details = $"Started at {DateTime.Now:HH:mm:ss}\n";
 
          try {
             // TODO : Run logic here. We'll simulate work.
-            foreach (SanityTestData test in testList) {
+            foreach (var test in Files) {
                // Part loading, aligning, and cutting
-               LoadPart (test.FxFileName);
+               LoadPart (test.FullPath);
                GenesysHub.Workpiece.Align ();
-               if (test.MCSettings.CutHoles)
+               if (SelectedCombination.MCSettings.CutHoles)
                   GenesysHub.Workpiece.DoAddHoles ();
 
-               if (test.MCSettings.CutMarks)
-                  GenesysHub.Workpiece.DoTextMarking (test.MCSettings);
+               if (SelectedCombination.MCSettings.CutMarks)
+                  GenesysHub.Workpiece.DoTextMarking (SelectedCombination.MCSettings);
 
-               if (test.MCSettings.CutNotches || test.MCSettings.CutCutouts)
+               if (SelectedCombination.MCSettings.CutNotches || SelectedCombination.MCSettings.CutCutouts)
                   GenesysHub.Workpiece.DoCutNotchesAndCutouts ();
 
                GenesysHub.Workpiece.DoSorting ();
