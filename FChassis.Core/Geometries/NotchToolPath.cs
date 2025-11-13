@@ -853,6 +853,14 @@ public class NotchToolPath {
                   JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.Flex2WJTEnd ||
                   JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.PostFlex2WJTEnd)
                   prevPos = mNotchPos.FirstOrDefault (n => n.SegPositionType == SegmentedPositionType.PostFlex2WJTEnd);
+               else if (JustGreaterThanWJTSt.Value.SegPositionType == SegmentedPositionType.Flex1WJTStart ||
+                  JustGreaterThanWJTSt.Value.SegPositionType == SegmentedPositionType.Flex1WJTEnd ||
+                  JustGreaterThanWJTSt.Value.SegPositionType == SegmentedPositionType.PostFlex1WJTEnd)
+                  prevPos = mNotchPos.FirstOrDefault (n => n.SegPositionType == SegmentedPositionType.PostFlex1WJTEnd);
+               else if (JustLesserThanWJTSt.Value.SegPositionType == SegmentedPositionType.PreFlex2WJTStart ||
+                  JustLesserThanWJTSt.Value.SegPositionType == SegmentedPositionType.Flex2WJTStart ||
+                  JustLesserThanWJTSt.Value.SegPositionType == SegmentedPositionType.Flex2WJTEnd )
+                  prevPos = mNotchPos.FirstOrDefault (n => n.SegPositionType == SegmentedPositionType.PostFlex2WJTEnd);
                else if (JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.GambitPreApproach ||
                   JustGreaterThanWJTEnd.Value.SegPositionType == SegmentedPositionType.Approach)
                   prevPos = mNotchPos.FirstOrDefault (n => n.SegPositionType == SegmentedPositionType.GambitPostApproach);
