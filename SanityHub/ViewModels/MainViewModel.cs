@@ -1,27 +1,22 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FChassis.Core;
+using FChassis.Core.GCodeGen;
 using FChassis.Core.Processes;
 using Flux.API;
 using Microsoft.Win32;
 using SanityHub.Models;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 
 namespace SanityHub {
    public partial class MainViewModel : ObservableObject {
       [ObservableProperty] string selectedSetting = string.Empty;
       public ObservableCollection<FileItem> Files { get; } = [];
-      public Part Part { get; private set; } = new ();
-      public GenesysHub GenesysHub { get; private set; } = new();
-      public MainViewModel () {
-         CollectCombinations ();
-      }
-
-      void CollectCombinations () {
-
-      }
+      GenesysHub genesysHub = new ();
+      public MainViewModel () { }
 
       [RelayCommand]
       private void BrowseFiles () {
@@ -54,7 +49,8 @@ namespace SanityHub {
 
       [RelayCommand]
       public void RunAll () {
-         string folderPath = "C:\\D drive\\Projects\\FChassis\\FChassis\\TestData\\SettingJSONs";
+         // Add apppropriate folder path 
+         string folderPath = "C:\\D drive\\Projects\\Fchassis\\Main FChassis\\FChassis\\TestData\\SettingJSONs";
          foreach (string filePath in Directory.GetFiles (folderPath, "*.json")) {
             if (!File.Exists (filePath)) continue;
             SelectedSetting = Path.GetFileNameWithoutExtension (filePath);
@@ -65,47 +61,40 @@ namespace SanityHub {
          }
       }
 
-      public void LoadPart (string partName) {
-         Part = Part.Load (partName);
-         if (Part.Info.MatlName == "NONE")
-            Part.Info.MatlName = "1.0038";
-
-         if (Part.Model == null) {
-            if (Part.Dwg != null) Part.FoldTo3D ();
-            else if (Part.SurfaceModel != null)
-               Part.SheetMetalize ();
-            else
-               throw new Exception ("Invalid part");
-         }
-
-         GenesysHub.Workpiece = new Workpiece (Part.Model, Part);
-      }
-
       private void RunFile (FileItem file) {
          file.Status = RunStatus.Running;
          file.Details = $"Started at {DateTime.Now:HH:mm:ss}\n";
 
          try {
-            // TODO : Run logic here. We'll simulate work.
-            // Part loading, aligning, and cutting
-            //LoadPart (file.FullPath);
-            //GenesysHub.Workpiece.Align ();
-            //if (MCSettings.It.CutHoles) GenesysHub.Workpiece.DoAddHoles ();
-            //if (MCSettings.It.CutMarks) GenesysHub.Workpiece.DoTextMarking (MCSettings.It);
-            //if (MCSettings.It.CutNotches || MCSettings.It.CutCutouts) GenesysHub.Workpiece.DoCutNotchesAndCutouts ();
+            var part = Part.Load (file.FullPath);
+            genesysHub.Workpiece = new Workpiece (part.Model, part);
+            genesysHub.Workpiece.Align ();
+            if (MCSettings.It.CutHoles) genesysHub.Workpiece.DoAddHoles ();
+            if (MCSettings.It.CutMarks) genesysHub.Workpiece.DoTextMarking (MCSettings.It);
+            if (MCSettings.It.CutNotches || MCSettings.It.CutCutouts) genesysHub.Workpiece.DoCutNotchesAndCutouts ();
 
-            //GenesysHub.Workpiece.DoSorting ();
+            // Check results of Branch and Bound
+            MultiPassCuts mpc = new (genesysHub.GCodeGen);
+            if (mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures) {
+               file.Details += $"Branch and Bound Optimization started at {DateTime.Now:HH:mm:ss.fff}\n";
+               mpc.ComputeBranchAndBoundCutscopes ();
+               file.Details += $"Completed Branch and Bound Optimization at {DateTime.Now:HH:mm:ss.fff}\n";
 
-            // Simulate pass/fail
-            var passed = new Random ().NextDouble () > 0.3; // 70% pass rate
+               var fieldInfo = typeof (MultiPassCuts).GetField ("mMachinableCutScopes", BindingFlags.NonPublic | BindingFlags.Instance);
+               var machinableCutScopes = fieldInfo?.GetValue (mpc) as List<CutScope> ?? [];
 
-            if (passed) {
-               file.Status = RunStatus.Passed;
-               file.Details += $"Result: Passed at {DateTime.Now:HH:mm:ss}\n";
-            } else {
-               file.Status = RunStatus.Failed;
-               file.Details += $"Result: Failed at {DateTime.Now:HH:mm:ss}\nError: Simulated failure.\n";
+               file.Details += $"BRANCH AND BOUND results---------------\n";
+               file.Details += $"Cutscopes count -- {machinableCutScopes.Count}\n";
+               file.Details += $"BRANCH AND BOUND results---------------\n";
             }
+
+            // Generate GCode
+            file.Details += $"Started GCode generation at {DateTime.Now:HH:mm:ss}\n";
+            var traces = Utils.ComputeGCode (genesysHub.GCodeGen, false);
+            file.Details += $"Completed GCode generation at {DateTime.Now:HH:mm:ss}\n";
+
+            // If no error comes up, set the status to passed.
+            file.Status = RunStatus.Passed;
          } catch (Exception ex) {
             file.Status = RunStatus.Failed;
             file.Details += $"Exception: {ex.Message}\n";
