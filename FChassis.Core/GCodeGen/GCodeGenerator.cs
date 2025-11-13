@@ -353,14 +353,15 @@ public class GCodeGenerator {
 
                   } else { // RH Component
                      comment = "Web -> Bottom Flange Notch RH Comp";
-                     if (stNormalFlange == EFlange.Top && endNormalFlange == EFlange.Top)
+                     if (stNormalFlange == EFlange.Bottom && endNormalFlange == EFlange.Bottom)
                         blockType = 4.9;
                      else if (stNormalFlange == EFlange.Web && endNormalFlange == EFlange.Web) {
                         if (isFlexCut) blockType = 4.5;
                         else blockType = 4.0;
                      } else if (stNormalFlange == EFlange.Flex || endNormalFlange == EFlange.Flex)
                         blockType = 4.5;
-                     else throw new Exception ("Unknown Flange type for toolsegment of the notch");
+                     else
+                        throw new Exception ("Unknown Flange type for toolsegment of the notch");
                   }
                   gcodeSt = $"BlockType={blockType:F1} ({comment})";
                   break;
