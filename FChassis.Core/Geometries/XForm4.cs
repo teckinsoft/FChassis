@@ -612,7 +612,8 @@ public class Geom {
       Arc3 arc = new (stPoint, some2ndPoint, some3rdPoint, endPoint);
       return arc;
    }
-   #endregion
+
+   #endregion Methods for 3D Arc
 
    #region Methods for generic Curve ( Arc or Line in 3D )
    /// <summary>
@@ -2001,6 +2002,52 @@ public class XForm4 {
       XForm4 rotateXForm = GetRotationXForm (ax, angle);
       rotMat = (this * rotateXForm);
       return rotMat;
+   }
+
+   /// <summary>
+   /// Rotates point P by angle theta (radians) about an axis that passes through point C
+   /// and is directed by the **unit** vector A.  
+   /// Positive theta = counter-clockwise when looking **against** the ray A
+   /// (i.e. thumb along A → fingers curl in the positive direction – right-hand rule).
+   /// </summary>
+   public static Point3 AxisRotation (Vector3 A, Point3 C, Point3 P, double theta) {
+      // ---- 1. Pre-compute trig values ---------------------------------
+      A = A.Normalized ();
+      double c = Math.Cos (theta);
+      double s = Math.Sin (theta);
+      double v = 1.0 - c;
+
+      double ax = A.X, ay = A.Y, az = A.Z;   // A is already normalized
+
+      // ---- 2. Build the 3×3 rotation matrix (Rodrigues) ----------------
+      double R11 = c + ax * ax * v;
+      double R12 = ax * ay * v - az * s;
+      double R13 = ax * az * v + ay * s;
+
+      double R21 = ax * ay * v + az * s;
+      double R22 = c + ay * ay * v;
+      double R23 = ay * az * v - ax * s;
+
+      double R31 = ax * az * v - ay * s;
+      double R32 = ay * az * v + ax * s;
+      double R33 = c + az * az * v;
+
+      // ---- 3. Vector from axis point C to the point P ------------------
+      double px = P.X - C.X;
+      double py = P.Y - C.Y;
+      double pz = P.Z - C.Z;
+
+      // ---- 4. Apply rotation to that vector ---------------------------
+      double rx = R11 * px + R12 * py + R13 * pz;
+      double ry = R21 * px + R22 * py + R23 * pz;
+      double rz = R31 * px + R32 * py + R33 * pz;
+
+      // ---- 5. Translate back by C ------------------------------------
+      double pxPrime = rx + C.X;
+      double pyPrime = ry + C.Y;
+      double pzPrime = rz + C.Z;
+
+      return new Point3 (pxPrime, pyPrime, pzPrime);
    }
    #endregion
 

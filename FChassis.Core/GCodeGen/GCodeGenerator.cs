@@ -2146,7 +2146,7 @@ public class GCodeGenerator {
    /// </summary>
    /// <param name="toolingItem"></param>
    /// <returns>The modified list of the tooling segments</returns>
-   public List<ToolingSegment> GetSegmentsAccountedForApproachLength (Tooling toolingItem) {
+   public List<ToolingSegment> AddLeadinToTooling (Tooling toolingItem) {
       // If the tooling item is Mark, no need of creating the G Code
       if (toolingItem.IsMark ()) return [.. toolingItem.Segs];
 

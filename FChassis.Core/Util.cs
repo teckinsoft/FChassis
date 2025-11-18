@@ -4,6 +4,8 @@ using Flux.API;
 using FChassis.Core.GCodeGen;
 using FChassis.Core.Geometries;
 using System.Text.Json;
+using static FChassis.Core.Geometries.Geom;
+using static FChassis.Core.MCSettings;
 
 namespace FChassis.Core;
 
@@ -948,13 +950,18 @@ public static class Utils {
    /// <param name="gcgen"></param>
    /// <param name="leastCurveLength"></param>
    /// <returns></returns>
-   public static List<ToolingSegment> GetSegmentsAccountedForApproachLength (Tooling toolingItem,
+   public static List<ToolingSegment> AddLeadinToTooling (Tooling toolingItem, List<ToolingSegment> segs,
       GCodeGenerator gcgen = null, double leastCurveLength = 0.5) {
       // If the tooling item is Mark, no need of creating the G Code
       if (toolingItem.IsMark ()) return [.. toolingItem.Segs];
 
       List<ToolingSegment> modifiedSegmentsList = [];
-      var toolingSegmentsList = toolingItem.Segs.ToList ();
+      List<ToolingSegment> toolingSegmentsList;
+      if (segs == null || segs.Count == 0)
+         toolingSegmentsList = [.. toolingItem.Segs];
+      else
+         toolingSegmentsList = segs;
+
       Vector3 materialRemovalDirection; Point3 firstToolingEntryPt;
       if (!toolingItem.IsNotch () && !toolingItem.IsMark ()) {
          // E3Plane normal 
@@ -2485,5 +2492,45 @@ public static class Utils {
             return true;
       }
       return false;
+   }
+
+   public static List<ToolingSegment> ModifyToolingForToolDiaCompensation (Tooling toolingItem) {
+      List<ToolingSegment> resSegs;
+      if (toolingItem.Segs.Count == 0)
+         throw new ArgumentException ("Tooling item does not have tooling segments", nameof (toolingItem));
+      else if (toolingItem.Segs.Count == 1) {
+         var seg = toolingItem.Segs[0].Curve;
+         if (seg is Line3)
+            throw new Exception ("The single segment of the tooling item is not an Arc");
+         var arc3 = Utils.ModifyCircleForToolDiaCompensation (seg as Arc3, toolingItem.Segs[0].Vec0);
+         resSegs = [Geom.CreateToolingSegmentForCurve (toolingItem.Segs[0], arc3 as Curve3)];
+      } else {
+         int maxXIndex = 0;
+         double maxX = toolingItem.Segs[0].Curve.Start.X;
+         for (int ii = 1; ii < toolingItem.Segs.Count; ii++) {
+            if (maxX < toolingItem.Segs[ii].Curve.Start.X) {
+               maxX = toolingItem.Segs[ii].Curve.Start.X;
+               maxXIndex = ii;
+            }
+         }
+         resSegs = [.. toolingItem.Segs.Skip (maxXIndex), .. toolingItem.Segs.Take (maxXIndex)];
+      }
+      return resSegs;
+   }
+
+   public static Arc3 ModifyCircleForToolDiaCompensation (Arc3 arc, Vector3 apn) {
+      if (!Utils.IsCircle (arc as Curve3))
+         return arc;
+      var (cen, rad) = Geom.EvaluateCenterAndRadius (arc);
+      Point3 newStPt = new (rad + cen.X, cen.Y, cen.Z);
+      Point3 intPoint1;
+      Point3 intPoint2;
+
+      intPoint1 = XForm4.AxisRotation (apn, cen, newStPt, Math.PI / 4);
+      intPoint2 = XForm4.AxisRotation (apn, cen, newStPt, -Math.PI / 4);
+
+      (cen, rad) = Geom.EvaluateCenterAndRadius (arc);
+
+      return new Arc3 (newStPt, intPoint1, intPoint2, newStPt);
    }
 }

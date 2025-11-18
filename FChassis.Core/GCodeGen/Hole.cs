@@ -53,9 +53,11 @@ public class Hole : ToolingFeature {
       mTotalToolingCutLength = totalToolingCutLength;
       mPrevMarkToolingsLength = prevMarkToolingsLength;
       mTotalMarkLength = totalMarkLength;
-      mToolingSegments = Utils.GetSegmentsAccountedForApproachLength (ToolingItem, GCGen, mLeastCurveLength);
+      mToolingSegments = Utils.ModifyToolingForToolDiaCompensation (toolingItem);
+      ToolingItem.Segs = mToolingSegments;
+      mToolingSegments = Utils.AddLeadinToTooling (ToolingItem, mToolingSegments, GCGen, mLeastCurveLength);
    }
-   #endregion
+   #endregion Constructor(s)
 
    #region Base class overriders
    /// <summary>
