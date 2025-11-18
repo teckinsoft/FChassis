@@ -2507,22 +2507,27 @@ public static class Utils {
       } else {
          int maxXIndex = 0;
          double maxX = double.MinValue;
-         double minYZ = double.MaxValue;
-         var arcPlaneType = GetArcPlaneType (toolingItem.Segs[0].Vec0, XForm4.IdentityXfm);
+         double minY = double.MaxValue;
+         double minZ = double.MaxValue;
+         
          for (int ii = 0; ii < toolingItem.Segs.Count; ii++) {
+            var arcPlaneType = GetArcPlaneType (toolingItem.Segs[ii].Vec0, XForm4.IdentityXfm);
             if (maxX.LTEQ (toolingItem.Segs[ii].Curve.Start.X)) {
                maxX = toolingItem.Segs[ii].Curve.Start.X;
-               double yz = double.MaxValue;
-               if (arcPlaneType == EPlane.Top)
-                  yz = toolingItem.Segs[ii].Curve.Start.Y;
+               double y = toolingItem.Segs[ii].Curve.Start.Y;
+               double z = toolingItem.Segs[ii].Curve.Start.Z;
 
-               else if ( arcPlaneType == EPlane.YNeg || arcPlaneType == EPlane.YPos)
-                  yz = toolingItem.Segs[ii].Curve.Start.Z;
-               
-               if (minYZ.GTEQ (yz))
-                  minYZ = toolingItem.Segs[ii].Curve.Start.Y;
-               
-               maxXIndex = ii;
+               if (arcPlaneType == EPlane.Top) {
+                  if (minY.GTEQ (y)) {
+                     minY = toolingItem.Segs[ii].Curve.Start.Y;
+                     maxXIndex = ii;
+                  }
+               } else {
+                  if (minZ.GTEQ (z)) {
+                     minZ = toolingItem.Segs[ii].Curve.Start.Z;
+                     maxXIndex = ii;
+                  }
+               }
             }
          }
          resSegs = [.. toolingItem.Segs.Skip (maxXIndex), .. toolingItem.Segs.Take (maxXIndex)];

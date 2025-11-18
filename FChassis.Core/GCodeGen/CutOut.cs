@@ -31,6 +31,8 @@ public class CutOut : ToolingFeature {
       NotchApproachLength = notchApproachLength;
       mPrevPlane = prevPlaneType;
       mWireJointDistance = wireJointDistance;
+      ToolingSegments = Utils.ModifyToolingForToolDiaCompensation (ToolingItem);
+      ToolingItem.Segs = ToolingSegments;
       ToolingSegments = GCGen.AddLeadinToTooling (ToolingItem);
       if (ToolingSegments == null || ToolingSegments.Count == 0)
          throw new Exception ("Segments accounted for entry is null");

@@ -338,7 +338,20 @@ public class Workpiece : INotifyPropertyChanged {
                if (cut.IsNarrowFlexOnlyFeature ()) continue;
             }
             if (cut.IsFlexOnlyFeature ()) continue;
+            
+            // For some reason, a closed PLine in Flux after projection
+            // to the E3Plane/E3Flex in the Tooling constructor, does not
+            // produce a closed tooling. This issue has to be investigated.
+            // The following fix is temporary, to close the tooling
+            var modifidSegs = cut.ExtractSegs.ToList ();
             cut.Name = $"Tooling-{cutIndex++}";
+            if ( cut.Kind == EKind.Cutout) {
+               if (cut.Segs[0].Curve.Start.DistTo (cut.Segs[^1].Curve.End).SGT (0)) {
+                  var missingTs = Geom.CreateToolingSegmentForCurve (cut.Segs[0], new Line3 (cut.Segs[^1].Curve.End, cut.Segs[0].Curve.Start));
+                  modifidSegs.Add (missingTs);
+                  cut.Segs = modifidSegs;
+               }
+            }
             cut.FeatType = $"{Utils.GetFlangeType (cut,
                                                    GCodeGenerator.GetXForm (this))} - {cut.Kind}";
             var cutSegs = cut.Segs.ToList ();
