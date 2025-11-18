@@ -2506,10 +2506,22 @@ public static class Utils {
          resSegs = [Geom.CreateToolingSegmentForCurve (toolingItem.Segs[0], arc3 as Curve3)];
       } else {
          int maxXIndex = 0;
-         double maxX = toolingItem.Segs[0].Curve.Start.X;
-         for (int ii = 1; ii < toolingItem.Segs.Count; ii++) {
-            if (maxX < toolingItem.Segs[ii].Curve.Start.X) {
+         double maxX = double.MinValue;
+         double minYZ = double.MaxValue;
+         var arcPlaneType = GetArcPlaneType (toolingItem.Segs[0].Vec0, XForm4.IdentityXfm);
+         for (int ii = 0; ii < toolingItem.Segs.Count; ii++) {
+            if (maxX.LTEQ (toolingItem.Segs[ii].Curve.Start.X)) {
                maxX = toolingItem.Segs[ii].Curve.Start.X;
+               double yz = double.MaxValue;
+               if (arcPlaneType == EPlane.Top)
+                  yz = toolingItem.Segs[ii].Curve.Start.Y;
+
+               else if ( arcPlaneType == EPlane.YNeg || arcPlaneType == EPlane.YPos)
+                  yz = toolingItem.Segs[ii].Curve.Start.Z;
+               
+               if (minYZ.GTEQ (yz))
+                  minYZ = toolingItem.Segs[ii].Curve.Start.Y;
+               
                maxXIndex = ii;
             }
          }
