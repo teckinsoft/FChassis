@@ -1,6 +1,7 @@
 ﻿using Flux.API;
 using FChassis.Core.Geometries;
 using FChassis.Core.GCodeGen;
+using System.Diagnostics;
 namespace FChassis.Core;
 
 public readonly struct PointVec {
@@ -197,7 +198,7 @@ public class Tooling {
       return t;
    }
 
-   public bool IsClosed (double tol) => End.Pt.DistTo (Start.Pt) <= tol;   
+   public bool IsClosed (double tol = mJoinableLengthToClose) => End.Pt.DistTo (Start.Pt) <= tol;   
    
    // If the tooling exists in more than one flange, then it returns true
    public bool IsDualFlangeTooling () {
@@ -228,6 +229,35 @@ public class Tooling {
          Kind = EKind.Cutout;
          OffsetStartingTraceToE3PlaneRef ();
       }
+   }
+   public bool IsDualFlangeCutout () {
+      bool toTreatAsCutOut = CutOut.ToTreatAsCutOut (Segs, Bound3, MCSettings.It.MinCutOutLengthThreshold);
+      if (( IsClosed() && Kind == EKind.Cutout ) || (Kind == EKind.Hole && toTreatAsCutOut)) {
+         if (Utils.IsDualFlangeSameSideCutout (Segs))
+            return true;
+      }
+      return false;
+   }
+
+   public bool IsWebFlangeFeature () {
+      for (int ii = 0; ii < Segs.Count; ii++) {
+         var plType1 = Utils.GetFeatureNormalPlaneType (Segs[ii].Vec0, XForm4.IdentityXfm);
+         var plType2 = Utils.GetFeatureNormalPlaneType (Segs[ii].Vec1, XForm4.IdentityXfm);
+         if (plType1 != Utils.EPlane.Top || plType2 != Utils.EPlane.Top)
+            return false;
+      }
+      return true;
+   }
+
+   public bool IsTopOrBottomFlangeFeature () {
+      for (int ii = 0; ii < Segs.Count; ii++) {
+         var plType1 = Utils.GetFeatureNormalPlaneType (Segs[ii].Vec0, XForm4.IdentityXfm);
+         var plType2 = Utils.GetFeatureNormalPlaneType (Segs[ii].Vec1, XForm4.IdentityXfm);
+         if ( (plType1 != Utils.EPlane.YPos && plType1 != Utils.EPlane.YNeg) &&
+            (plType2 != Utils.EPlane.YPos && plType2 != Utils.EPlane.YNeg ) )
+            return false;
+      }
+      return true;
    }
 
    public void DrawWaypoints (Color32 color, double height) {

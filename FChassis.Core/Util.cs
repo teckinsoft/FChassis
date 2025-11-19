@@ -754,6 +754,33 @@ public static class Utils {
       return new (newToolingEntryPoint, scrapSideDirection);
    }
 
+   public static Tuple<Point3, Vector3> GetMaterialRemovalSideDirection (List<ToolingSegment> segmentsList) {
+      var toolingPlaneNormal = segmentsList[0].Vec0;
+
+      // Tooling direction as the direction of the st to end point in the case of line OR
+      // tangent int he direction of start to end of the arc in the case of an arc
+      Vector3 toolingDir;
+      Point3 newToolingEntryPoint;
+      if (Utils.IsCircle (segmentsList[0].Curve))
+         newToolingEntryPoint = segmentsList[0].Curve.Start;
+      else
+         newToolingEntryPoint = Geom.GetMidPoint (segmentsList[0].Curve, toolingPlaneNormal);
+
+      if (segmentsList[0].Curve is Arc3 arc)
+         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal);
+      else
+         toolingDir = (segmentsList[0].Curve.End - segmentsList[0].Curve.Start).Normalized ();
+
+      // Ref points along the direction of the binormal, which is along or opposing the direction
+      // in which the material removal side exists.
+      var biNormal = Geom.Cross (toolingDir, toolingPlaneNormal).Normalized ();
+      Vector3 scrapSideDirection = biNormal.Normalized ();
+      if (Geom.Cross (toolingDir, biNormal).Opposing (toolingPlaneNormal))
+         scrapSideDirection = -biNormal;
+
+      return new (newToolingEntryPoint, scrapSideDirection);
+   }
+
    public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EKind featType, ECutKind profileKind = ECutKind.None) {
       var toolingPlaneNormal = ts.Vec0;
       if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal))
@@ -943,6 +970,31 @@ public static class Utils {
       return res;
    }
 
+   public static List<ToolingSegment> MoveStartSegToPriorityFlange (List<ToolingSegment> toolingSegmentsList, EFlange priorityFlange) {
+      int newStartIndex = -1;
+      List<ToolingSegment> outList = [];
+      for (int ii = 0; ii < toolingSegmentsList.Count; ii++) {
+         var plType1 = Utils.GetFeatureNormalPlaneType (toolingSegmentsList[ii].Vec0, XForm4.IdentityXfm);
+         var plType2 = Utils.GetFeatureNormalPlaneType (toolingSegmentsList[ii].Vec1, XForm4.IdentityXfm);
+         if (plType1 == plType2 && plType1 != EPlane.Flex) {
+            if (priorityFlange == EFlange.Web && plType1 == EPlane.Top) {
+               newStartIndex = ii;
+               break;
+            } else if ((priorityFlange == EFlange.Top || priorityFlange == EFlange.Bottom) &&
+               (plType1 == EPlane.YPos || plType1 == EPlane.YNeg)) {
+               newStartIndex = ii;
+               break;
+            }
+         }
+      }
+      if (newStartIndex != -1)
+         outList = [.. toolingSegmentsList.Skip (newStartIndex), .. toolingSegmentsList.Take (newStartIndex)];
+      if (outList.Count == 0)
+         return toolingSegmentsList;
+      else
+         return outList;
+   }
+
    /// <summary>
    /// 
    /// </summary>
@@ -962,10 +1014,36 @@ public static class Utils {
       else
          toolingSegmentsList = segs;
 
+      // Do not make the flex tool segment as the first in the segment list
+      if (toolingItem.IsDualFlangeCutout ()) {
+         //EFlange priorityFlange = EFlange.Web;
+         //int newStartIndex = -1;
+
+         //for (int ii = 0; ii < toolingSegmentsList.Count; ii++) {
+         //   var plType1 = Utils.GetFeatureNormalPlaneType (toolingSegmentsList[ii].Vec0, XForm4.IdentityXfm);
+         //   var plType2 = Utils.GetFeatureNormalPlaneType (toolingSegmentsList[ii].Vec1, XForm4.IdentityXfm);
+         //   if (plType1 == plType2 && plType1 != EPlane.Flex) {
+         //      if (priorityFlange == EFlange.Web && plType1 == EPlane.Top) {
+         //         newStartIndex = ii;
+         //         break;
+         //      } else if ((priorityFlange == EFlange.Top || priorityFlange == EFlange.Bottom) &&
+         //         (plType1 == EPlane.YPos || plType1 == EPlane.YPos)) {
+         //         newStartIndex = ii;
+         //         break;
+         //      }
+         //   }
+         //}
+
+         //if (newStartIndex != -1)
+         //   toolingSegmentsList = [.. toolingSegmentsList.Skip (newStartIndex), .. toolingSegmentsList.Take (newStartIndex)];
+         toolingSegmentsList = Utils.MoveStartSegToPriorityFlange (toolingSegmentsList, EFlange.Web);
+      }
+
       Vector3 materialRemovalDirection; Point3 firstToolingEntryPt;
       if (!toolingItem.IsNotch () && !toolingItem.IsMark ()) {
          // E3Plane normal 
-         var apn = Utils.GetEPlaneNormal (toolingItem, XForm4.IdentityXfm);
+         //var apn = Utils.GetEPlaneNormal (toolingItem, XForm4.IdentityXfm);
+         var apn = toolingSegmentsList[0].Vec0.Normalized ();
 
          // Compute an appropriate approach length. From the engg team, 
          // it was asked to have a dia = approach length * 4, which is 
@@ -977,7 +1055,7 @@ public static class Utils {
          double approachLen = gcgen?.ApproachLength ?? MCSettings.It.ApproachLength;
          var approachDistOfArc = approachLen * 4.0;
          double circleRad;
-         if (toolingItem.Segs.ToList ()[0].Curve is Arc3 circle && Utils.IsCircle (circle)) {
+         if (toolingSegmentsList[0].Curve is Arc3 circle && Utils.IsCircle (circle)) {
             (_, circleRad) = Geom.EvaluateCenterAndRadius (circle);
             if (circleRad < approachDistOfArc) approachDistOfArc = approachLen;
             while (circleRad < approachDistOfArc) {
@@ -987,7 +1065,7 @@ public static class Utils {
          }
 
          // Compute the scrap side direction
-         (firstToolingEntryPt, materialRemovalDirection) = Utils.GetMaterialRemovalSideDirection (toolingItem);
+         (firstToolingEntryPt, materialRemovalDirection) = Utils.GetMaterialRemovalSideDirection (toolingSegmentsList);
 
          // Compute the tooling direction.
          Vector3 toolingDir;
@@ -1026,10 +1104,12 @@ public static class Utils {
             List<Point3> internalPoints = [];
             internalPoints.Add (Geom.GetMidPoint (toolingSegmentsList[0].Curve, apn));
             var splitCurves = Geom.SplitCurve (toolingSegmentsList[0].Curve, internalPoints, apn, deltaBetween: 0.0);
-            modifiedSegmentsList.Add (new (arc, toolingSegmentsList[0].Vec0, toolingSegmentsList[0].Vec0));
-            modifiedSegmentsList.Add (new (splitCurves[1], toolingSegmentsList[0].Vec0, toolingSegmentsList[0].Vec1));
+            var meanNormal = (toolingSegmentsList[0].Vec0 + toolingSegmentsList[0].Vec1) / 2.0;
+            modifiedSegmentsList.Add (new (arc, meanNormal, meanNormal));
+            modifiedSegmentsList.Add (new (splitCurves[1], meanNormal, toolingSegmentsList[0].Vec1));
             for (int ii = 1; ii < toolingSegmentsList.Count; ii++) modifiedSegmentsList.Add (toolingSegmentsList[ii]);
-            modifiedSegmentsList.Add (new (splitCurves[0], toolingSegmentsList[0].Vec0, toolingSegmentsList[0].Vec1));
+            modifiedSegmentsList.Add (new (splitCurves[0], toolingSegmentsList[0].Vec0, meanNormal));
+
             return modifiedSegmentsList;
          }
       } else return toolingSegmentsList;
@@ -2468,6 +2548,23 @@ public static class Utils {
       return false;
    }
 
+   public static bool IsDualFlangeSameSideCutout (List<ToolingSegment> segs) {
+      int planes = 0;
+      EPlane plane = EPlane.None;
+      foreach( var seg in segs) {
+         var plType1 = Utils.GetFeatureNormalPlaneType (seg.Vec0, XForm4.IdentityXfm);
+         if (plType1 == EPlane.Top || plType1 == EPlane.YPos || plType1 == EPlane.YNeg ) {
+            if (plane != plType1) {
+               plane = plType1;
+               planes++;
+            }
+         }
+         if ( planes == 2)
+            return true;
+      }
+      // CONSIDER_CONSIDER what if the hole/citout is only on the flex
+      return false;
+   }
    /// <summary>
    /// This method returns the length of the tooling segments specified from
    /// start and end index. If they are specified as -1, this returns the 
@@ -2494,43 +2591,52 @@ public static class Utils {
       return false;
    }
 
-   public static List<ToolingSegment> ModifyToolingForToolDiaCompensation (Tooling toolingItem) {
+   public static List<ToolingSegment> ModifyToolingForToolDiaCompensation (Tooling toolingItem, List<ToolingSegment> toolingSegs) {
       List<ToolingSegment> resSegs;
-      if (toolingItem.Segs.Count == 0)
-         throw new ArgumentException ("Tooling item does not have tooling segments", nameof (toolingItem));
-      else if (toolingItem.Segs.Count == 1) {
-         var seg = toolingItem.Segs[0].Curve;
+      if (toolingSegs.Count == 0)
+         throw new ArgumentException ("List of tooling segments is empty", nameof (toolingSegs));
+      else if (toolingSegs.Count == 1) {
+         var seg = toolingSegs[0].Curve;
          if (seg is Line3)
             throw new Exception ("The single segment of the tooling item is not an Arc");
-         var arc3 = Utils.ModifyCircleForToolDiaCompensation (seg as Arc3, toolingItem.Segs[0].Vec0);
-         resSegs = [Geom.CreateToolingSegmentForCurve (toolingItem.Segs[0], arc3 as Curve3)];
+         var arc3 = Utils.ModifyCircleForToolDiaCompensation (seg as Arc3, toolingSegs[0].Vec0);
+         resSegs = [Geom.CreateToolingSegmentForCurve (toolingSegs[0], arc3 as Curve3)];
       } else {
+         var ssegs = toolingSegs;
+         
+         if (toolingItem.IsDualFlangeCutout () )
+            ssegs = MoveStartSegToPriorityFlange (ssegs, EFlange.Web);
+
+         bool isWebFlangeFeature = toolingItem.IsWebFlangeFeature ();
+         bool isTopOrBottomFlangeFeature = toolingItem.IsTopOrBottomFlangeFeature ();
          int maxXIndex = 0;
          double maxX = double.MinValue;
-         double minY = double.MaxValue;
-         double minZ = double.MaxValue;
+         //double minY = double.MaxValue;
+         //double minZ = double.MaxValue;
+         double minYZ = double.MaxValue;
          
-         for (int ii = 0; ii < toolingItem.Segs.Count; ii++) {
-            var arcPlaneType = GetArcPlaneType (toolingItem.Segs[ii].Vec0, XForm4.IdentityXfm);
-            if (maxX.LTEQ (toolingItem.Segs[ii].Curve.Start.X)) {
-               maxX = toolingItem.Segs[ii].Curve.Start.X;
-               double y = toolingItem.Segs[ii].Curve.Start.Y;
-               double z = toolingItem.Segs[ii].Curve.Start.Z;
-
-               if (arcPlaneType == EPlane.Top) {
-                  if (minY.GTEQ (y)) {
-                     minY = toolingItem.Segs[ii].Curve.Start.Y;
+         for (int ii = 0; ii < ssegs.Count; ii++) {
+            var arcPlaneType = GetArcPlaneType (ssegs[ii].Vec0, XForm4.IdentityXfm);
+            if (maxX.SLT (ssegs[ii].Curve.Start.X)) {
+               maxX = ssegs[ii].Curve.Start.X;
+               double yz;
+               double y = ssegs[ii].Curve.Start.Y;
+               double z = ssegs[ii].Curve.Start.Z;
+               maxXIndex = ii;
+               if (isWebFlangeFeature) {
+                  if (minYZ.SGT (y)) {
+                     minYZ = ssegs[ii].Curve.Start.Y;
                      maxXIndex = ii;
                   }
-               } else {
-                  if (minZ.GTEQ (z)) {
-                     minZ = toolingItem.Segs[ii].Curve.Start.Z;
+               }else if (isTopOrBottomFlangeFeature) {
+                  if (minYZ.SGT (z)) {
+                     minYZ = ssegs[ii].Curve.Start.Z;
                      maxXIndex = ii;
                   }
                }
             }
          }
-         resSegs = [.. toolingItem.Segs.Skip (maxXIndex), .. toolingItem.Segs.Take (maxXIndex)];
+         resSegs = [.. ssegs.Skip (maxXIndex), .. ssegs.Take (maxXIndex)];
       }
       return resSegs;
    }
