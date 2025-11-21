@@ -209,9 +209,9 @@
                             </Grid.RowDefinitions>
 
                             <Label Grid.Row="0">Input Directory W: Maps To</Label>
-                            <TextBox Name="tbInputDirectoryWPath" Grid.Row="0" Grid.Column="1" IsReadOnly="False"/>
-                            <Button Name="btnSelIpDir" Grid.Row="0" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
-                                Width="60" Height="20" Margin="5 0" Click="OnInputFolderSelect"/>
+                            <TextBox Name="tbInputDirectoryWPath" Grid.Row="0" Grid.Column="1" IsReadOnly="True"/>
+                            <!--<Button Name="btnSelIpDir" Grid.Row="0" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
+                                Width="60" Height="20" Margin="5 0" Click="OnInputFolderSelect"/>-->
                             
                             <Label Grid.Row="1">Output Directory</Label>
                             <TextBox Name="tbDirectoryPath" Grid.Row="1" Grid.Column="1" IsReadOnly="False"/>

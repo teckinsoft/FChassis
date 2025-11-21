@@ -664,7 +664,7 @@ public partial class MCSettings : INotifyPropertyChanged {
    [IgnoreMember] // Ignore this field for MessagePack serialization
    bool mCutFlange;
 
-   #endregion
+   #endregion Properties with JSON Attributes
 
    #region Data Members
    [IgnoreMember] // Ignore these fields for MessagePack serialization

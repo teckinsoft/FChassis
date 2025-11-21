@@ -65,13 +65,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          // Get the application directory
          // Get the default path from registry if FChassis is installed
          string localAppDir = "";
-         SettingServices.It.LoadSettings (MCSettings.It);
-         if (string.IsNullOrEmpty (MCSettings.It.WMapLocation)) {
-            localAppDir = Environment.GetFolderPath (Environment.SpecialFolder.LocalApplicationData);
-            MCSettings.It.WMapLocation = localAppDir;
-            SaveSettings ();
-         } else
-            localAppDir = MCSettings.It.WMapLocation;
+         //SettingServices.It.LoadSettings (MCSettings.It);
+         //if (string.IsNullOrEmpty (MCSettings.It.WMapLocation)) {
+         //   localAppDir = Environment.GetFolderPath (Environment.SpecialFolder.LocalApplicationData);
+         //   MCSettings.It.WMapLocation = localAppDir;
+         //   SaveSettings ();
+         //} else
+         //   localAppDir = MCSettings.It.WMapLocation;
+
+         localAppDir = GetAppSubstPath ();
+         ValidateDirectory (localAppDir, createOnNoExist: true, terminateOnError: true);
+         MCSettings.It.WMapLocation = localAppDir;
+         SaveSettings ();
 
          var fcDir = Path.Combine (localAppDir, "FChassis");
          if (!Directory.Exists (fcDir))
@@ -125,7 +130,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
          Area.Child = (UIElement)Lux.CreatePanel ();
          PopulateFilesFromDir (PathUtils.ConvertToWindowsPath (mSrcDir));
       } catch (Exception ex) {
-          Debug.WriteLine ($"Initialization failed: {ex.Message}");
+         Debug.WriteLine ($"Initialization failed: {ex.Message}");
          MessageBox.Show ($"Initialization failed: {ex.Message}",
              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
          return; // Exit constructor to prevent further initialization
@@ -154,7 +159,89 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       //this.Icon = new BitmapImage(new Uri("pack://application:,,,/Resources/FChassis.Splash.png"));
    }
 
+   public static string GetAppSubstPath (string driveLetter = "W:") {
+      try {
+         driveLetter = driveLetter.ToUpper ().TrimEnd ('\\', ':') + ":";
 
+         var processStartInfo = new ProcessStartInfo {
+            FileName = "cmd.exe",
+            Arguments = "/c subst",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
+         };
+
+         using (var process = Process.Start (processStartInfo)) {
+            if (process == null) return null;
+
+            string output = process.StandardOutput.ReadToEnd ();
+            process.WaitForExit (5000); // 5 second timeout
+
+            using (StringReader reader = new StringReader (output)) {
+               string line;
+               while ((line = reader.ReadLine ()) != null) {
+                  if (line.Trim ().StartsWith (driveLetter)) {
+                     // Format: "W:\: => C:\Actual\Path"
+                     var parts = line.Split (new[] { " => " }, StringSplitOptions.RemoveEmptyEntries);
+                     if (parts.Length == 2) {
+                        return parts[1].Trim ();
+                     }
+                  }
+               }
+            }
+         }
+
+         return null; // No mapping found
+      } catch (Exception ex) {
+         // You can show a MessageBox or log the error
+         MessageBox.Show ($"Error getting subst path: {ex.Message}", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+         return null;
+      }
+   }
+
+   public void ValidateDirectory (string localAppDir, bool createOnNoExist = false, bool terminateOnError = true) {
+      try {
+         // Check if the path is null, empty, or whitespace
+         if (string.IsNullOrWhiteSpace (localAppDir)) {
+            throw new ArgumentException ("The directory path cannot be null or empty.", nameof (localAppDir));
+         }
+
+         // Check if the path contains invalid characters
+         if (localAppDir.IndexOfAny (Path.GetInvalidPathChars ()) >= 0) {
+            throw new ArgumentException ("The directory path contains invalid characters.", nameof (localAppDir));
+         }
+
+         // Optional: Check if the path is rooted (absolute path)
+         if (!Path.IsPathRooted (localAppDir)) {
+            throw new ArgumentException ("The directory must be an absolute path.", nameof (localAppDir));
+         }
+
+         // Check if the directory exists
+         if (!Directory.Exists (localAppDir) && createOnNoExist) {
+            //throw new DirectoryNotFoundException ($"The directory does not exist: {localAppDir}");
+            MapWDrive (localAppDir);
+         }
+
+         // If all checks pass, the path is valid
+         Console.WriteLine ($"Directory is valid: {localAppDir}");
+      } catch (Exception ex) {
+         // Log the error (optional)
+         Console.WriteLine ($"Error: {ex.Message}");
+
+         // Show message to user (WPF)
+         MessageBox.Show ($"Application cannot start: {ex.Message}",
+                        "Configuration Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+
+         // Exit the application
+         if (terminateOnError)
+            Application.Current.Shutdown (1);
+         // Or: Environment.Exit(1);
+      }
+   }
    static void MapWDrive (string folderPath) {
       string batPath = Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "MapW.bat");
 
@@ -695,7 +782,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             else
                throw new Exception ("Invalid part");
          }
-         
+
          mOverlay = new SimpleVM (DrawOverlay);
          Lux.UIScene = mScene = new Scene (
              new GroupVModel (VModel.For (mPart.Model), mOverlay),
