@@ -11,11 +11,11 @@ namespace FChassis {
       }
 
 #if DEBUG
-      public string Version { get; } = "Debug 74";
+      public string Version { get; } = "Debug 75";
 #elif TESTRELEASE
-      public string Version { get; } = "Test Release 74";
+      public string Version { get; } = "Test Release 75";
 #else 
-      public string Version { get; } = "1.0.9";
+      public string Version { get; } = "1.0.10";
 #endif
       void OnAboutCloseClick (object sender, RoutedEventArgs e) => this.Close ();
    }
