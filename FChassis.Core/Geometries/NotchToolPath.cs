@@ -227,21 +227,99 @@ public class NotchToolPath {
          } else if (mTs[segIndex].Curve is Line3) {
             sense = EArcSense.Infer;
          }
-         //if (mTs[segIndex].Curve is Arc3 arc)
-         //   (angle, sense) = Geom.GetArcAngleAtPoint (arc, new Vector3 (0, 0, 1));
-         var crvs = Geom.SplitCurve (mTs[segIndex].Curve,
-                                              [mNotchPos[ii].Position],
-                                              mTs[segIndex].Vec0.Normalized (), hintSense: sense);
-         if (crvs.Count > 1) {
-            var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (mTs[segIndex], crvs);
-            mTs.RemoveAt (segIndex);
-            mTs.InsertRange (segIndex, toolSegsForCrvs);
 
-            // Reindex the mNotchPos
-            for (int jj = ii + 1; jj < mNotchPos.Count; jj++) {
-               var npos = mNotchPos[jj];
-               npos.Index += 1;
-               mNotchPos[jj] = npos;
+         // FCH - 40 defect fix
+         // targetPos.Value.segIndex should be equal to endSegmentIndex, if the length of 
+         // Segment with endSegmentIndex is >= wjt distance (2). In cases when the Segment with endSegmentIndex
+         // is < 2.0 the following if block becomes true. targetPos point happens on the index lesser than endSegmentIndex
+         // and so the idea is to split the endSegmentIndex-1-th segment at the point where the split-2 segment_th_length + 
+         // endSegmentIndex-th segment length = WJT distance.
+         // Create a new segment uniting the last split segment with endSegmentIndex-segment. 
+         // remove split-2 segment and endSegmentIndex-th segment and add the above newly created segment.
+         // NOTE: Since the wjt length is very minimal, a line segment is always created even if the endSegmentIndex-1-th segment 
+         // is an arc
+         // Example: Arc 1, 2 and then line 2-3. The -lengthfromPt occurs at 2', on Arc 1-2, but between 1-2, near 2, so that the
+         // length of arc from 2' to the line length of 2-3 is WJT. In this case, I split Arcs to form Arc 1-2' and Arc2' - 2, 
+         // remove the arc 1-2 and line 2-3, and in the place add Arc1-2' and Line2'-3 . 2' is targetPos.Value.position. 
+         // The index of Arc1-2 is targetPos.Value.segIndex and index of Line3 is endSegmentIndex
+         if (mNotchPos[ii].SegPositionType == SegmentedPositionType.Flex1WJTStart) {
+
+            // Find the index of the PreFlex1WJTStart notch point in the Segments List mTs. If the PreFlex1WJTStart's index 
+            // is < flexWJTSegEndNotchPoint , then the following corrective measures have to be made.
+            var preFlexWJTSegEndNotchPoint = mNotchPos[ii-1].Position; // May not be the end of the PreFlex1WJTStart's segment.
+            var preFlexWJTSegEndNotchPointSegIndex = mTs.FindIndex (ts => ts.Curve.End.DistTo (preFlexWJTSegEndNotchPoint).EQ (0));
+            if (preFlexWJTSegEndNotchPointSegIndex == -1)
+               preFlexWJTSegEndNotchPointSegIndex = mTs.FindIndex (ts => Geom.IsPointOnCurve (ts.Curve, preFlexWJTSegEndNotchPoint, ts.Vec0));
+            
+            var flexWJTSegEndNotchPoint = mNotchPos[ii].Position;
+            var flexWJTSegEndNotchPointIdx = mTs.FindIndex (ts => ts.Curve.End.DistTo (flexWJTSegEndNotchPoint).EQ (0));
+
+            // By assumption/design notch point with type Flex1WJTStart's end point should actually match with mTs[ii].Flex1WJTStart's end point
+            if (flexWJTSegEndNotchPointIdx == -1)
+               throw new Exception ("Flex1WJTStart segment's end position is not matching with notch point of type Flex1WJTStart ");
+
+            var flex1WJTEndSeg = mTs[flexWJTSegEndNotchPointIdx];
+            if (preFlexWJTSegEndNotchPointSegIndex < flexWJTSegEndNotchPointIdx) {
+
+               var newSegEndPoint = flex1WJTEndSeg.Curve.End;
+               var splitCurves = Geom.SplitCurve (mTs[preFlexWJTSegEndNotchPointSegIndex].Curve, [preFlexWJTSegEndNotchPoint], mTs[preFlexWJTSegEndNotchPointSegIndex].Vec0);
+               var ts1 = new ToolingSegment (splitCurves[0], mTs[preFlexWJTSegEndNotchPointSegIndex].Vec0, mTs[preFlexWJTSegEndNotchPointSegIndex].Vec1);
+
+               var line = new Line3 (preFlexWJTSegEndNotchPoint, newSegEndPoint);
+               var ts2 = new ToolingSegment (line, mTs[preFlexWJTSegEndNotchPointSegIndex].Vec1, mTs[preFlexWJTSegEndNotchPointSegIndex].Vec1);
+               List<ToolingSegment> newTSS = [ts1, ts2];
+
+               // Remove the higher index first (j), then the lower one (i)
+               int i = preFlexWJTSegEndNotchPointSegIndex; int j = flexWJTSegEndNotchPointIdx;
+
+               for (int kk = j; kk >= i; kk--)
+                  mTs.RemoveAt (kk);
+               int segsRemoved = j - i + 1;
+
+               // Now insert the new segments at position i
+               mTs.InsertRange (i, newTSS);
+               int segsAdded = 2;
+
+               // for the elements added/deleted, update the mNotchPos's indiex values.
+               // These Index values point to the indices of segments list mTs
+               for (int kk = ii + 1; kk < mNotchPos.Count; kk++)
+                  mNotchPos[kk] = mNotchPos[kk] with { Index = mNotchPos[kk].Index + (segsAdded - segsRemoved) };
+            } else {
+
+
+               //if (mTs[segIndex].Curve is Arc3 arc)
+               //   (angle, sense) = Geom.GetArcAngleAtPoint (arc, new Vector3 (0, 0, 1));
+               var crvs = Geom.SplitCurve (mTs[segIndex].Curve,
+                                                    [mNotchPos[ii].Position],
+                                                    mTs[segIndex].Vec0.Normalized (), hintSense: sense);
+               if (crvs.Count > 1) {
+                  var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (mTs[segIndex], crvs);
+                  mTs.RemoveAt (segIndex);
+                  mTs.InsertRange (segIndex, toolSegsForCrvs);
+
+                  // Reindex the mNotchPos
+                  for (int jj = ii + 1; jj < mNotchPos.Count; jj++) {
+                     var npos = mNotchPos[jj];
+                     npos.Index += 1;
+                     mNotchPos[jj] = npos;
+                  }
+               }
+            }
+         } else {
+            var crvs = Geom.SplitCurve (mTs[segIndex].Curve,
+                                                 [mNotchPos[ii].Position],
+                                                 mTs[segIndex].Vec0.Normalized (), hintSense: sense);
+            if (crvs.Count > 1) {
+               var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (mTs[segIndex], crvs);
+               mTs.RemoveAt (segIndex);
+               mTs.InsertRange (segIndex, toolSegsForCrvs);
+
+               // Reindex the mNotchPos
+               for (int jj = ii + 1; jj < mNotchPos.Count; jj++) {
+                  var npos = mNotchPos[jj];
+                  npos.Index += 1;
+                  mNotchPos[jj] = npos;
+               }
             }
          }
       }
