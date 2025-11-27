@@ -33,10 +33,9 @@ public class CutOut : ToolingFeature {
       mWireJointDistance = wireJointDistance;
       
       ToolingSegments = Utils.ModifyToolingForToolDiaCompensation (toolingItem, toolingItem.Segs);
-      ToolingItem.Segs = ToolingSegments;
       
       ToolingSegments = Utils.AddLeadinToTooling (ToolingItem, ToolingSegments, GCGen, 0.5);
-      ToolingItem.Segs = ToolingSegments;
+      
       if (ToolingSegments == null || ToolingSegments.Count == 0)
          throw new Exception ("Segments accounted for entry is null");
       PerformToolingSegmentation ();
