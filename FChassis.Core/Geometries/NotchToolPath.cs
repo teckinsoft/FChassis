@@ -720,7 +720,7 @@ public class NotchToolPath {
          throw new Exception ("No tooling segment is valid for approach");
       if (approachIndexChanged) {
          // Keeping the new position of approach at changedIndex-th segment's mid point
-         approachPos = (mTs[changedIndex].Curve.Start + mTs[changedIndex].Curve.End) * 0.5;
+         approachPos = Geom.Evaluate (mTs[changedIndex].Curve, 0.5, mTs[changedIndex].Vec0);
          var changedApproachPosData = ParamAtPosition (approachPos);
          approachNPos = new NotchPosition (approachPos, changedApproachPosData.Value.segIndex, changedApproachPosData.Value.param,
             SegmentedPositionType.Approach);
@@ -740,14 +740,14 @@ public class NotchToolPath {
       int flex2StartIdx = -1;
       int flex2EndIdx = -1;
       if (flexIndices.Count >= 1) {
-         if (flexIndices[0].Item1 == 0)
+         if (flexIndices[0].Item1 < 0)
             throw new Exception ("Toolpath.EvalNotchSpecPositions: SplitExtremeSegmentsOnFlangeToFlex is buggy. Flex index is 0");
          // Get the indices of the flex positions
          flex1StartIdx = flexIndices[0].Item1;
          flex1EndIdx = flexIndices[0].Item2;
 
          if (flexIndices.Count == 2) {
-            if (flexIndices[0].Item2 == mTs.Count)
+            if (flexIndices[0].Item2 >= mTs.Count)
                throw new Exception ("Toolpath.EvalNotchSpecPositions: SplitExtremeSegmentsOnFlangeToFlex is buggy. Flex index is count");
             flex2StartIdx = flexIndices[1].Item1;
             flex2EndIdx = flexIndices[1].Item2;

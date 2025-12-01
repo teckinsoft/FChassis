@@ -894,7 +894,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                MessageBox.Show (ex1.Message, "Error",
                           MessageBoxButton.OK, MessageBoxImage.Error);
             else
-               MessageBox.Show ("G Code generation failed", "Error",
+               MessageBox.Show ($"G Code generation failed{ex.Message}", "Error",
                           MessageBoxButton.OK, MessageBoxImage.Error);
          } finally {
             Work.Dirty = false; // This will always execute
