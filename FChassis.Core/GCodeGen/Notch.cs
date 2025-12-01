@@ -2403,6 +2403,11 @@ public class Notch : ToolingFeature {
             flexStartIndex = -1;
          }
       }
+      if (flexStartIndex != -1) {
+         flexEndIndex = segs.Count - 1;
+         var indxes = new Tuple<int, int> (flexStartIndex, flexEndIndex);
+         flexIndices.Add (indxes);
+      }
       return flexIndices;
    }
 
@@ -2420,17 +2425,17 @@ public class Notch : ToolingFeature {
    /// </param>
    public static bool IsEdgeNotch (Bound3 bound, Tooling toolingItem,
       double[] percentPos,
-      double leastCurveLength, double radius, double thickness) {
+      double leastCurveLength, double radius, double thickness, double notchApproachDist) {
       var attrs = GetNotchApproachParams (bound, toolingItem, percentPos,
          leastCurveLength, radius, thickness);
       if (toolingItem.IsNotch () && attrs.Count == 0) return true;
 
       // If a notch should have start and endx at XMin, or XMax or ZMin
       // it is not an edge notch
-      if ((toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMax, 1e-2) || toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMin, 1e-2) ||
-         toolingItem.Segs[0].Curve.Start.Z.EQ (bound.ZMin, 1e-2)) &&
-         (toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMax, 1e-2) || toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMin, 1e-2) ||
-         toolingItem.Segs[^1].Curve.End.Z.EQ (bound.ZMin, 1e-2)))
+      if ((toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMax, 2*notchApproachDist) || toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMin, 2 * notchApproachDist) ||
+         toolingItem.Segs[0].Curve.Start.Z.EQ (bound.ZMin, 2 * notchApproachDist)) &&
+         (toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMax, 2 * notchApproachDist) || toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMin, 2 * notchApproachDist) ||
+         toolingItem.Segs[^1].Curve.End.Z.EQ (bound.ZMin, 2 * notchApproachDist)))
          return false;
       else
          return true;

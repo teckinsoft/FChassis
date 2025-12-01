@@ -854,12 +854,13 @@ public static class Utils {
                else proxBdy = XForm4.EAxis.Y;
             } else {
                if (seg.Curve is Arc3) {
-                  arc = seg.Curve as Arc3;
-                  var (tgt, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0.Normalized ());
+                  //arc = seg.Curve as Arc3;
+                  //var (tgt, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, pt, seg.Vec0.Normalized ());
                   // To find the scrapside normal for arcs
                   // Find the cross of tangent vec with seg normal
-                  var biNormal = tgt.Cross (seg.Vec0).Normalized ();
-                  var negBiNormal = biNormal * -1;
+                  //var segNormal = seg.Vec0.Normalized ();
+                  //var biNormal = tgt.Cross (segNormal).Normalized (); 
+                  //var negBiNormal = biNormal * -1;
                   // Scrapside direction is one among biNormal or negBiNormal.
                   // it is found by checking the cross of tgt and binormal sense with segment's normal.
                   // Here if the cross is same sense with binormal then it is the scrapside. Otherwise, 
@@ -867,16 +868,19 @@ public static class Utils {
                   // How it works: IN Top plane(flange), The profile starts from neg-X to Pos-X. So
                   // the scrapside is always to the left 90 deg to the tangent. A left turn is CCW and so
                   // if the computed normal is CW, it is negated.
-                  var computedNormal = tgt.Cross (biNormal);
-                  if (computedNormal.Opposing (seg.Vec0))
-                     res = bdyPtXMin - pt;
-                  else
-                     res = bdyPtXMax - pt;
+                  //var computedNormal = tgt.Cross (biNormal);
+                  //if (computedNormal.Opposing (seg.Vec0))
+                  //   res = bdyPtXMin - pt;
+                  //else
+                  //   res = bdyPtXMax - pt;
+
                   if (pt.DistTo (bdyPtXMin)
                      < pt.DistTo (bdyPtXMax)) {
                      proxBdy = XForm4.EAxis.NegX;
+                     res = bdyPtXMin - pt;
                   } else {
                      proxBdy = XForm4.EAxis.X;
+                     res = bdyPtXMax - pt;
                   }
                } else {
                   if (pt.DistTo (bdyPtXMin)

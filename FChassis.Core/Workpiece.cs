@@ -328,7 +328,8 @@ public class Workpiece : INotifyPropertyChanged {
                continue;
          }
       }
-      foreach (var cut in cuts) if (cut != null) {
+      for (int zz=0; zz<cuts.Count; zz++) if (cuts[zz] != null) {
+            Tooling cut = cuts[zz];
             cut.IdentifyCutout ();
 
             // If the cutout is fully on the flex and if it has shortest distance between (across)
@@ -338,14 +339,14 @@ public class Workpiece : INotifyPropertyChanged {
                if (cut.IsNarrowFlexOnlyFeature ()) continue;
             }
             if (cut.IsFlexOnlyFeature ()) continue;
-            
+
             // For some reason, a closed PLine in Flux after projection
             // to the E3Plane/E3Flex in the Tooling constructor, does not
             // produce a closed tooling. This issue has to be investigated.
             // The following fix is temporary, to close the tooling
             var modifidSegs = cut.ExtractSegs.ToList ();
             cut.Name = $"Tooling-{cutIndex++}";
-            if ( cut.Kind == EKind.Cutout) {
+            if (cut.Kind == EKind.Cutout) {
                if (cut.Segs[0].Curve.Start.DistTo (cut.Segs[^1].Curve.End).SGT (0)) {
                   var refToolingSegment = new ToolingSegment (cut.Segs[0].Curve, cut.Segs[^1].Vec1, cut.Segs[0].Vec0);
                   var missingTs = Geom.CreateToolingSegmentForCurve (refToolingSegment, new Line3 (cut.Segs[^1].Curve.End, cut.Segs[0].Curve.Start));
@@ -410,11 +411,36 @@ public class Workpiece : INotifyPropertyChanged {
                double[] percentLengths = [0.25, 0.5, 0.75];
                double mCurveLeastLength = 0.5;
                if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
-                   mCurveLeastLength, Model.Flexes.First ().Radius, Model.Flexes.First ().Thickness))
+                   mCurveLeastLength, Model.Flexes.First ().Radius, Model.Flexes.First ().Thickness, MCSettings.It.NotchApproachLength))
                   cut.EdgeNotch = true;
-               cutSegs = [.. cut.Segs];
-            }
+               
+               RemoveEdgeNotchSegments (cut, out bool segmentsRemoved);
+               if (segmentsRemoved) {
+                  // Collect the discrete toolings (should always return at least one)
+                  List<Tooling> subCuts = CollectDiscreteToolings (cut);
 
+                  //// Validate: subCuts cannot be empty if we're removing the original
+                  //if (subCuts == null || subCuts.Count == 0) {
+                  //   throw new InvalidOperationException (
+                  //       $"CollectDiscreteToolings returned empty list for cut '{cut.Name}' " +
+                  //       "after segments were removed. This is a logic error.");
+                  //}
+                  if (subCuts.Count > 0 && zz < cuts.Count) {
+                     // Remove the original cut from the list
+                     cuts.RemoveAt (zz);
+
+                     // Insert the sub-cuts at the same position
+                     cuts.InsertRange (zz, subCuts);
+
+                     // Adjust the index: -1 because loop will increment zz
+                     //zz = zz + subCuts.Count - 1;
+                     zz--;
+
+                     continue; // Skip further processing of this iteration
+                  }
+               }
+            }
+            cutSegs = [.. cut.Segs];
             // Calculate the bound3 for each cut
             cut.Bound3 = Utils.CalculateBound3 (cutSegs, Model.Bound);
             mCuts.Add (cut);
@@ -423,6 +449,88 @@ public class Workpiece : INotifyPropertyChanged {
       Dirty = true;
 
       return true;
+   }
+
+   void RemoveEdgeNotchSegments (Tooling cut, out bool segmentsRemoved) {
+      var xMin = Model.Bound.XMin;
+      var xMax = Model.Bound.XMax;
+      var notchApproachLength = MCSettings.It.NotchApproachLength;
+      segmentsRemoved = false;
+      var flexIndices = Notch.GetFlexSegmentIndices (cut.Segs);
+      for (int ii = 0; ii < flexIndices.Count; ii++) {
+         // Iterate backwards within each flex segment range
+         for (int jj = flexIndices[ii].Item2; jj >= flexIndices[ii].Item1; jj--) {
+            if (cut.Segs[jj].Curve.Start.X.EQ (xMin, 2 * notchApproachLength) ||
+                cut.Segs[jj].Curve.Start.X.EQ (xMax, 2 * notchApproachLength)) {
+               cut.Segs.RemoveAt (jj);
+               segmentsRemoved = true;
+            }
+         }
+         // Recompute flexIndices after processing each flex segment
+         flexIndices = Notch.GetFlexSegmentIndices (cut.Segs);
+      }
+   }
+
+   //List<Tooling> CollectDiscreteToolings (Tooling cut) {
+   //   List<Tooling> resSubCuts = [];
+   //   List<ToolingSegment> resSegs = [];
+   //   int toolSegsCount = cut.Segs.Count;
+   //   for (int ii = 0; ii < toolSegsCount - 1; ii++) {
+   //      if (cut.Segs[ii].Curve.End.DistTo (cut.Segs[ii + 1].Curve.Start).EQ (0, cut.JoinableLengthToClose))
+   //         resSegs.Add (cut.Segs[ii]);
+   //      else {
+   //         var clonedCut = cut.Clone ();
+   //         resSubCuts.Add (clonedCut);
+   //         clonedCut.Segs = resSegs;
+   //         if (resSegs.Count == 0)
+   //            throw new Exception ("In CollectDiscreteToolings, Segs = 0 ");
+   //         resSegs = [];
+   //      }
+   //   }
+   //   if (resSubCuts.Count == 0)
+   //      resSubCuts = [cut];
+   //   return resSubCuts;
+   //}
+   List<Tooling> CollectDiscreteToolings (Tooling cut) {
+      List<Tooling> resSubCuts = [];
+      List<ToolingSegment> currentSegs = [];
+      int toolSegsCount = cut.Segs.Count;
+
+      if (toolSegsCount == 0) {
+         return resSubCuts;
+      }
+
+      for (int ii = 0; ii < toolSegsCount; ii++) {
+         // Add current segment to the current group
+         currentSegs.Add (cut.Segs[ii]);
+
+         // Check if there's a discontinuity with the next segment
+         bool isLast = (ii == toolSegsCount - 1);
+         bool hasGap = false;
+
+         if (!isLast) {
+            // Only check next segment if we're not at the last one
+            hasGap = !cut.Segs[ii].Curve.End.DistTo (cut.Segs[ii + 1].Curve.Start)
+                        .EQ (0, cut.JoinableLengthToClose);
+         }
+
+         // If this is the last segment OR there's a gap with the next one,
+         // finalize the current group
+         if (isLast || hasGap) {
+            // Create a new tooling for the current continuous group
+            var clonedCut = cut.Clone ();
+            clonedCut.Segs = new List<ToolingSegment> (currentSegs);
+
+            if (clonedCut.Segs.Count == 0) {
+               throw new Exception ("Created tooling with 0 segments");
+            }
+
+            resSubCuts.Add (clonedCut);
+            currentSegs.Clear ();
+         }
+      }
+
+      return resSubCuts;
    }
    #endregion
 

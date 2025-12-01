@@ -118,6 +118,7 @@ public class Tooling {
    }
 
    public const double mJoinableLengthToClose = 2.0;
+   public double JoinableLengthToClose { get { return mJoinableLengthToClose; } }
    public const double mNotchJoinableLengthToClose = 5.0;
    public readonly Workpiece Work;
    public readonly List<(E3Thick Ent, Pline Trace)> Traces = [];
