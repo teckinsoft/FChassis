@@ -10,7 +10,7 @@
 ; General Settings
 ; -----------------------------------------------------------------------------
 !define APPNAME "FChassis"
-!define VERSION "1.0.12"
+!define VERSION "1.0.13"
 !define COMPANY "Teckinsoft Neuronics Pvt. Ltd."
 !define INSTALLDIR "C:\FChassis"
 !define FluxSDKBin "C:\FluxSDK\Bin"
