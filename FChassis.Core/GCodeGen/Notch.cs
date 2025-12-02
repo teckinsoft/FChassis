@@ -2086,7 +2086,8 @@ public class Notch : ToolingFeature {
                          flexRefTS: mFlexStartRef,
                          out prevAbsToolPosition,
                          toCompleteToolingBlock: true,
-                         comment1, relativeCoords: relCoords);
+                         comment1, relativeCoords: relCoords, 
+                         firstWJTTrace: true);
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
 
@@ -2101,13 +2102,14 @@ public class Notch : ToolingFeature {
                   mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                        mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
                        ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                       isFlexCut: true,
+                       isFlexCut: false,
                        isValidNotch: true,
                        flexRefTS: mFlexStartRef,
                        out prevAbsToolPosition,
                        toCompleteToolingBlock: false,
                        comment1,
-                       relativeCoords: relCoords);
+                       relativeCoords: relCoords,
+                       firstWJTTrace: false);
 
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;

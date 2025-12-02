@@ -3040,7 +3040,7 @@ public class GCodeGenerator {
    /// <param name="toolingName">Tooling name</param>
    public void RapidPositionWithClearance (
     Point3 toPoint, Vector3 endNormal, double clearance, string toolingName, bool isMark,
-    bool usePingPongOption = true) {
+    bool usePingPongOption = true, bool firstWJTTrace = true) {
       var toPointOffset = Utils.MovePoint (toPoint, endNormal, clearance);
       var angle = Utils.GetAngleAboutXAxis (XForm4.mZAxis, endNormal, GetXForm ()).R2D ();
       var mcCoordsToPointOffset = XfmToMachine (toPointOffset);
@@ -3054,7 +3054,7 @@ public class GCodeGenerator {
                 sw, mcCoordsToPointOffset.X, OrdinateAxis.Z, mcCoordsToPointOffset.Z, angle,
                 machine: Machine,
                 createDummyBlock4Master: CreateDummyBlock4Master,
-                usePingPongOption && UsePingPong ? "M1014" : "",
+                usePingPongOption && UsePingPong && firstWJTTrace? "M1014" : "",
                 "Rapid Position with Clearance");
          } else if (currPlaneType == EPlane.Top) {
             WritePointComment (mcCoordsToPointOffset, " WJT ## Machining from ");
@@ -3062,7 +3062,7 @@ public class GCodeGenerator {
                 sw, mcCoordsToPointOffset.X, OrdinateAxis.Y, mcCoordsToPointOffset.Y, angle,
                 machine: Machine,
                 createDummyBlock4Master: CreateDummyBlock4Master,
-                usePingPongOption && UsePingPong ? "M1014" : "",
+                usePingPongOption && UsePingPong && firstWJTTrace ? "M1014" : "",
                 "Rapid Position with Clearance");
          }
 
@@ -3119,7 +3119,8 @@ public class GCodeGenerator {
    out Point3? prevRapidPos,
    bool toCompleteToolingBlock = false,
    string comment = "Wire Joint Jump Trace",
-   bool relativeCoords = false
+   bool relativeCoords = false,
+   bool firstWJTTrace = true
    ) {
       prevRapidPos = null;
       // Determine the current plane type based on the wire joint segment's vector
@@ -3188,7 +3189,8 @@ public class GCodeGenerator {
           mRetractClearance,
           toolingItem.Name,
           isMark: false,
-          usePingPongOption: true
+          usePingPongOption: true,
+          firstWJTTrace
       );
 
       MoveToMachiningStartPosition (nextMachiningStart, wjtSeg.Vec0, toolingItem.Name);
