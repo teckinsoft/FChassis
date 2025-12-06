@@ -557,4 +557,13 @@ public class Tooling {
       }
       return minVal.LTEQ (min);
    }
+
+   public double Length { 
+      get {
+         double len = 0;
+         foreach( var seg in Segs)
+            len += seg.Curve.Length;
+         return len;
+      }
+   }
 }

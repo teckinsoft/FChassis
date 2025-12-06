@@ -338,6 +338,8 @@ public class Workpiece : INotifyPropertyChanged {
             if (cut.IsFlexCutout ()) {
                if (cut.IsNarrowFlexOnlyFeature ()) continue;
             }
+            
+            // If the hole 
             if (cut.IsFlexOnlyFeature ()) continue;
 
             // For some reason, a closed PLine in Flux after projection

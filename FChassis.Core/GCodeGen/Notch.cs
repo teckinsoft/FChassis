@@ -1824,7 +1824,7 @@ public class Notch : ToolingFeature {
                   // ** Reference Tooling Segment is the first one to machine from n1 to nMid1
                   var startTS = new ToolingSegment (new Line3 (n1, nMid1), notchApproachEndNormal, notchApproachEndNormal);
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, pts, notchApproachStNormal,
-                     mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mNotchSequences.Count - 1, startTS,
+                     mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mNotchSequences.Count - 1, startTS, nextTs: null,
                      isValidNotch: true,
                      "NotchSequence: Approach to the Tooling - First Sequence");
 
@@ -1912,7 +1912,7 @@ public class Notch : ToolingFeature {
                   // Reference Tooling Segment is the first one to machine from n2 to nMid2
                   startTS = new ToolingSegment (new Line3 (n2, nMid2), notchApproachEndNormal, notchApproachEndNormal);
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, pts, notchApproachStNormal,
-                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count - 1, startTS,
+                     mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mNotchSequences.Count - 1, startTS, nextTs: null,
                      isValidNotch: true,
                      "NotchSequence: Approach to the Tooling : 2nd Sequence");
                   mGCodeGen.RapidMoveToPiercingPositionWithPingPong = false;
@@ -2064,7 +2064,7 @@ public class Notch : ToolingFeature {
                // Once as a separate tool block, the second time as a continuous tool block with (next) flex
                // machining
                mFlexStartRef = Utils.GetMachiningSegmentPostWJT (wjtTS, scrapSideNormal, mGCodeGen.Process.Workpiece.Bound, NotchApproachLength);
-               
+
                // FCH-43, Always create seperate tool blocks, once for wirejoint, and the other for the wirejoint that
                // continues with the machining, ( flex or forward/reverse)
                //nextBeginFlexMachining = true;
@@ -2075,10 +2075,10 @@ public class Notch : ToolingFeature {
                   else {
                      if (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingForward ||
                      mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingReverse)
-                        comment1 = comment+ " : Seperate tooling block for WJT trace after Flex Cut";
+                        comment1 = comment + " : Seperate tooling block for WJT trace after Flex Cut";
                   }
 
-                  mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
+                  mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
                         mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                          isFlexCut: false,
@@ -2086,7 +2086,7 @@ public class Notch : ToolingFeature {
                          flexRefTS: mFlexStartRef,
                          out prevAbsToolPosition,
                          toCompleteToolingBlock: true,
-                         comment1, relativeCoords: relCoords, 
+                         comment1, relativeCoords: relCoords,
                          firstWJTTrace: true);
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
@@ -2099,7 +2099,21 @@ public class Notch : ToolingFeature {
                      mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingReverse)
                         comment1 = comment + " : Seperate tooling block for WJT trace as first part of upcoming machining";
                   }
-                  mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
+
+                  if (isNextSeqFlexMc)
+                  mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: ToolingSegments[mNotchSequences[ii + 1].StartIndex], scrapSideNormal,
+                       mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
+                       ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
+                       isFlexCut: true,
+                       isValidNotch: true,
+                       flexRefTS: mFlexStartRef,
+                       out prevAbsToolPosition,
+                       toCompleteToolingBlock: false,
+                       comment1,
+                       relativeCoords: relCoords,
+                       firstWJTTrace: false);
+                  else
+                     mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
                        mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
                        ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                        isFlexCut: false,
@@ -2113,7 +2127,7 @@ public class Notch : ToolingFeature {
 
                   PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
-               } 
+               }
                //else
                //   mGCodeGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
                //         mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
@@ -2353,7 +2367,7 @@ public class Notch : ToolingFeature {
 
                   var refTS = new ToolingSegment (new Line3 (nMid2, mSegments[mNotchIndices.segIndexAtWJTApproach].Curve.End), notchApproachEndNormal, notchApproachEndNormal);
                   mGCodeGen.InitializeNotchToolingBlock (mToolingItem, prevToolingItem: null, pts, notchApproachStNormal,
-                     mXStart, mXPartition, mXEnd, /*isFlexCut:*/ false, ii == mNotchSequences.Count - 1, refTS,
+                     mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mNotchSequences.Count - 1, refTS, nextTs: null,
                      isValidNotch: true,
                      "Notch: Move to Mid2 towards machining again the rest of the tooling segment");
 
@@ -2434,7 +2448,7 @@ public class Notch : ToolingFeature {
 
       // If a notch should have start and endx at XMin, or XMax or ZMin
       // it is not an edge notch
-      if ((toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMax, 2*notchApproachDist) || toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMin, 2 * notchApproachDist) ||
+      if ((toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMax, 2 * notchApproachDist) || toolingItem.Segs[0].Curve.Start.X.EQ (bound.XMin, 2 * notchApproachDist) ||
          toolingItem.Segs[0].Curve.Start.Z.EQ (bound.ZMin, 2 * notchApproachDist)) &&
          (toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMax, 2 * notchApproachDist) || toolingItem.Segs[^1].Curve.End.X.EQ (bound.XMin, 2 * notchApproachDist) ||
          toolingItem.Segs[^1].Curve.End.Z.EQ (bound.ZMin, 2 * notchApproachDist)))

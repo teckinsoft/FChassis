@@ -397,8 +397,11 @@ public class CutOut : ToolingFeature {
 
       // condition to introduce wire joints on web flange
       bool toIntroduceWJT = ToTreatAsCutOut (ToolingSegments, GCGen.Process.Workpiece.Bound, GCGen.MinCutOutLengthThreshold);
-
+      
+      // When will a web-flange notch be created with Wire joints other than at flex beginnings and at ends?
       // Create ePoints by filtering and projecting mCutOutBlocks
+      // if (YMax - YMin) => YSpan >= 2 * MinCutoutLengthThreshold and if one of the flanges happens tobe bottom or top, NO WJT is created on flanges.
+      // Wire joints are created at the beginning and at the ends of the Flex machining nevertheless.
       var ePoints = mCutOutBlocks
           .Where (block => block.SectionType == NotchSectionType.MachineToolingForward &&
           block.Flange == EFlange.Web && toIntroduceWJT)
@@ -500,6 +503,7 @@ public class CutOut : ToolingFeature {
 
    void DoWireJointJumpTraceSegmentationForFlanges () {
       // ** Compute Pre Wire Joint Points on the tooling segments
+      //var tLen = ToolingItem.Length;
       ComputePreWireJointPoints ();
       for (int ii = 0; ii < mPreWJTPts.Count; ii++) {
          for (int jj = 0; jj < mCutOutBlocks.Count; jj++) {
@@ -666,7 +670,7 @@ public class CutOut : ToolingFeature {
                // the current sequence type is WireJointTraceJumpForwardOnFlex, the tooling block 
                // shall be completed and so toCompleteToolingBlock is true, false otherwise
                if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex) {
-                  GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
+                  GCGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
                      mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                      ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                         isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out _,
@@ -679,16 +683,16 @@ public class CutOut : ToolingFeature {
                // the current sequence type is WireJointTraceJumpForwardOnFlex, the tooling block 
                // shall be completed and so toCompleteToolingBlock is true, false otherwise
                if (isNextSeqFlexMc) {
-                  GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
+                  GCGen.WriteWireJointTrace (wjtTS, nextSeg: ToolingSegments[mCutOutBlocks[ii + 1].StartIndex], scrapSideNormal,
                         mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                            isFlexCut: true, isValidNotch: false, flexRefTS: mFlexStartRef, out _, toCompleteToolingBlock: false, comment);
 
                } else {
-                  GCGen.WriteWireJointTrace (wjtTS, scrapSideNormal,
+                  GCGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
                         mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                           isFlexCut: false, isValidNotch: false, flexRefTS: null, out _, toCompleteToolingBlock: false, comment);
+                           isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out _, toCompleteToolingBlock: false, comment);
                }
                PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
                mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;

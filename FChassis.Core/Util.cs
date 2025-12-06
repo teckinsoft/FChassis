@@ -115,6 +115,13 @@ internal static class Extensions {
       normal.Normalized ().EQ (XForm4.mYAxis, tol) || normal.Normalized ().EQ (XForm4.mNegYAxis, tol);
 }
 
+public enum MachiningSense {
+   Downward,
+   Upward,
+   Level,
+   None
+}
+
 public enum OrdinateAxis {
    Y, Z
 }
@@ -269,11 +276,20 @@ public static class Utils {
       Top,
       Web,
       Flex,
+      TopFlex,
+      BottomFlex,
       None
    }
 
    public enum EArcSense {
       CW, CCW, Infer
+   }
+
+   public enum FlexMachiningFlangeDirection {
+      Web2Flange,
+      Flange2Web,
+      WebWJT,
+      FlangeWJT
    }
 
    public const double EpsilonVal = 1e-6;
@@ -408,6 +424,35 @@ public static class Utils {
             return EFlange.Top;
       }
       throw new NotSupportedException (" Flange type could not be assessed");
+   }
+
+   public static Utils.EFlange GetFlangeType (Vector3 vec, XForm4 xfm) {
+      xfm ??= XForm4.IdentityXfm;
+      var trVec = xfm * vec.Normalized ();
+      if (trVec.EQ (XForm4.mZAxis))
+         return EFlange.Web;
+      else if (trVec.EQ (XForm4.mYAxis)) {
+         if (MCSettings.It.PartConfig == PartConfigType.LHComponent)
+            return EFlange.Top;
+         else
+            return EFlange.Bottom;
+      } else if (trVec.EQ (XForm4.mNegYAxis)) {
+         if (MCSettings.It.PartConfig == PartConfigType.LHComponent)
+            return EFlange.Bottom;
+         else
+            return EFlange.Top;
+      } else if (trVec.Y.SGT (0)) {
+         if (MCSettings.It.PartConfig == PartConfigType.LHComponent)
+            return EFlange.TopFlex;
+         else
+            return EFlange.BottomFlex;
+      } else if (trVec.Y.SLT (0)) {
+         if (MCSettings.It.PartConfig == PartConfigType.LHComponent)
+            return EFlange.BottomFlex;
+         else
+            return EFlange.TopFlex;
+      } else
+         throw new Exception ("GetFlangeType: Flange type could not be assessed");
    }
 
    /// <summary>
@@ -2339,17 +2384,16 @@ public static class Utils {
       }
       if (gcodeGen.EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (gcodeGen.Process.Workpiece.Model)) {
 
-         MultiPassCuts mpc = new(gcodeGen);
+         MultiPassCuts mpc = new (gcodeGen);
 
          // Compute using Branch and Bound only if Toolings are below max features.
          if (MCSettings.It.OptimizerType == MCSettings.EOptimize.Time) {
             if (mpc.ToolingScopes.Count < MultiPassCuts.MaxFeatures)
                mpc.ComputeBranchAndBoundCutscopes ();
             else mpc.ComputeSpatialOptimizationCutscopes ();
-         }
-         else if (MCSettings.It.OptimizerType == MCSettings.EOptimize.DP)
-            mpc.ComputeDPOptimizationCutscopes ();            
-         
+         } else if (MCSettings.It.OptimizerType == MCSettings.EOptimize.DP)
+            mpc.ComputeDPOptimizationCutscopes ();
+
          mpc.GenerateGCode ();
          traces[0] = mpc.CutScopeTraces[0][0];
          traces[1] = mpc.CutScopeTraces[0][1];
@@ -2555,15 +2599,15 @@ public static class Utils {
    public static bool IsDualFlangeSameSideCutout (List<ToolingSegment> segs) {
       int planes = 0;
       EPlane plane = EPlane.None;
-      foreach( var seg in segs) {
+      foreach (var seg in segs) {
          var plType1 = Utils.GetFeatureNormalPlaneType (seg.Vec0, XForm4.IdentityXfm);
-         if (plType1 == EPlane.Top || plType1 == EPlane.YPos || plType1 == EPlane.YNeg ) {
+         if (plType1 == EPlane.Top || plType1 == EPlane.YPos || plType1 == EPlane.YNeg) {
             if (plane != plType1) {
                plane = plType1;
                planes++;
             }
          }
-         if ( planes == 2)
+         if (planes == 2)
             return true;
       }
       // CONSIDER_CONSIDER what if the hole/citout is only on the flex
@@ -2607,8 +2651,8 @@ public static class Utils {
          resSegs = [Geom.CreateToolingSegmentForCurve (toolingSegs[0], arc3 as Curve3)];
       } else {
          var ssegs = toolingSegs;
-         
-         if (toolingItem.IsDualFlangeCutout () )
+
+         if (toolingItem.IsDualFlangeCutout ())
             ssegs = MoveStartSegToPriorityFlange (ssegs, EFlange.Web);
 
          bool isWebFlangeFeature = toolingItem.IsWebFlangeFeature ();
@@ -2618,7 +2662,7 @@ public static class Utils {
          //double minY = double.MaxValue;
          //double minZ = double.MaxValue;
          double minYZ = double.MaxValue;
-         
+
          for (int ii = 0; ii < ssegs.Count; ii++) {
             var arcPlaneType = GetArcPlaneType (ssegs[ii].Vec0, XForm4.IdentityXfm);
             if (maxX.SLT (ssegs[ii].Curve.Start.X)) {
@@ -2632,7 +2676,7 @@ public static class Utils {
                      minYZ = ssegs[ii].Curve.Start.Y;
                      maxXIndex = ii;
                   }
-               }else if (isTopOrBottomFlangeFeature) {
+               } else if (isTopOrBottomFlangeFeature) {
                   if (minYZ.SGT (z)) {
                      minYZ = ssegs[ii].Curve.Start.Z;
                      maxXIndex = ii;
