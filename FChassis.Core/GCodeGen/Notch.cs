@@ -1328,63 +1328,63 @@ public class Notch : ToolingFeature {
    /// the lengthened points on the notch.
    /// </note>
    /// </remarks>
-   void ComputeWireJointPositionsOnFlexes () {
-      for (int ii = 0; ii < mFlexIndices.Count; ii++) {
-         mFlexIndices = GetFlexSegmentIndices (mSegments);
-         Point3 preFlexSegStPt; int preFlexSegIndex;
+   //void ComputeWireJointPositionsOnFlexes () {
+   //   for (int ii = 0; ii < mFlexIndices.Count; ii++) {
+   //      mFlexIndices = GetFlexSegmentIndices (mSegments);
+   //      Point3 preFlexSegStPt; int preFlexSegIndex;
 
-         // Index of the segment which is fully tooled
-         int segIndexPrevFlexSegStart = mFlexIndices[ii].Item1 - 1;
-         double wireJointDist = mNotchWireJointDistance;
-         List<ToolingSegment> splitToolSegs = [];
-         if (wireJointDist < 0.5) wireJointDist = 2.0;
-         if (segIndexPrevFlexSegStart < 0) {
-            segIndexPrevFlexSegStart = 0;
-            (preFlexSegStPt, preFlexSegIndex) = Geom.EvaluatePointAndIndexAtLength (mSegments,
-               segIndexPrevFlexSegStart, wireJointDist /*mSegments[segIndexPrevFlexSegStart].Item2.Normalized (),*/);
-            splitToolSegs = Utils.SplitToolingSegmentsAtPoint (mSegments, preFlexSegIndex, preFlexSegStPt,
-               mSegments[segIndexPrevFlexSegStart].Vec0.Normalized (), mSplit ? 1e-4 : 1e-6);
-         } else {
-            (preFlexSegStPt, preFlexSegIndex) = Geom.EvaluatePointAndIndexAtLength (mSegments,
-               segIndexPrevFlexSegStart, wireJointDist, /*mSegments[segIndexPrevFlexSegStart].Item2.Normalized (),*/
-               reverseTrace: true);
-            splitToolSegs = Utils.SplitToolingSegmentsAtPoint (mSegments, preFlexSegIndex, preFlexSegStPt,
-               mSegments[segIndexPrevFlexSegStart].Vec0.Normalized (), mSplit ? 1e-4 : 1e-6);
-         }
+   //      // Index of the segment which is fully tooled
+   //      int segIndexPrevFlexSegStart = mFlexIndices[ii].Item1 - 1;
+   //      double wireJointDist = mNotchWireJointDistance;
+   //      List<ToolingSegment> splitToolSegs = [];
+   //      if (wireJointDist < 0.5) wireJointDist = 2.0;
+   //      if (segIndexPrevFlexSegStart < 0) {
+   //         segIndexPrevFlexSegStart = 0;
+   //         (preFlexSegStPt, preFlexSegIndex) = Geom.EvaluatePointAndIndexAtLength (mSegments,
+   //            segIndexPrevFlexSegStart, wireJointDist /*mSegments[segIndexPrevFlexSegStart].Item2.Normalized (),*/);
+   //         splitToolSegs = Utils.SplitToolingSegmentsAtPoint (mSegments, preFlexSegIndex, preFlexSegStPt,
+   //            mSegments[segIndexPrevFlexSegStart].Vec0.Normalized (), mSplit ? 1e-4 : 1e-6);
+   //      } else {
+   //         (preFlexSegStPt, preFlexSegIndex) = Geom.EvaluatePointAndIndexAtLength (mSegments,
+   //            segIndexPrevFlexSegStart, wireJointDist, /*mSegments[segIndexPrevFlexSegStart].Item2.Normalized (),*/
+   //            reverseTrace: true);
+   //         splitToolSegs = Utils.SplitToolingSegmentsAtPoint (mSegments, preFlexSegIndex, preFlexSegStPt,
+   //            mSegments[segIndexPrevFlexSegStart].Vec0.Normalized (), mSplit ? 1e-4 : 1e-6);
+   //      }
 
-         MergeSegments (ref splitToolSegs, ref mSegments, preFlexSegIndex);
-         Utils.ReIndexNotchPointsInfo (mSegments, ref mNotchPointsInfo, mIsWireJointsNeeded);
-         Utils.CheckSanityOfToolingSegments (mSegments);
-         mFlexIndices = GetFlexSegmentIndices (mSegments);
+   //      MergeSegments (ref splitToolSegs, ref mSegments, preFlexSegIndex);
+   //      Utils.ReIndexNotchPointsInfo (mSegments, ref mNotchPointsInfo, mIsWireJointsNeeded);
+   //      Utils.CheckSanityOfToolingSegments (mSegments);
+   //      mFlexIndices = GetFlexSegmentIndices (mSegments);
 
-         var (flexStPtIndex, _) = mFlexIndices[ii];
-         if (flexStPtIndex == 0) flexStPtIndex = 1; // Test_Partha
-         mFlexWireJointPts.Add (mSegments[flexStPtIndex - 1].Curve.End);
-         mFlexWireJointPts.Add (mSegments[flexStPtIndex].Curve.End);
+   //      var (flexStPtIndex, _) = mFlexIndices[ii];
+   //      if (flexStPtIndex == 0) flexStPtIndex = 1; // Test_Partha
+   //      mFlexWireJointPts.Add (mSegments[flexStPtIndex - 1].Curve.End);
+   //      mFlexWireJointPts.Add (mSegments[flexStPtIndex].Curve.End);
 
-         Point3 postFlexSegEndPt; int postFlexSegEndIndex;
-         int segIndexFlexEnd = mFlexIndices[ii].Item2;
-         (postFlexSegEndPt, postFlexSegEndIndex) = Geom.EvaluatePointAndIndexAtLength (mSegments, segIndexFlexEnd,
-            wireJointDist /*,mSegments[segIndexFlexEnd].Item2.Normalized ()*/);
-         splitToolSegs = Utils.SplitToolingSegmentsAtPoint (mSegments, postFlexSegEndIndex, postFlexSegEndPt,
-            mSegments[postFlexSegEndIndex].Vec0.Normalized (), mSplit ? 1e-4 : 1e-6);
-         MergeSegments (ref splitToolSegs, ref mSegments, postFlexSegEndIndex);
-         Utils.ReIndexNotchPointsInfo (mSegments, ref mNotchPointsInfo, mIsWireJointsNeeded);
-         Utils.CheckSanityOfToolingSegments (mSegments);
-         mFlexIndices = GetFlexSegmentIndices (mSegments);
-         mFlexWireJointPts.Add (mSegments[mFlexIndices[ii].Item2].Curve.End);
-         mFlexWireJointPts.Add (mSegments[mFlexIndices[ii].Item2 + 1].Curve.End);
-      }
+   //      Point3 postFlexSegEndPt; int postFlexSegEndIndex;
+   //      int segIndexFlexEnd = mFlexIndices[ii].Item2;
+   //      (postFlexSegEndPt, postFlexSegEndIndex) = Geom.EvaluatePointAndIndexAtLength (mSegments, segIndexFlexEnd,
+   //         wireJointDist /*,mSegments[segIndexFlexEnd].Item2.Normalized ()*/);
+   //      splitToolSegs = Utils.SplitToolingSegmentsAtPoint (mSegments, postFlexSegEndIndex, postFlexSegEndPt,
+   //         mSegments[postFlexSegEndIndex].Vec0.Normalized (), mSplit ? 1e-4 : 1e-6);
+   //      MergeSegments (ref splitToolSegs, ref mSegments, postFlexSegEndIndex);
+   //      Utils.ReIndexNotchPointsInfo (mSegments, ref mNotchPointsInfo, mIsWireJointsNeeded);
+   //      Utils.CheckSanityOfToolingSegments (mSegments);
+   //      mFlexIndices = GetFlexSegmentIndices (mSegments);
+   //      mFlexWireJointPts.Add (mSegments[mFlexIndices[ii].Item2].Curve.End);
+   //      mFlexWireJointPts.Add (mSegments[mFlexIndices[ii].Item2 + 1].Curve.End);
+   //   }
 
-      for (int ii = 0; ii < mNotchPointsInfo.Count; ii++) {
-         if (mNotchWireJointDistance < 0.5 && mNotchPointsInfo[ii].mPosition != "@4999" &&
-            mNotchPointsInfo[ii].mPosition != "@5000" && mNotchPointsInfo[ii].mPosition != "@5001") {
-            var npInfo = mNotchPointsInfo[ii];
-            npInfo.mSegIndex = -1;
-            mNotchPointsInfo[ii] = npInfo;
-         }
-      }
-   }
+   //   for (int ii = 0; ii < mNotchPointsInfo.Count; ii++) {
+   //      if (mNotchWireJointDistance < 0.5 && mNotchPointsInfo[ii].mPosition != "@4999" &&
+   //         mNotchPointsInfo[ii].mPosition != "@5000" && mNotchPointsInfo[ii].mPosition != "@5001") {
+   //         var npInfo = mNotchPointsInfo[ii];
+   //         npInfo.mSegIndex = -1;
+   //         mNotchPointsInfo[ii] = npInfo;
+   //      }
+   //   }
+   //}
 
    /// <summary>
    /// This method creates and populates various notch parameters and data structures required 
@@ -2052,12 +2052,12 @@ public class Notch : ToolingFeature {
 
                EFlange flangeType = Utils.GetArcPlaneFlangeType (wjtTS.Vec1, mGCodeGen.GetXForm ());
 
-               bool nextBeginFlexMachining = false;
-               if (ii + 1 < mNotchSequences.Count) {
-                  if (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingReverse ||
-                     mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingForward)
-                     nextBeginFlexMachining = true;
-               }
+               //bool nextBeginFlexMachining = false;
+               //if (ii + 1 < mNotchSequences.Count) {
+               //   if (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingReverse ||
+               //      mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingForward)
+               //      nextBeginFlexMachining = true;
+               //}
 
                // As per the requirement, the wire joint trace has to be written two times for 2 head laser
                // cutting machine. 
@@ -2070,13 +2070,13 @@ public class Notch : ToolingFeature {
                //nextBeginFlexMachining = true;
                /*if (nextBeginFlexMachining) */{
                   string comment1 = comment;
-                  if (nextBeginFlexMachining)
-                     comment1 = comment + " : Seperate tooling block for WJT trace before Flex Cut";
-                  else {
-                     if (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingForward ||
-                     mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingReverse)
-                        comment1 = comment + " : Seperate tooling block for WJT trace after Flex Cut";
-                  }
+                  if (isNextSeqFlexMc)
+                     comment1 = comment + " : WJT trace before Flex Cut";
+                  //else {
+                  //   if (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingForward ||
+                  //   mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingReverse)
+                  //      comment1 = comment + " : Seperate tooling block for WJT trace after Flex Cut";
+                  //}
 
                   mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
                         mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
@@ -2092,26 +2092,26 @@ public class Notch : ToolingFeature {
                   mRecentToolPosition = mGCodeGen.GetLastToolHeadPosition ().Item1;
 
                   //comment1 = comment + " : WJT trace as first part of Flex Cut";
-                  if (nextBeginFlexMachining)
-                     comment1 = comment + " : Seperate tooling block for WJT trace as first part of upcoming flex cut";
-                  else {
-                     if (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingForward ||
-                     mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingReverse)
-                        comment1 = comment + " : Seperate tooling block for WJT trace as first part of upcoming machining";
-                  }
+                  if (isNextSeqFlexMc)
+                     comment1 = comment + " : Seperate second tooling block for WJT as first part of upcoming flex cut";
+                  //else {
+                  //   if (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingForward ||
+                  //   mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineToolingReverse)
+                  //      comment1 = comment + " : Seperate tooling block for WJT trace as first part of upcoming machining";
+                  //}
 
                   if (isNextSeqFlexMc)
-                  mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: ToolingSegments[mNotchSequences[ii + 1].StartIndex], scrapSideNormal,
-                       mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
-                       ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                       isFlexCut: true,
-                       isValidNotch: true,
-                       flexRefTS: mFlexStartRef,
-                       out prevAbsToolPosition,
-                       toCompleteToolingBlock: false,
-                       comment1,
-                       relativeCoords: relCoords,
-                       firstWJTTrace: false);
+                     mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: ToolingSegments[mNotchSequences[ii + 1].StartIndex], scrapSideNormal,
+                          mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
+                          ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
+                          isFlexCut: true,
+                          isValidNotch: true,
+                          flexRefTS: mFlexStartRef,
+                          out prevAbsToolPosition,
+                          toCompleteToolingBlock: false,
+                          comment1,
+                          relativeCoords: relCoords,
+                          firstWJTTrace: false);
                   else
                      mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
                        mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,
