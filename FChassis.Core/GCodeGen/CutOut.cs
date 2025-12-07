@@ -703,12 +703,13 @@ public class CutOut : ToolingFeature {
                   Tuple<Point3, Vector3> cutoutEntry;
                   if (cutoutSequence.StartIndex > cutoutSequence.EndIndex)
                      throw new Exception ("In CutOut.WriteTooling: MachineToolingForward : startIndex > endIndex");
-                  if (!continueMachining)
+                  if (!continueMachining) {
+                     GCGen.RapidMoveToPiercingPositionWithPingPong = false;
                      GCGen.InitializeNotchToolingBlock (ToolingItem, prevToolingItem: null, ToolingSegments,
                         ToolingSegments[cutoutSequence.StartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mCutOutBlocks.Count - 1,
                         /*isToBeTreatedAsCutOut: mFeatureToBeTreatedAsCutout,*/ isValidNotch: false, cutoutSequence.StartIndex, cutoutSequence.EndIndex,
                         comment: "CutOutSequence: Machining Forward Direction");
-                  else {
+                  } else {
                      string titleComment = GCodeGenerator.GetGCodeComment ("CutOutSequence: Machining Forward Direction");
                      GCGen.WriteLineStatement (titleComment);
                   }
@@ -720,6 +721,7 @@ public class CutOut : ToolingFeature {
                         GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Cutout, usePingPongOption: true);
                   }
                   if (!continueMachining) {
+                     GCGen.RapidMoveToPiercingPositionWithPingPong = false;
                      if (ii == 0) {
                         cutoutEntry = Tuple.Create (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0);
                         GCGen.MoveToMachiningStartPosition (cutoutEntry.Item1, cutoutEntry.Item2, ToolingItem.Name);
@@ -746,7 +748,8 @@ public class CutOut : ToolingFeature {
                   if (ii == 0) throw new Exception ("CutOut writing starts from Flex side machining, which is wrong");
                   if (cutoutSequence.StartIndex > cutoutSequence.EndIndex)
                      throw new Exception ("In CutOut.WriteTooling: MachineFlexToolingForward : startIndex > endIndex");
-                  if (!continueMachining)
+                  if (!continueMachining) {
+                     GCGen.RapidMoveToPiercingPositionWithPingPong = false;
                      GCGen.InitializeNotchToolingBlock (ToolingItem, prevToolingItem: null, ToolingSegments, ToolingSegments[cutoutSequence.StartIndex].Vec0,
                         mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mCutOutBlocks.Count - 1,
                         //isToBeTreatedAsCutOut:mFeatureToBeTreatedAsCutout,
@@ -754,8 +757,10 @@ public class CutOut : ToolingFeature {
                         cutoutSequence.StartIndex,
                         cutoutSequence.EndIndex, refSegIndex: cutoutSequence.StartIndex,
                         "CutOutSequence: Flex machining Forward Direction");
+                  }
                   {
                      if (!continueMachining) {
+                        GCGen.RapidMoveToPiercingPositionWithPingPong = false;
                         var isFromWebFlange = Utils.IsMachiningFromWebFlange (ToolingSegments, cutoutSequence.StartIndex);
                         GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
                            ToolingSegments[cutoutSequence.StartIndex].Vec0, EKind.Cutout, usePingPongOption: true);
