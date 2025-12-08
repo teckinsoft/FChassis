@@ -892,8 +892,8 @@ public class CutOut : ToolingFeature {
                      if (ii == 0) {
                         GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, PreviousToolingSegment, mPrevToolingItem,
                            mPrevToolingSegs, mIsFirstTooling, isValidNotch: false, cutoutEntry);
-                        if (!GCGen.RapidMoveToPiercingPositionWithPingPong)
-                           GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Cutout, usePingPongOption: true);
+                        GCGen.MoveToMachiningStartPosition (cutoutEntry.Item1, cutoutEntry.Item2, ToolingItem.Name);
+                        GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Cutout, usePingPongOption: true);
                      }
 
                      //GCGen.WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
