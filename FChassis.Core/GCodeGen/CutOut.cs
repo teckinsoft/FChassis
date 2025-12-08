@@ -31,11 +31,11 @@ public class CutOut : ToolingFeature {
       NotchApproachLength = notchApproachLength;
       mPrevPlane = prevPlaneType;
       mWireJointDistance = wireJointDistance;
-      
+
       ToolingSegments = Utils.ModifyToolingForToolDiaCompensation (toolingItem, toolingItem.Segs);
-      
+
       ToolingSegments = Utils.AddLeadinToTooling (ToolingItem, ToolingSegments, GCGen, 0.5);
-      
+
       if (ToolingSegments == null || ToolingSegments.Count == 0)
          throw new Exception ("Segments accounted for entry is null");
       PerformToolingSegmentation ();
@@ -79,7 +79,7 @@ public class CutOut : ToolingFeature {
    List<NotchSequenceSection> mCutOutBlocks = [];
    List<(List<ToolingSegment> Segs, bool FlexSegs)> mSegValLists = [];
    Tooling mT;
-   Point3 mMostRecentPrevToolPosition;
+   Point3? mMostRecentPrevToolPosition;
    EPlane mPrevPlane;
    ToolingSegment mExitTooling;
    double mBlockCutLength = 0;
@@ -397,7 +397,7 @@ public class CutOut : ToolingFeature {
 
       // condition to introduce wire joints on web flange
       bool toIntroduceWJT = ToTreatAsCutOut (ToolingSegments, GCGen.Process.Workpiece.Bound, GCGen.MinCutOutLengthThreshold);
-      
+
       // When will a web-flange notch be created with Wire joints other than at flex beginnings and at ends?
       // Create ePoints by filtering and projecting mCutOutBlocks
       // if (YMax - YMin) => YSpan >= 2 * MinCutoutLengthThreshold and if one of the flanges happens tobe bottom or top, NO WJT is created on flanges.
@@ -640,6 +640,13 @@ public class CutOut : ToolingFeature {
    }
    #region G Code Writers
    public override void WriteTooling () {
+
+      if (ToolingItem.CutoutKind == ECutKind.Top2YNeg || ToolingItem.CutoutKind == ECutKind.Top2YPos)
+         WriteDualFlangeNotch ();
+      else
+         WriteCutoutSlot ();
+   }
+   void WriteCutoutSlot () {
       bool continueMachining = false;
       for (int ii = 0; ii < mCutOutBlocks.Count; ii++) {
          var cutoutSequence = mCutOutBlocks[ii];
@@ -671,7 +678,7 @@ public class CutOut : ToolingFeature {
                // shall be completed and so toCompleteToolingBlock is true, false otherwise
                if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex) {
                   GCGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
-                     mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
+                     mMostRecentPrevToolPosition.Value, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                      ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                         isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out _,
                         toCompleteToolingBlock: true, comment);
@@ -684,13 +691,14 @@ public class CutOut : ToolingFeature {
                // shall be completed and so toCompleteToolingBlock is true, false otherwise
                if (isNextSeqFlexMc) {
                   GCGen.WriteWireJointTrace (wjtTS, nextSeg: ToolingSegments[mCutOutBlocks[ii + 1].StartIndex], scrapSideNormal,
-                        mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
+                        mMostRecentPrevToolPosition.Value, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                            isFlexCut: true, isValidNotch: false, flexRefTS: mFlexStartRef, out _, toCompleteToolingBlock: false, comment);
 
-               } else {
+               } 
+               else {
                   GCGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
-                        mMostRecentPrevToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
+                        mMostRecentPrevToolPosition.Value, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
                            isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out _, toCompleteToolingBlock: false, comment);
                }
@@ -770,6 +778,196 @@ public class CutOut : ToolingFeature {
                         GCGen.EnableMachiningDirective ();
                      }
                      GCGen.WriteLineStatement (GCodeGenerator.GetGCodeComment ("CutOutSequence: Machining in Flex in Forward Direction"));
+                     for (int jj = cutoutSequence.StartIndex; jj <= cutoutSequence.EndIndex; jj++) {
+                        GCGen.WriteFlexLineSeg (ToolingSegments[jj],
+                        isWJTStartCut: false, ToolingItem.Name, flexRefSeg: mFlexStartRef);
+                        mExitTooling = ToolingSegments[jj];
+                        mBlockCutLength += ToolingSegments[jj].Curve.Length;
+                        PreviousToolingSegment = ToolingSegments[jj];
+                     }
+                     mFlexStartRef = null;
+
+                     // The next in sequence has to be wire joint jump trace and so
+                     // continueMachining is made to false
+                     GCGen.DisableMachiningDirective ();
+                     mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
+                  }
+                  GCGen.WriteLineStatement (GCGen.NotchCutEndToken);
+                  GCGen.FinalizeNotchToolingBlock (ToolingItem, mBlockCutLength, mTotalToolingsCutLength);
+               }
+               continueMachining = false;
+               break;
+
+            default:
+               throw new Exception ("Undefined CutOut sequence");
+         }
+      }
+   }
+   void WriteDualFlangeNotch () {
+      // The tooling machining is done using multiple tooling blocks. Continue machining for each sequence 
+      // means, continue machining wothout creating a new tooling block, continuing from previous sequence section type.
+      bool continueMachining = false;
+      Tuple<Point3, Vector3> cutoutEntry;
+      for (int ii = 0; ii < mCutOutBlocks.Count; ii++) {
+         var cutoutSequence = mCutOutBlocks[ii];
+         switch (cutoutSequence.SectionType) {
+            case NotchSectionType.WireJointTraceJumpForward:
+            case NotchSectionType.WireJointTraceJumpForwardOnFlex:
+               if (ii == 0) throw new Exception ("CutOut writing starts from Wire Joint Jump Trace, which is wrong");
+               Vector3 scrapSideNormal = Utils.GetMaterialRemovalSideDirection (ToolingSegments[cutoutSequence.StartIndex],
+                  ToolingSegments[cutoutSequence.StartIndex].Curve.End, EKind.Cutout, ToolingItem.ProfileKind);
+               string comment;
+               if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForward)
+                  comment = " ** Dual Flange Notch: WJT Forward Direction ** ";
+               else
+                  comment = comment = " ** Dual Flange Notch: WJT Reverse Direction ** ";
+               var wjtTS = ToolingSegments[cutoutSequence.StartIndex];
+               if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpReverse) {
+                  wjtTS = Geom.GetReversedToolingSegment (wjtTS);
+                  comment = "** Dual Flange Notch: WJT Reverse Direction ** ))";
+               }
+
+               bool isNextSeqFlexMc = (ii + 1 < mCutOutBlocks.Count && mCutOutBlocks[ii + 1].SectionType == NotchSectionType.MachineFlexToolingForward);
+               bool isPrevSeqFlexMc = (ii - 1 >= 0 && mCutOutBlocks[ii -1].SectionType == NotchSectionType.MachineFlexToolingForward);
+               EFlange flangeType = Utils.GetArcPlaneFlangeType (wjtTS.Vec1, GCGen.GetXForm ());
+               if (isNextSeqFlexMc && cutoutSequence.SectionType != NotchSectionType.WireJointTraceJumpForwardOnFlex)
+                  throw new Exception ("next seq is flex cut but current seq type is not NotchSectionType.WireJointTraceJumpForwardOnFlex");
+
+               mFlexStartRef = Utils.GetMachiningSegmentPostWJT (wjtTS, scrapSideNormal, GCGen.Process.Workpiece.Bound, NotchApproachLength);
+               if (mMostRecentPrevToolPosition == null)
+                  throw new Exception ($"Cutout.WriteTooling: {cutoutSequence.SectionType}, index-{ii} Most recent prev tool absolute position is null");
+
+               // DEBUG_DEBUG
+               //Point3? recentOutPos = null;
+               // Here it is assumed that if the next sequence block is machining on flex, in which case,
+               // the current sequence type is WireJointTraceJumpForwardOnFlex, the tooling block 
+               // shall be completed and so toCompleteToolingBlock is true, false otherwise
+               var comment1 = comment + " First WJT Tool Block ";
+               if (cutoutSequence.SectionType == NotchSectionType.WireJointTraceJumpForwardOnFlex) {
+                  GCGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
+                     mMostRecentPrevToolPosition.Value, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
+                     ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
+                        isFlexCut: false, isValidNotch: true, flexRefTS: mFlexStartRef, out mMostRecentPrevToolPosition,
+                        toCompleteToolingBlock: true, comment1, relativeCoords: true, firstWJTTrace: true);
+                  PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
+                  mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
+               }
+
+               // Here it is assumed that if the next sequence block is machining on flex, in which case,
+               // the current sequence type is WireJointTraceJumpForwardOnFlex, the tooling block 
+               // shall be completed and so toCompleteToolingBlock is true, false otherwise
+               if (isNextSeqFlexMc || isPrevSeqFlexMc ) {
+                  comment1 = comment + " Second WJT Tool Block ";
+                  GCGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
+                        mMostRecentPrevToolPosition.Value, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
+                        ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
+                           isFlexCut: false, isValidNotch: true, flexRefTS: mFlexStartRef, out mMostRecentPrevToolPosition,
+                           toCompleteToolingBlock: false, comment1, relativeCoords: true, firstWJTTrace: false);
+
+               } else {
+                  GCGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
+                        mMostRecentPrevToolPosition.Value, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
+                        ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
+                           isFlexCut: false, isValidNotch: false, flexRefTS: mFlexStartRef, out mMostRecentPrevToolPosition,
+                           toCompleteToolingBlock: false, comment, relativeCoords: true, firstWJTTrace: false);
+               }
+               PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
+               //mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
+               continueMachining = true;
+
+               break;
+            case NotchSectionType.MachineToolingForward: {
+                  if (cutoutSequence.StartIndex > cutoutSequence.EndIndex)
+                     throw new Exception ("In CutOut.WriteTooling: MachineToolingForward : startIndex > endIndex");
+
+                  if (!continueMachining) {
+                     GCGen.RapidMoveToPiercingPositionWithPingPong = false;
+                     GCGen.InitializeNotchToolingBlock (ToolingItem, prevToolingItem: null, ToolingSegments,
+                        ToolingSegments[cutoutSequence.StartIndex].Vec0, mXStart, mXPartition, mXEnd, isFlexCut: false, ii == mCutOutBlocks.Count - 1,
+                        /*isToBeTreatedAsCutOut: mFeatureToBeTreatedAsCutout,*/ isValidNotch: false, cutoutSequence.StartIndex, cutoutSequence.EndIndex,
+                        comment: "CutOutSequence: Machining Forward Direction");
+
+                     cutoutEntry = Tuple.Create (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
+                        ToolingSegments[cutoutSequence.StartIndex].Vec0);
+                     if (ii == 0) {
+                        GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, PreviousToolingSegment, mPrevToolingItem,
+                           mPrevToolingSegs, mIsFirstTooling, isValidNotch: false, cutoutEntry);
+                        if (!GCGen.RapidMoveToPiercingPositionWithPingPong)
+                           GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Cutout, usePingPongOption: true);
+                     }
+
+                     //GCGen.WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
+
+                     var isFromWebFlange = Utils.IsMachiningFromWebFlange (ToolingSegments, cutoutSequence.StartIndex);
+                     ////GCGen.PrepareforToolApproach (ToolingItem, ToolingSegments, PreviousToolingSegment, mPrevToolingItem,
+                     ////   mPrevToolingSegs, mIsFirstTooling, isValidNotch: false, cutoutEntry);
+                     //GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
+                     //      ToolingSegments[cutoutSequence.StartIndex].Vec0, EKind.Cutout, usePingPongOption: false);
+                     
+                     //GCGen.MoveToMachiningStartPosition (cutoutEntry.Item1, cutoutEntry.Item2, ToolingItem.Name);
+                     mMostRecentPrevToolPosition = cutoutEntry.Item1;
+
+                     GCGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+                     GCGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: false);
+
+                     GCGen.WriteLineStatement (GCGen.NotchCutStartToken);
+                     GCGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
+                     GCGen.EnableMachiningDirective ();
+
+                  } else {
+                     string titleComment = GCodeGenerator.GetGCodeComment ("CutOutSequence: Machining Forward Direction");
+                     GCGen.WriteLineStatement (titleComment);
+                  }
+
+                  for (int jj = cutoutSequence.StartIndex; jj <= cutoutSequence.EndIndex; jj++) {
+                     mExitTooling = ToolingSegments[jj];
+                     GCGen.WriteCurve (ToolingSegments[jj], ToolingItem.Name, relativeCoords: true, refStPt: mMostRecentPrevToolPosition);
+                     mBlockCutLength += ToolingSegments[jj].Curve.Length;
+                  }
+
+                  PreviousToolingSegment = ToolingSegments[cutoutSequence.EndIndex];
+                  GCGen.DisableMachiningDirective ();
+                  GCGen.WriteLineStatement (GCGen.NotchCutEndToken);
+                  mMostRecentPrevToolPosition = GCGen.GetLastToolHeadPosition ().Item1;
+                  GCGen.FinalizeNotchToolingBlock (ToolingItem, mBlockCutLength, mTotalToolingsCutLength);
+                  continueMachining = false;
+               }
+               break;
+            case NotchSectionType.MachineFlexToolingForward: {
+                  if (ii == 0) throw new Exception ("CutOut writing starts from Flex side machining, which is wrong");
+                  if (cutoutSequence.StartIndex > cutoutSequence.EndIndex)
+                     throw new Exception ("In CutOut.WriteTooling: MachineFlexToolingForward : startIndex > endIndex");
+
+                  if (!continueMachining) {
+                     GCGen.RapidMoveToPiercingPositionWithPingPong = false;
+                     GCGen.InitializeNotchToolingBlock (ToolingItem, prevToolingItem: null, ToolingSegments, ToolingSegments[cutoutSequence.StartIndex].Vec0,
+                        mXStart, mXPartition, mXEnd, isFlexCut: true, ii == mCutOutBlocks.Count - 1,
+                        //isToBeTreatedAsCutOut:mFeatureToBeTreatedAsCutout,
+                        isValidNotch: false,
+                        cutoutSequence.StartIndex,
+                        cutoutSequence.EndIndex, refSegIndex: cutoutSequence.StartIndex,
+                        "CutOutSequence: Flex machining Forward Direction");
+                     GCGen.WriteLineStatement (GCodeGenerator.GetGCodeComment ("CutOutSequence: Machining in Flex in Forward Direction"));
+                     var isFromWebFlange = Utils.IsMachiningFromWebFlange (ToolingSegments, cutoutSequence.StartIndex);
+                     GCGen.WriteLineStatement ("ToolPlane\t( Confirm Cutting Plane )");
+
+                     cutoutEntry = Tuple.Create (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
+                        ToolingSegments[cutoutSequence.StartIndex].Vec0);
+                     GCGen.RapidMoveToPiercingPosition (ToolingSegments[cutoutSequence.StartIndex].Curve.Start,
+                        ToolingSegments[cutoutSequence.StartIndex].Vec0, EKind.Cutout, usePingPongOption: true);
+                     //GCGen.MoveToMachiningStartPosition (cutoutEntry.Item1, cutoutEntry.Item2, ToolingItem.Name);
+                     mMostRecentPrevToolPosition = ToolingSegments[cutoutSequence.StartIndex].Curve.Start;
+
+                     GCGen.WriteNotchToolCorrectionCmd (isFlexTooling: true);
+                     GCGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: false);
+
+                     GCGen.WriteLineStatement (GCGen.NotchCutStartToken);
+                     GCGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
+                     GCGen.EnableMachiningDirective ();
+                  }
+                  {
+                     if (mFlexStartRef == null)
+                        throw new Exception ("Error mFlexStartRef = null");
                      for (int jj = cutoutSequence.StartIndex; jj <= cutoutSequence.EndIndex; jj++) {
                         GCGen.WriteFlexLineSeg (ToolingSegments[jj],
                         isWJTStartCut: false, ToolingItem.Name, flexRefSeg: mFlexStartRef);
