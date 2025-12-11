@@ -740,19 +740,19 @@ public class GCodeGenerator {
    }
    #endregion
 
-   #region Utilies for Tool Transformations
+   #region Utilies for Tool Transformationsd
    public static void EvaluateToolConfigXForms (Workpiece work) {
       // For LH Component
       if (mXformLHInv == null || mXformRHInv == null) {
          mXformLHInv = new XForm4 ();
          mXformRHInv = new XForm4 ();
-         //var flangeThickness = work.Model.Entities.OfType<E3Plane> ().ToList ().First ().ThickVector.Length;
-         mXformLHInv.Translate (new Vector3 (0.0, work.Bound.YMin, 0));
+         var flangeThickness = work.Model.Entities.OfType<E3Plane> ().ToList ().First ().ThickVector.Length;
+         mXformLHInv.Translate (new Vector3 (0.0, work.Bound.YMin, flangeThickness));
          //if (mcName == "LMMultipass2H")
          //mXformLHInv.SetRotationComponents (new Vector3 (-1, 0, 0), new Vector3 (0, -1, 0), new Vector3 (0, 0, 1));
          mXformLHInv.Invert ();
          // For RH component
-         mXformRHInv.Translate (new Vector3 (0.0, work.Bound.YMax, 0));
+         mXformRHInv.Translate (new Vector3 (0.0, work.Bound.YMax, flangeThickness));
          //if (mcName == "LMMultipass2H")
          //mXformRHInv.SetRotationComponents (new Vector3 (-1, 0, 0), new Vector3 (0, -1, 0), new Vector3 (0, 0, 1));
          mXformRHInv.Invert ();
