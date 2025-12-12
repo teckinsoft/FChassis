@@ -328,7 +328,11 @@ public class Workpiece : INotifyPropertyChanged {
                continue;
          }
       }
-      for (int zz=0; zz<cuts.Count; zz++) if (cuts[zz] != null) {
+
+      // Remove all invalid toolings
+      cuts.RemoveAll (c => c == null);
+
+      for (int zz=0; zz<cuts.Count; zz++) {
             Tooling cut = cuts[zz];
             cut.IdentifyCutout ();
 
