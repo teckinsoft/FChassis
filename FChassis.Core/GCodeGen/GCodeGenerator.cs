@@ -740,7 +740,7 @@ public class GCodeGenerator {
    }
    #endregion
 
-   #region Utilies for Tool Transformationsd
+   #region Utilies for Tool Transformations
    public static void EvaluateToolConfigXForms (Workpiece work) {
       // For LH Component
       if (mXformLHInv == null || mXformRHInv == null) {
@@ -2347,7 +2347,7 @@ public class GCodeGenerator {
          if (prevToolingItem != null) arcMcCoordsCenter = XfmToMachine (evalValue.Item1);
          else arcMcCoordsCenter = XfmToMachine (evalValue.Item1);
          var point2 = Utils.ToPlane (arcMcCoordsCenter, Utils.GetFeatureNormalPlaneType (toolingItem.Start.Vec, XForm4.IdentityXfm));
-         sw.WriteLine ($"X_Coordinate={point2.X:F3} YZ_Coordinate={point2.Y + JobThickness:F3}");
+         sw.WriteLine ($"X_Coordinate={point2.X:F3} YZ_Coordinate={point2.Y:F3}");
       }
    }
 
