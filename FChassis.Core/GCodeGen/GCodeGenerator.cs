@@ -319,7 +319,12 @@ public class GCodeGenerator {
             gcodeSt = $"BlockType={blockType:F0} ({comment})";
 
          } else if (isValidNotch || isCutout) {
-            var cutKind = isValidNotch ? notchCutKind : cutoutKind;
+            var cutKind = ECutKind.None;
+            if (isValidNotch)
+               cutKind = notchCutKind;
+            if ( isCutout) // THis is a cutout treated as notch
+               cutKind = cutoutKind;
+
             switch (cutKind) {
                case ECutKind.Top:
                   comment = "Web Flange Notch";
@@ -351,10 +356,13 @@ public class GCodeGenerator {
 
                case ECutKind.Top2YPos: // Web -> Top Flange Notch/Cutout
                case ECutKind.Top2YNeg:
-                  comment = "Web -> Top Flange Notch";
+                  if (cutKind == ECutKind.Top2YPos)
+                     comment = "Web -> Top Flange Notch";
+                  else
+                     comment = "Web -> Bottom Flange Notch";
 
                   nextSegEndNormalFlange = isFlexCut ? nextSegEndNormalFlange : endNormalFlange;
-                  
+
                   if (stNormalFlange == EFlange.Top && nextSegEndNormalFlange == EFlange.Top)
                      blockType = -4.9;
                   else if (stNormalFlange == EFlange.Bottom && nextSegEndNormalFlange == EFlange.Bottom)

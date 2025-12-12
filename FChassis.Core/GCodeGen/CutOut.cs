@@ -642,7 +642,7 @@ public class CutOut : ToolingFeature {
    public override void WriteTooling () {
 
       if (ToolingItem.CutoutKind == ECutKind.Top2YNeg || ToolingItem.CutoutKind == ECutKind.Top2YPos)
-         WriteDualFlangeNotch ();
+         WriteDualFlangeCutout ();
       else
          WriteCutoutSlot ();
    }
@@ -803,7 +803,7 @@ public class CutOut : ToolingFeature {
          }
       }
    }
-   void WriteDualFlangeNotch () {
+   void WriteDualFlangeCutout () {
       // The tooling machining is done using multiple tooling blocks. Continue machining for each sequence 
       // means, continue machining wothout creating a new tooling block, continuing from previous sequence section type.
       bool continueMachining = false;
