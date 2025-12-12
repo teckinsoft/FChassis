@@ -6,6 +6,7 @@ using FChassis.Core.Geometries;
 using System.Text.Json;
 using static FChassis.Core.Geometries.Geom;
 using static FChassis.Core.MCSettings;
+using System.Collections.Generic;
 
 namespace FChassis.Core;
 
@@ -282,7 +283,7 @@ public static class Utils {
    }
 
    public enum EArcSense {
-      CW, CCW, Infer
+      CW, CCW, Infer, Unknown
    }
 
    public enum FlexMachiningFlangeDirection {
@@ -785,7 +786,7 @@ public static class Utils {
          newToolingEntryPoint = Geom.GetMidPoint (segmentsList[0].Curve, toolingPlaneNormal);
 
       if (segmentsList[0].Curve is Arc3 arc)
-         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal);
+         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal, tolerance: 1e-3);
       else
          toolingDir = (segmentsList[0].Curve.End - segmentsList[0].Curve.Start).Normalized ();
 
@@ -812,7 +813,7 @@ public static class Utils {
          newToolingEntryPoint = Geom.GetMidPoint (segmentsList[0].Curve, toolingPlaneNormal);
 
       if (segmentsList[0].Curve is Arc3 arc)
-         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal);
+         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal, tolerance: 1e-3);
       else
          toolingDir = (segmentsList[0].Curve.End - segmentsList[0].Curve.Start).Normalized ();
 
@@ -828,7 +829,7 @@ public static class Utils {
 
    public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EKind featType, ECutKind profileKind = ECutKind.None) {
       var toolingPlaneNormal = ts.Vec0;
-      if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal))
+      if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal, tolerance:(ts.Curve is Arc3)?1e-3:1e-6))
          throw new Exception ("In GetMaterialRemovalSideDirection: The given point is not on the Tool Segment's Curve");
 
       // Tooling direction as the direction of the st to end point in the case of line OR
@@ -841,7 +842,7 @@ public static class Utils {
          newToolingEntryPoint = Geom.GetMidPoint (ts.Curve, toolingPlaneNormal);
 
       if (ts.Curve is Arc3 arc)
-         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal);
+         (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (arc, newToolingEntryPoint, toolingPlaneNormal, tolerance: 1e-3);
       else
          toolingDir = (ts.Curve.End - ts.Curve.Start).Normalized ();
 
@@ -1122,7 +1123,7 @@ public static class Utils {
             toolingDir = toolingSegmentsList[0].Curve.End - toolingSegmentsList[0].Curve.Start;
          else
             (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (toolingSegmentsList[0].Curve as Arc3,
-               firstToolingEntryPt, apn);
+               firstToolingEntryPt, apn, tolerance: 1e-3);
          toolingDir = toolingDir.Normalized ();
 
          // Compute new start point of the tooling, which is the start point of the quarter arc point on the 

@@ -2084,7 +2084,7 @@ public class GCodeGenerator {
             toolingDir = toolingSegmentsList[0].Curve.End - toolingSegmentsList[0].Curve.Start;
          else
             (toolingDir, _) = Geom.EvaluateTangentAndNormalAtPoint (toolingSegmentsList[0].Curve as Arc3,
-               firstToolingEntryPt, apn);
+               firstToolingEntryPt, apn, tolerance: 1e-3);
          toolingDir = toolingDir.Normalized ();
 
          // Compute new start point of the tooling, which is the start point of the quarter arc point on the 

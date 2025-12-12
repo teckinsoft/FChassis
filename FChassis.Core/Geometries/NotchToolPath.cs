@@ -291,7 +291,7 @@ public class NotchToolPath {
                //   (angle, sense) = Geom.GetArcAngleAtPoint (arc, new Vector3 (0, 0, 1));
                var crvs = Geom.SplitCurve (mTs[segIndex].Curve,
                                                     [mNotchPos[ii].Position],
-                                                    mTs[segIndex].Vec0.Normalized (), hintSense: sense);
+                                                    mTs[segIndex].Vec0.Normalized (), hintSense: sense, tolerance: (mTs[segIndex].Curve is Arc3) ? 1e-3 : 1e-6);
                if (crvs.Count > 1) {
                   var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (mTs[segIndex], crvs);
                   mTs.RemoveAt (segIndex);
@@ -308,7 +308,7 @@ public class NotchToolPath {
          } else {
             var crvs = Geom.SplitCurve (mTs[segIndex].Curve,
                                                  [mNotchPos[ii].Position],
-                                                 mTs[segIndex].Vec0.Normalized (), hintSense: sense);
+                                                 mTs[segIndex].Vec0.Normalized (), hintSense: sense, tolerance: (mTs[segIndex].Curve is Arc3) ? 1e-3 : 1e-6);
             if (crvs.Count > 1) {
                var toolSegsForCrvs = Geom.CreateToolingSegmentForCurves (mTs[segIndex], crvs);
                mTs.RemoveAt (segIndex);
@@ -505,7 +505,7 @@ public class NotchToolPath {
          for (int kk = 0; kk < mTs.Count; kk++) {
             var dist = mTs[kk].Curve.End.DistTo (mNotchPos[ii].Position);
             double tol = 1e-6;
-            if (mTs[kk].Curve is Arc3) tol = 1e-4;
+            if (mTs[kk].Curve is Arc3) tol = 1e-3;
             if (dist.EQ (0, tol)) {
                segIndex = kk;
                break;

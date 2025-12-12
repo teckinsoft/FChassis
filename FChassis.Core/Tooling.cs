@@ -117,7 +117,7 @@ public class Tooling {
       return clonedTooling;
    }
 
-   public const double mJoinableLengthToClose = 2.0;
+   public const double mJoinableLengthToClose = 5.0;
    public double JoinableLengthToClose { get { return mJoinableLengthToClose; } }
    public const double mNotchJoinableLengthToClose = 5.0;
    public readonly Workpiece Work;
@@ -179,18 +179,25 @@ public class Tooling {
 
    public Tooling JoinTo (Tooling b, double minJoinDist = mJoinableLengthToClose) {
       var t = new Tooling (Work, Kind);
-      if (End.Pt.DistTo (b.Start.Pt) < minJoinDist) {
+      //var d1 = End.Pt.DistTo (b.Start.Pt);
+      //var d2 = Start.Pt.DistTo (b.End.Pt);
+      //var d3 = Start.Pt.DistTo (b.Start.Pt);
+      //var d4 = End.Pt.DistTo (b.End.Pt);
+      if (this.IsClosed () || b.IsClosed ())
+         return null;
+
+      if (End.Pt.DistTo (b.Start.Pt).LTEQ (minJoinDist)) {
          t.Traces.AddRange (Traces);
          t.Traces.AddRange (b.Traces);
-      } else if (Start.Pt.DistTo (b.End.Pt) < minJoinDist) {
+      } else if (Start.Pt.DistTo (b.End.Pt).LTEQ (minJoinDist)) {
          t.Traces.AddRange (b.Traces);
          t.Traces.AddRange (Traces);
-      } else if (Start.Pt.DistTo (b.Start.Pt) < minJoinDist
-                 && !(End.Pt.DistTo (b.End.Pt) < minJoinDist)) {
+      } else if (Start.Pt.DistTo (b.Start.Pt).LTEQ (minJoinDist)
+                 /*&& !(End.Pt.DistTo (b.End.Pt) < minJoinDist)*/) {
          b.Reverse ();
          t.Traces.AddRange (b.Traces); t.Traces.AddRange (Traces);
-      } else if (End.Pt.DistTo (b.End.Pt) < minJoinDist
-                 && !(Start.Pt.DistTo (b.Start.Pt) < minJoinDist)) {
+      } else if (End.Pt.DistTo (b.End.Pt).LTEQ(minJoinDist)
+                 /*&& !(Start.Pt.DistTo (b.Start.Pt) < minJoinDist)*/) {
          b.Reverse ();
          t.Traces.AddRange (Traces); t.Traces.AddRange (b.Traces);
       } else

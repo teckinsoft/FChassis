@@ -185,10 +185,10 @@ public class Geom {
    /// on the curve is strictly between the start and end points</param>
    /// <returns>A tuple of Tangent and Normal vector at the given point</returns>
    public static Tuple<Vector3, Vector3> EvaluateTangentAndNormalAtPoint (Arc3 arc, Point3 pt, Vector3 apn,
-      bool constrainedWithinArc = true) {
-      if (arc == null || !IsPointOnCurve (arc as Curve3, pt, apn, hintSense: EArcSense.Infer, tolerance: 1e-6, constrainedWithinArc))
+      bool constrainedWithinArc = true, double tolerance = 1e-6) {
+      if (arc == null || !IsPointOnCurve (arc as Curve3, pt, apn, hintSense: EArcSense.Infer, tolerance: 1e-3, constrainedWithinArc))
          throw new Exception ("Arc is null or point is not on the curve");
-      var param = GetParamAtPoint (arc as Curve3, pt, apn);
+      var param = GetParamAtPoint (arc as Curve3, pt, apn, tolerance: tolerance);
       var (center, _) = EvaluateCenterAndRadius (arc);
       var pointAtParam1 = Geom.Evaluate (arc, param - 0.1, apn);
       var pointAtParam3 = Geom.Evaluate (arc, param + 0.1, apn);
@@ -219,7 +219,9 @@ public class Geom {
 
          // If the given pt is neither start and end of the arc..
          if (!arc.Start.EQ (pt, tolerance) && !arc.End.EQ (pt, tolerance)) {
-            if (!Math.Abs (pt.DistTo (center) - radius).EQ (0.0, tolerance) || !Math.Abs (apn.Dot ((pt - center).Normalized ())).EQ (0.0, tolerance))
+            var dist = Math.Abs (pt.DistTo (center) - radius);
+            var dotp = apn.Dot ((pt - center).Normalized ());
+            if (!dist.EQ (0.0, tolerance) || !Math.Abs (dotp).EQ (0.0, tolerance))
                throw new Exception ("Given point is not on the 3d circle");
          }
          if (Utils.IsCircle (arc)) {
@@ -645,7 +647,8 @@ public class Geom {
    /// if there is an inconsistency in the parameter computed for the line</exception>
    public static double GetParamAtPoint (Curve3 crv, Point3 pt, Vector3? apn, double tolerance = 1e-6) {
       if (crv == null || apn == null) throw new Exception ("Curve/arc plane normal is null");
-      if (!IsPointOnCurve (crv, pt, apn.Value)) throw new Exception ("The Point is not on the curve");
+      if (!IsPointOnCurve (crv, pt, apn.Value, tolerance: tolerance))
+         throw new Exception ("The Point is not on the curve");
 
       if (crv is Arc3) {
          if (apn == null) throw new Exception ("Arc Plane Normal needed");
@@ -2005,19 +2008,19 @@ public class XForm4 {
    }
 
    /// <summary>
-   /// Rotates point P by angle theta (radians) about an axis that passes through point C
+   /// Rotates point P by angle theta (radians) about an axis A that passes through point Center
    /// and is directed by the **unit** vector A.  
    /// Positive theta = counter-clockwise when looking **against** the ray A
    /// (i.e. thumb along A → fingers curl in the positive direction – right-hand rule).
    /// </summary>
-   public static Point3 AxisRotation (Vector3 A, Point3 C, Point3 P, double theta) {
+   public static Point3 AxisRotation (Vector3 Axis, Point3 Center, Point3 P, double theta) {
       // ---- 1. Pre-compute trig values ---------------------------------
-      A = A.Normalized ();
+      Axis = Axis.Normalized ();
       double c = Math.Cos (theta);
       double s = Math.Sin (theta);
       double v = 1.0 - c;
 
-      double ax = A.X, ay = A.Y, az = A.Z;   // A is already normalized
+      double ax = Axis.X, ay = Axis.Y, az = Axis.Z;   // Axis is already normalized
 
       // ---- 2. Build the 3×3 rotation matrix (Rodrigues) ----------------
       double R11 = c + ax * ax * v;
@@ -2032,20 +2035,20 @@ public class XForm4 {
       double R32 = ay * az * v + ax * s;
       double R33 = c + az * az * v;
 
-      // ---- 3. Vector from axis point C to the point P ------------------
-      double px = P.X - C.X;
-      double py = P.Y - C.Y;
-      double pz = P.Z - C.Z;
+      // ---- 3. Vector from axis point Center to the point P ------------------
+      double px = P.X - Center.X;
+      double py = P.Y - Center.Y;
+      double pz = P.Z - Center.Z;
 
       // ---- 4. Apply rotation to that vector ---------------------------
       double rx = R11 * px + R12 * py + R13 * pz;
       double ry = R21 * px + R22 * py + R23 * pz;
       double rz = R31 * px + R32 * py + R33 * pz;
 
-      // ---- 5. Translate back by C ------------------------------------
-      double pxPrime = rx + C.X;
-      double pyPrime = ry + C.Y;
-      double pzPrime = rz + C.Z;
+      // ---- 5. Translate back by Center ------------------------------------
+      double pxPrime = rx + Center.X;
+      double pyPrime = ry + Center.Y;
+      double pzPrime = rz + Center.Z;
 
       return new Point3 (pxPrime, pyPrime, pzPrime);
    }
