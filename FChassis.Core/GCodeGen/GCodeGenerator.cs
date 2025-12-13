@@ -283,16 +283,22 @@ public class GCodeGenerator {
       endNormalFlange = Utils.GetFlangeType (ts.Value.Vec1, GetXForm ());
 
       var isFlangeCutout = isCutout && (cutoutKind == ECutKind.Top || cutoutKind == ECutKind.YPos || cutoutKind == ECutKind.YNeg);
+
+      // for writing BlockType +/- 4.5 => Downwards ( from Web to flange )
+      // for writing BlockType +/- 4.6 => Upwards ( from flange to web )
       MachiningSense machiningSense = MachiningSense.None;
-      if (isFlexCut) {
-         nextSegEndNormalFlange = Utils.GetFlangeType (nextTs.Value.Vec1, GetXForm ());
-         Vector3 refSegDir = (nextTs.Value.Curve.End - nextTs.Value.Curve.Start).Normalized ();
-         if (isFlexCut && (refSegDir.IsSameSense (XForm4.mNegZAxis)))
-            machiningSense = MachiningSense.Downward;
-         else if (isFlexCut && (refSegDir.IsSameSense (XForm4.mZAxis)))
-            machiningSense = MachiningSense.Upward;
-         else
-            throw new Exception ("Error 1101");
+      if (nextTs != null) {
+         var isFlexCutSeg = Utils.IsFlexCutSegment (nextTs.Value);
+         if (isFlexCutSeg) {
+            nextSegEndNormalFlange = Utils.GetFlangeType (nextTs.Value.Vec1, GetXForm ());
+            Vector3 refSegDir = (nextTs.Value.Curve.End - nextTs.Value.Curve.Start).Normalized ();
+            if (refSegDir.IsSameSense (XForm4.mNegZAxis))
+               machiningSense = MachiningSense.Downward;
+            else if (refSegDir.IsSameSense (XForm4.mZAxis))
+               machiningSense = MachiningSense.Upward;
+            else
+               throw new Exception ("Error 1101");
+         }
       }
 
       if (CreateDummyBlock4Master)
@@ -322,7 +328,7 @@ public class GCodeGenerator {
             var cutKind = ECutKind.None;
             if (isValidNotch)
                cutKind = notchCutKind;
-            if ( isCutout) // THis is a cutout treated as notch
+            if (isCutout) // THis is a cutout treated as notch
                cutKind = cutoutKind;
 
             switch (cutKind) {
@@ -361,31 +367,34 @@ public class GCodeGenerator {
                   else
                      comment = "Web -> Bottom Flange Notch";
 
-                  nextSegEndNormalFlange = isFlexCut ? nextSegEndNormalFlange : endNormalFlange;
+                  // nextSegEndNormalFlange is that of next tooling segment. If none is given
+                  // same segment's end normal is considered, else , next seg's end normal is considered
+                  // This is meant to infer if the machining is gonna start machining on the flex ( upwards or downwards)
+                  var endNormal = nextSegEndNormalFlange == EFlange.None ? endNormalFlange : nextSegEndNormalFlange;
 
-                  if (stNormalFlange == EFlange.Top && nextSegEndNormalFlange == EFlange.Top)
+                  if (stNormalFlange == EFlange.Top && endNormal == EFlange.Top)
                      blockType = -4.9;
-                  else if (stNormalFlange == EFlange.Bottom && nextSegEndNormalFlange == EFlange.Bottom)
+                  else if (stNormalFlange == EFlange.Bottom && endNormal == EFlange.Bottom)
                      blockType = 4.9;
-                  else if (stNormalFlange == EFlange.Web && nextSegEndNormalFlange == EFlange.Web) {
+                  else if (stNormalFlange == EFlange.Web && endNormal == EFlange.Web) {
                      if (cutKind == ECutKind.Top2YPos)
                         blockType = -4.0;
                      else
                         blockType = 4.0;
-                  } else if (stNormalFlange == EFlange.Web && nextSegEndNormalFlange == EFlange.TopFlex)
+                  } else if (stNormalFlange == EFlange.Web && endNormal == EFlange.TopFlex)
                      blockType = -4.5;
-                  else if (stNormalFlange == EFlange.Web && nextSegEndNormalFlange == EFlange.BottomFlex)
+                  else if (stNormalFlange == EFlange.Web && endNormal == EFlange.BottomFlex)
                      blockType = 4.5;
-                  else if (stNormalFlange == EFlange.TopFlex && nextSegEndNormalFlange == EFlange.TopFlex) {
+                  else if (stNormalFlange == EFlange.TopFlex && endNormal == EFlange.TopFlex) {
                      if (machiningSense == MachiningSense.Downward)
                         blockType = -4.5;
                      else
                         blockType = -4.6;
-                  } else if (stNormalFlange == EFlange.Top && nextSegEndNormalFlange == EFlange.TopFlex)
+                  } else if (stNormalFlange == EFlange.Top && endNormal == EFlange.TopFlex)
                      blockType = -4.6;
-                  else if (stNormalFlange == EFlange.Bottom && nextSegEndNormalFlange == EFlange.BottomFlex)
+                  else if (stNormalFlange == EFlange.Bottom && endNormal == EFlange.BottomFlex)
                      blockType = 4.6;
-                  else if (stNormalFlange == EFlange.BottomFlex && nextSegEndNormalFlange == EFlange.BottomFlex) {
+                  else if (stNormalFlange == EFlange.BottomFlex && endNormal == EFlange.BottomFlex) {
                      if (machiningSense == MachiningSense.Downward)
                         blockType = 4.5;
                      else
@@ -1336,6 +1345,15 @@ public class GCodeGenerator {
          var cutBound = cut.Bound3;
          if (((double)cutBound.XMax).SGT (xEnd))
             throw new Exception ("Tooling's XMax is more than frame feed");
+
+         // Recomputation of tool cut kind is needed to evaluate once again
+         // for LH or RH component, if only LH and RH component was changed in settings
+         // and gcode generation is intended
+         if (cut.Kind == EKind.Cutout)
+            cut.CutoutKind = Tooling.GetCutKind (cut, GetXForm ());
+         else if (cut.Kind == EKind.Notch)
+            cut.NotchKind = Tooling.GetCutKind (cut, GetXForm ());
+         cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
       }
       // Compute the splitPartition
       var xPartition = GetXPartition (mcCutScope.Toolings);
@@ -1735,7 +1753,10 @@ public class GCodeGenerator {
 
       var endPointWithMCClearance = tsEndPoint + tsEndNormalDir * Standoff;
       var mcCoordTSEndNormalDir = GetXForm () * tsEndNormalDir;
-      double mcCoordTSAngleWithFlexRefStart = (GetXForm () * XForm4.mZAxis).AngleTo (mcCoordTSEndNormalDir).R2D ();
+
+      // Incremental angles are computed from the previous absolute angle ( for web , or top/bottom flanges).
+      // flexRefSeg is used as the ref to find the previous normal.
+      double mcCoordTSAngleWithFlexRefStart = (GetXForm () * flexRefSeg.Value.Vec0.Normalized ()).AngleTo (mcCoordTSEndNormalDir).R2D ();
       var flexRefTSStartPoint = flexRefSeg.Value.Curve.Start;
       var mcCoordflexRefTSStartPoint = XfmToMachine (flexRefTSStartPoint);
       var flexRefTSEndPoint = flexRefSeg.Value.Curve.End;

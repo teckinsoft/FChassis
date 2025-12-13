@@ -829,7 +829,7 @@ public static class Utils {
 
    public static Vector3 GetMaterialRemovalSideDirection (ToolingSegment ts, Point3 pt, EKind featType, ECutKind profileKind = ECutKind.None) {
       var toolingPlaneNormal = ts.Vec0;
-      if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal, tolerance:(ts.Curve is Arc3)?1e-3:1e-6))
+      if (!Geom.IsPointOnCurve (ts.Curve, pt, toolingPlaneNormal, tolerance: (ts.Curve is Arc3) ? 1e-3 : 1e-6))
          throw new Exception ("In GetMaterialRemovalSideDirection: The given point is not on the Tool Segment's Curve");
 
       // Tooling direction as the direction of the st to end point in the case of line OR
@@ -2704,5 +2704,11 @@ public static class Utils {
       (cen, rad) = Geom.EvaluateCenterAndRadius (arc);
 
       return new Arc3 (newStPt, intPoint1, intPoint2, newStPt);
+   }
+
+   public static bool IsFlexCutSegment (ToolingSegment ts) {
+      if (Utils.IsToolingOnFlex (ts.Vec0, ts.Vec1))
+         return true;
+      return false;
    }
 }

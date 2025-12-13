@@ -1870,7 +1870,7 @@ public class Notch : ToolingFeature {
                }
                bool isNextSeqFlexMc = (mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingReverse ||
                   mNotchSequences[ii + 1].SectionType == NotchSectionType.MachineFlexToolingForward);
-               bool isPrevSeqFlexMc = (mNotchSequences[ii -1].SectionType == NotchSectionType.MachineFlexToolingReverse ||
+               bool isPrevSeqFlexMc = (mNotchSequences[ii - 1].SectionType == NotchSectionType.MachineFlexToolingReverse ||
                   mNotchSequences[ii - 1].SectionType == NotchSectionType.MachineFlexToolingForward);
 
                EFlange flangeType = Utils.GetArcPlaneFlangeType (wjtTS.Vec1, mGCodeGen.GetXForm ());
@@ -1935,7 +1935,7 @@ public class Notch : ToolingFeature {
                           comment1,
                           relativeCoords: relCoords,
                           firstWJTTrace: false);
-                  
+
                   //if (isPrevSeqFlexMc)
                   //   mGCodeGen.WriteWireJointTrace (wjtTS, nextSeg: null, scrapSideNormal,
                   //     mRecentToolPosition, NotchApproachLength, ref mPrevPlane, flangeType, mToolingItem,

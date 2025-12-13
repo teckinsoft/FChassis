@@ -196,7 +196,7 @@ public class Tooling {
                  /*&& !(End.Pt.DistTo (b.End.Pt) < minJoinDist)*/) {
          b.Reverse ();
          t.Traces.AddRange (b.Traces); t.Traces.AddRange (Traces);
-      } else if (End.Pt.DistTo (b.End.Pt).LTEQ(minJoinDist)
+      } else if (End.Pt.DistTo (b.End.Pt).LTEQ (minJoinDist)
                  /*&& !(Start.Pt.DistTo (b.Start.Pt) < minJoinDist)*/) {
          b.Reverse ();
          t.Traces.AddRange (Traces); t.Traces.AddRange (b.Traces);
@@ -206,8 +206,8 @@ public class Tooling {
       return t;
    }
 
-   public bool IsClosed (double tol = mJoinableLengthToClose) => End.Pt.DistTo (Start.Pt) <= tol;   
-   
+   public bool IsClosed (double tol = mJoinableLengthToClose) => End.Pt.DistTo (Start.Pt).LTEQ (0, tol);
+
    // If the tooling exists in more than one flange, then it returns true
    public bool IsDualFlangeTooling () {
       if (ProfileKind == ECutKind.Top2YNeg ||
@@ -223,7 +223,7 @@ public class Tooling {
    public bool IsSingleFlangeTooling () {
       if (ProfileKind == ECutKind.Top ||
          ProfileKind == ECutKind.YPos ||
-         ProfileKind == ECutKind.YNeg )
+         ProfileKind == ECutKind.YNeg)
          return true;
       return false;
    }
@@ -240,7 +240,7 @@ public class Tooling {
    }
    public bool IsDualFlangeCutout () {
       bool toTreatAsCutOut = CutOut.ToTreatAsCutOut (Segs, Bound3, MCSettings.It.MinCutOutLengthThreshold);
-      if (( IsClosed() && Kind == EKind.Cutout ) || (Kind == EKind.Hole && toTreatAsCutOut)) {
+      if ((IsClosed () && Kind == EKind.Cutout) || (Kind == EKind.Hole && toTreatAsCutOut)) {
          if (Utils.IsDualFlangeSameSideCutout (Segs))
             return true;
       }
@@ -261,8 +261,8 @@ public class Tooling {
       for (int ii = 0; ii < Segs.Count; ii++) {
          var plType1 = Utils.GetFeatureNormalPlaneType (Segs[ii].Vec0, XForm4.IdentityXfm);
          var plType2 = Utils.GetFeatureNormalPlaneType (Segs[ii].Vec1, XForm4.IdentityXfm);
-         if ( (plType1 != Utils.EPlane.YPos && plType1 != Utils.EPlane.YNeg) &&
-            (plType2 != Utils.EPlane.YPos && plType2 != Utils.EPlane.YNeg ) )
+         if ((plType1 != Utils.EPlane.YPos && plType1 != Utils.EPlane.YNeg) &&
+            (plType2 != Utils.EPlane.YPos && plType2 != Utils.EPlane.YNeg))
             return false;
       }
       return true;
@@ -391,6 +391,8 @@ public class Tooling {
       bool YNegPlaneFeat = segs.Any (cutSeg => (((trf * cutSeg.Vec0.Normalized ()).Y).EQ (-1) && ((trf * cutSeg.Vec1.Normalized ()).Y).EQ (-1)));
       bool YPosPlaneFeat = segs.Any (cutSeg => (((trf * cutSeg.Vec0.Normalized ()).Y).EQ (1) && ((trf * cutSeg.Vec1.Normalized ()).Y).EQ (1)));
       bool TopPlaneFeat = segs.Any (cutSeg => (((trf * cutSeg.Vec0.Normalized ()).Z).EQ (1) && ((trf * cutSeg.Vec1.Normalized ()).Z).EQ (1)));
+
+      // For LH Component
       foreach (var seg in segs) {
          var nn = (trf * seg.Vec0.Normalized ());
          if (nn.Y < -1e-6 && nn.Y.SGT (-1.0)) {
@@ -401,6 +403,7 @@ public class Tooling {
             break;
          }
       }
+
       if (TopPlaneFeat && (YPosPlaneFeat || cutKindAtFlex == ECutKind.YPosFlex) && (YNegPlaneFeat || cutKindAtFlex == ECutKind.YNegFlex))
          cutKindAtFlange = ECutKind.YNegToYPos;
       else if (TopPlaneFeat && (YNegPlaneFeat || cutKindAtFlex == ECutKind.YNegFlex))
@@ -415,6 +418,40 @@ public class Tooling {
          cutKindAtFlange = ECutKind.YPos;
       if (cutKindAtFlex == ECutKind.None && cutKindAtFlange == ECutKind.None)
          throw new Exception ("Unsupported Notch Type");
+
+
+      // Correction for RH Component
+      if (MCSettings.It.PartConfig == MCSettings.PartConfigType.RHComponent) {
+         switch (cutKindAtFlex) {
+            case ECutKind.YNegFlex:
+               cutKindAtFlex = ECutKind.YPosFlex;
+               break;
+            case ECutKind.YPosFlex:
+               cutKindAtFlex = ECutKind.YNegFlex;
+               break;
+            default:
+               break;
+         }
+
+         switch (cutKindAtFlange) {
+            case ECutKind.YNeg:
+               cutKindAtFlange = ECutKind.YPos;
+               break;
+            case ECutKind.YPos:
+               cutKindAtFlange = ECutKind.YNeg;
+               break;
+            case ECutKind.Top2YNeg:
+               cutKindAtFlange = ECutKind.Top2YPos;
+               break;
+            case ECutKind.Top2YPos:
+               cutKindAtFlange = ECutKind.Top2YNeg;
+               break;
+            default:
+               break;
+
+         }
+      }
+
       return cutKindAtFlange != ECutKind.None ? cutKindAtFlange : cutKindAtFlex;
    }
 
@@ -565,10 +602,10 @@ public class Tooling {
       return minVal.LTEQ (min);
    }
 
-   public double Length { 
+   public double Length {
       get {
          double len = 0;
-         foreach( var seg in Segs)
+         foreach (var seg in Segs)
             len += seg.Curve.Length;
          return len;
       }

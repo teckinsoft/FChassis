@@ -332,125 +332,125 @@ public class Workpiece : INotifyPropertyChanged {
       // Remove all invalid toolings
       cuts.RemoveAll (c => c == null);
 
-      for (int zz=0; zz<cuts.Count; zz++) {
-            Tooling cut = cuts[zz];
-            cut.IdentifyCutout ();
+      for (int zz = 0; zz < cuts.Count; zz++) {
+         Tooling cut = cuts[zz];
+         cut.IdentifyCutout ();
 
-            // If the cutout is fully on the flex and if it has shortest distance between (across)
-            // is lesser than 2.0, the cutout is discarded
-            // This is included to exclude such cutouts that are generated from JOIN functionality
-            if (cut.IsFlexCutout ()) {
-               if (cut.IsNarrowFlexOnlyFeature ()) continue;
-            }
-            
-            // If the hole 
-            if (cut.IsFlexOnlyFeature ()) continue;
-
-            // For some reason, a closed PLine in Flux after projection
-            // to the E3Plane/E3Flex in the Tooling constructor, does not
-            // produce a closed tooling. This issue has to be investigated.
-            // The following fix is temporary, to close the tooling
-            var modifidSegs = cut.ExtractSegs.ToList ();
-            cut.Name = $"Tooling-{cutIndex++}";
-            if (cut.Kind == EKind.Cutout) {
-               if (cut.Segs[0].Curve.Start.DistTo (cut.Segs[^1].Curve.End).SGT (0)) {
-                  var refToolingSegment = new ToolingSegment (cut.Segs[0].Curve, cut.Segs[^1].Vec1, cut.Segs[0].Vec0);
-                  var missingTs = Geom.CreateToolingSegmentForCurve (refToolingSegment, new Line3 (cut.Segs[^1].Curve.End, cut.Segs[0].Curve.Start));
-                  modifidSegs.Add (missingTs);
-                  cut.Segs = modifidSegs;
-               }
-            }
-            cut.FeatType = $"{Utils.GetFlangeType (cut,
-                                                   GCodeGenerator.GetXForm (this))} - {cut.Kind}";
-            var cutSegs = cut.Segs.ToList ();
-            if (cut.Kind == EKind.Cutout || cut.Kind == EKind.Hole) {
-               if (!It.CutCutouts)
-                  continue;
-
-               // In the case of Cutouts, ( closed notches ) since the segments happen on 
-               // E3Plane and E3Flex and the resultant list of segments are not owned by any one
-               // E3Entity, the segments' start point are projected onto the plane away from E3Flex
-               // in 45 deg or -45 deg. The windiwng of the polygon on the projected plane is used
-               // to check if the Traces of the tooling has to be reversed.
-               Vector3 n = Utils.GetEPlaneNormal (cut,
-                                                  GCodeGenerator.GetXForm (this));
-               Point3 q = new (0.0, mBound.YMax + 10.0, mBound.ZMax + 10.0);
-               bool yNegFlexFeat = cutSegs.Any (cutSeg => cutSeg.Vec0.Normalized ().Y < -0.1);
-               if (yNegFlexFeat)
-                  q = new Point3 (0.0, mBound.YMin - 10.0, mBound.ZMax + 10.0);
-
-               if (Geom.GetToolingWinding (n, q, cutSegs) == Geom.ToolingWinding.CW)
-                  cut.Reverse ();
-               cutSegs = [.. cut.Segs];
-               cut.CutoutKind = Tooling.GetCutKind (cut, GCodeGenerator.GetXForm (this));
-               cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
-            } else {
-               if (!It.CutNotches)
-                  continue;
-               cut.NotchKind = Tooling.GetCutKind (cut, GCodeGenerator.GetXForm (this));
-               cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
-               var NotchStFlType = Utils.GetArcPlaneFlangeType (cutSegs.First ().Vec0,
-                                                                GCodeGenerator.GetXForm (this));
-               var NotchEndFlType = Utils.GetArcPlaneFlangeType (cutSegs[^1].Vec1,
-                                                                 GCodeGenerator.GetXForm (this));
-               // If the notch starts on a flange and ends on the same flange
-               if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg) {
-                  if (cutSegs[0].Vec0.Normalized ().EQ (cutSegs[^1].Vec1.Normalized ())) {
-                     if (cutSegs[^1].Curve.End.X < cutSegs[0].Curve.Start.X)
-                        cut.Reverse ();
-                  } else { // If the notch starts on web and ends on a flange
-                     var endX = cutSegs[^1].Curve.End.X;
-                     if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
-                        cut.Reverse ();
-                     else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX)
-                        cut.Reverse ();
-                  }
-               } else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) {
-                  if (cutSegs.First ().Curve.Start.X > cutSegs[^1].Curve.End.X)
-                     cut.Reverse ();
-               } else if (cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YNegToYPos) {
-                  if (cutSegs.First ().Curve.Start.Y > cutSegs[^1].Curve.End.Y)
-                     cut.Reverse ();
-               }
-
-               // Set if the notch is a EdgeNotch
-               double[] percentLengths = [0.25, 0.5, 0.75];
-               double mCurveLeastLength = 0.5;
-               if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
-                   mCurveLeastLength, Model.Flexes.First ().Radius, Model.Flexes.First ().Thickness, MCSettings.It.NotchApproachLength))
-                  cut.EdgeNotch = true;
-               
-               RemoveEdgeNotchSegments (cut, out bool segmentsRemoved);
-               if (segmentsRemoved) {
-                  // Collect the discrete toolings (should always return at least one)
-                  List<Tooling> subCuts = CollectDiscreteToolings (cut);
-
-                  //// Validate: subCuts cannot be empty if we're removing the original
-                  //if (subCuts == null || subCuts.Count == 0) {
-                  //   throw new InvalidOperationException (
-                  //       $"CollectDiscreteToolings returned empty list for cut '{cut.Name}' " +
-                  //       "after segments were removed. This is a logic error.");
-                  //}
-                  if (subCuts.Count > 0 && zz < cuts.Count) {
-                     // Remove the original cut from the list
-                     cuts.RemoveAt (zz);
-
-                     // Insert the sub-cuts at the same position
-                     cuts.InsertRange (zz, subCuts);
-
-                     // Adjust the index: -1 because loop will increment zz
-                     //zz = zz + subCuts.Count - 1;
-                     zz--;
-
-                     continue; // Skip further processing of this iteration
-                  }
-               }
-            }
-            cutSegs = [.. cut.Segs];
-            // Calculate the bound3 for each cut
-            cut.Bound3 = Utils.CalculateBound3 (cutSegs, Model.Bound);
-            mCuts.Add (cut);
+         // If the cutout is fully on the flex and if it has shortest distance between (across)
+         // is lesser than 2.0, the cutout is discarded
+         // This is included to exclude such cutouts that are generated from JOIN functionality
+         if (cut.IsFlexCutout ()) {
+            if (cut.IsNarrowFlexOnlyFeature ()) continue;
          }
+
+         // If the hole 
+         if (cut.IsFlexOnlyFeature ()) continue;
+
+         // For some reason, a closed PLine in Flux after projection
+         // to the E3Plane/E3Flex in the Tooling constructor, does not
+         // produce a closed tooling. This issue has to be investigated.
+         // The following fix is temporary, to close the tooling
+         var modifidSegs = cut.ExtractSegs.ToList ();
+         cut.Name = $"Tooling-{cutIndex++}";
+         if (cut.Kind == EKind.Cutout) {
+            if (cut.Segs[0].Curve.Start.DistTo (cut.Segs[^1].Curve.End).SGT (0)) {
+               var refToolingSegment = new ToolingSegment (cut.Segs[0].Curve, cut.Segs[^1].Vec1, cut.Segs[0].Vec0);
+               var missingTs = Geom.CreateToolingSegmentForCurve (refToolingSegment, new Line3 (cut.Segs[^1].Curve.End, cut.Segs[0].Curve.Start));
+               modifidSegs.Add (missingTs);
+               cut.Segs = modifidSegs;
+            }
+         }
+         cut.FeatType = $"{Utils.GetFlangeType (cut,
+                                                GCodeGenerator.GetXForm (this))} - {cut.Kind}";
+         var cutSegs = cut.Segs.ToList ();
+         if (cut.Kind == EKind.Cutout || cut.Kind == EKind.Hole) {
+            if (!It.CutCutouts)
+               continue;
+
+            // In the case of Cutouts, ( closed notches ) since the segments happen on 
+            // E3Plane and E3Flex and the resultant list of segments are not owned by any one
+            // E3Entity, the segments' start point are projected onto the plane away from E3Flex
+            // in 45 deg or -45 deg. The windiwng of the polygon on the projected plane is used
+            // to check if the Traces of the tooling has to be reversed.
+            Vector3 n = Utils.GetEPlaneNormal (cut,
+                                               GCodeGenerator.GetXForm (this));
+            Point3 q = new (0.0, mBound.YMax + 10.0, mBound.ZMax + 10.0);
+            bool yNegFlexFeat = cutSegs.Any (cutSeg => cutSeg.Vec0.Normalized ().Y < -0.1);
+            if (yNegFlexFeat)
+               q = new Point3 (0.0, mBound.YMin - 10.0, mBound.ZMax + 10.0);
+
+            if (Geom.GetToolingWinding (n, q, cutSegs) == Geom.ToolingWinding.CW)
+               cut.Reverse ();
+            cutSegs = [.. cut.Segs];
+            cut.CutoutKind = Tooling.GetCutKind (cut, GCodeGenerator.GetXForm (this));
+            cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
+         } else {
+            if (!It.CutNotches)
+               continue;
+            cut.NotchKind = Tooling.GetCutKind (cut, GCodeGenerator.GetXForm (this));
+            cut.ProfileKind = Tooling.GetCutKind (cut, XForm4.IdentityXfm);
+            var NotchStFlType = Utils.GetArcPlaneFlangeType (cutSegs.First ().Vec0,
+                                                             GCodeGenerator.GetXForm (this));
+            var NotchEndFlType = Utils.GetArcPlaneFlangeType (cutSegs[^1].Vec1,
+                                                              GCodeGenerator.GetXForm (this));
+            // If the notch starts on a flange and ends on the same flange
+            if (cut.ProfileKind == ECutKind.Top2YPos || cut.ProfileKind == ECutKind.Top2YNeg) {
+               if (cutSegs[0].Vec0.Normalized ().EQ (cutSegs[^1].Vec1.Normalized ())) {
+                  if (cutSegs[^1].Curve.End.X < cutSegs[0].Curve.Start.X)
+                     cut.Reverse ();
+               } else { // If the notch starts on web and ends on a flange
+                  var endX = cutSegs[^1].Curve.End.X;
+                  if (endX - mBound.XMin < mBound.XMax - endX && cutSegs.First ().Curve.Start.X > endX)
+                     cut.Reverse ();
+                  else if (mBound.XMax - endX < endX - mBound.XMin && cutSegs.First ().Curve.Start.X < endX)
+                     cut.Reverse ();
+               }
+            } else if (cut.ProfileKind == ECutKind.YPos || cut.ProfileKind == ECutKind.YNeg) {
+               if (cutSegs.First ().Curve.Start.X > cutSegs[^1].Curve.End.X)
+                  cut.Reverse ();
+            } else if (cut.ProfileKind == ECutKind.Top || cut.ProfileKind == ECutKind.YNegToYPos) {
+               if (cutSegs.First ().Curve.Start.Y > cutSegs[^1].Curve.End.Y)
+                  cut.Reverse ();
+            }
+
+            // Set if the notch is a EdgeNotch
+            double[] percentLengths = [0.25, 0.5, 0.75];
+            double mCurveLeastLength = 0.5;
+            if (Notch.IsEdgeNotch (mBound, cut, percentLengths,
+                mCurveLeastLength, Model.Flexes.First ().Radius, Model.Flexes.First ().Thickness, MCSettings.It.NotchApproachLength))
+               cut.EdgeNotch = true;
+
+            RemoveEdgeNotchSegments (cut, out bool segmentsRemoved);
+            if (segmentsRemoved) {
+               // Collect the discrete toolings (should always return at least one)
+               List<Tooling> subCuts = CollectDiscreteToolings (cut);
+
+               //// Validate: subCuts cannot be empty if we're removing the original
+               //if (subCuts == null || subCuts.Count == 0) {
+               //   throw new InvalidOperationException (
+               //       $"CollectDiscreteToolings returned empty list for cut '{cut.Name}' " +
+               //       "after segments were removed. This is a logic error.");
+               //}
+               if (subCuts.Count > 0 && zz < cuts.Count) {
+                  // Remove the original cut from the list
+                  cuts.RemoveAt (zz);
+
+                  // Insert the sub-cuts at the same position
+                  cuts.InsertRange (zz, subCuts);
+
+                  // Adjust the index: -1 because loop will increment zz
+                  //zz = zz + subCuts.Count - 1;
+                  zz--;
+
+                  continue; // Skip further processing of this iteration
+               }
+            }
+         }
+         cutSegs = [.. cut.Segs];
+         // Calculate the bound3 for each cut
+         cut.Bound3 = Utils.CalculateBound3 (cutSegs, Model.Bound);
+         mCuts.Add (cut);
+      }
 
       Dirty = true;
 
