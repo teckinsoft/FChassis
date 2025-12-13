@@ -60,7 +60,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       this.DataContext = this;
 
       SettingServices.It.LoadSettings (MCSettings.It);
-
+      MCSettings.It.PropertyChanged += OnTextPosChanged;
       try {
          // Get the application directory
          // Get the default path from registry if FChassis is installed
@@ -157,6 +157,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
       //// Set icon programmatically (alternative to XAML)
       //this.Icon = new BitmapImage(new Uri("pack://application:,,,/Resources/FChassis.Splash.png"));
+   }
+
+   // Handler: Only reacts if MarkTextPosX changed
+   void OnTextPosChanged (object? sender, PropertyChangedEventArgs e) {
+      if (e.PropertyName == nameof (MCSettings.MarkTextPosX) || e.PropertyName == nameof (MCSettings.MarkTextPosY)) {
+         // Your logic here, e.g., update UI with mcSettings.MarkTextPosX
+         //Console.WriteLine ($"MarkTextPosX changed to: {mcSettings.MarkTextPosX}");
+         _cutMarks = false;
+         DrawTextMarking ();
+      }
    }
 
    public static string GetAppSubstPath (string driveLetter = "W:") {
@@ -830,7 +840,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
       }
    }
 
-   void DoTextMarking (object sender, RoutedEventArgs e) {
+   void DoTextMarking (object sender, RoutedEventArgs e) => DrawTextMarking ();
+
+   void DrawTextMarking () {
       if (!HandleNoWorkpiece () && !_cutMarks) {
          if (Work.DoTextMarking (MCSettings.It))
             GenesysHub?.ClearZombies ();

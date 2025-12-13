@@ -145,10 +145,11 @@ public partial class MCSettings : INotifyPropertyChanged {
    }
 
    // Helper method to set a property and raise the event
-   private void SetProperty<T> (ref T field, T value) {
+   private void SetProperty<T> (ref T field, T value, [CallerMemberName] string? propertyName = null) {
       if (!Equals (field, value)) {
          field = value;
          OnSettingValuesChangedEvent?.Invoke ();
+         PropertyChanged?.Invoke (this, new PropertyChangedEventArgs (propertyName));
       }
    }
 

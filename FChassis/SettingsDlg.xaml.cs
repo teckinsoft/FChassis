@@ -75,7 +75,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       cbMarkTextAngle.ItemsSource = Enum.GetValues (typeof (ERotate)).Cast<ERotate> ().ToList ();
       cbMarkTextAngle.Bind (() => Settings.MarkAngle, s => { Settings.MarkAngle = s; IsModified = true; });
       tbMarkTextPositionX.Bind (() => Settings.MarkTextPosX, f => { Settings.MarkTextPosX = f.Clamp (0.05, 100000); IsModified = true; });
-      tbMarkTextPositionY.Bind (() => Settings.MarkTextPosY, f => { Settings.MarkTextPosY = f.Clamp (0.05, 100000); IsModified = true; });
+      tbMarkTextPositionY.Bind (() => Settings.MarkTextPosY, f => { Settings.MarkTextPosY = f.Clamp (-100000, 100000); IsModified = true; });
 
       //lbPriority.Bind (btnPrioUp, btnPrioDown, () => Settings.ToolingPriority, a => Settings.ToolingPriority = [.. a.OfType<EKind> ()]);
       rbBoth.Bind (() => Settings.Heads == Both, () => { Settings.Heads = Both; IsModified = true; });
