@@ -1233,6 +1233,7 @@ public class GCodeGenerator {
          sw.WriteLine (GetGCodeComment ($"Job Inner Radius = {JobInnerRadius:F3}"));
          sw.WriteLine (GetGCodeComment ($"Flex Cutting Gap = {FlexCuttingGap:F3}"));
          sw.WriteLine (GetGCodeComment ($"Multipass = {EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (Process.Workpiece.Model)}"));
+         sw.WriteLine (GetGCodeComment ($"Version = {MCSettings.It.Version}"));
          sw.WriteLine ("(---Don't alter above Parameters---)");
          sw.WriteLine ();
 

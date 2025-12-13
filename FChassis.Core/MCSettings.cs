@@ -53,6 +53,13 @@ public partial class MCSettings : INotifyPropertyChanged {
       NotchCutEndToken = "NCutEnd";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 980.0;
+#if DEBUG
+      Version = "Debug 81";
+#elif TESTRELEASE
+      Version = "Test Release 81";
+#else
+      Version = "1.0.16";
+#endif
    }
    #endregion
 
@@ -663,6 +670,15 @@ public partial class MCSettings : INotifyPropertyChanged {
    }
    [IgnoreMember] // Ignore this field for MessagePack serialization
    bool mCutFlange;
+
+   [JsonPropertyName ("version")]
+   [Key (99)]
+   public string Version {
+      get => mVersion;
+      set => SetProperty (ref mVersion, value);
+   }
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   string mVersion;
 
    #endregion Properties with JSON Attributes
 
