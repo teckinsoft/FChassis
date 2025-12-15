@@ -1,7 +1,4 @@
-﻿using System.IO;
-using System.Windows;
-
-namespace FChassis.Core;
+﻿namespace FChassis.Core;
 public class SettingServices {
    readonly string settingsFilePath;
    public static SettingServices It => sIt ??= new ();
@@ -28,6 +25,8 @@ public class SettingServices {
    }
 
    public void SaveSettings (MCSettings settings, bool backupNew = false) {
+      string envVariable = Environment.GetEnvironmentVariable ("__FC_AUTH__");
+      Guid expectedGuid = new ("e96e66ff-17e6-49ac-9fe1-28bb45a6c1b9");
       if (backupNew) {
 #if DEBUG || TESTRELEASE
          settings.SaveSettingsToJsonASCII (settingsFilePath + ".bckup");
@@ -38,7 +37,10 @@ public class SettingServices {
 #if DEBUG || TESTRELEASE
          settings.SaveSettingsToJsonASCII (settingsFilePath);
 #else
-         settings.SaveSettingsToJson (settingsFilePath);
+         if (!string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid) {
+            MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
+         } else
+            MCSettings.It.SaveSettingsToJson (settingsFilePath);
 #endif
       }
    }
@@ -65,9 +67,9 @@ public class SettingServices {
              "Settings Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
          }
 #else
-         if (!string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid)
+         if (!string.IsNullOrEmpty (envVariable) && Guid.TryParse (envVariable, out Guid currentGuid) && currentGuid == expectedGuid) {
             MCSettings.It.SaveSettingsToJsonASCII (settingsFilePath);
-         else
+         } else
             MCSettings.It.SaveSettingsToJson (settingsFilePath);
 #endif
       }

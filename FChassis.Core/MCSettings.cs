@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text;
 using MessagePack;
 using System.Reflection;
+using System.Windows;
 
 namespace FChassis.Core;
 
@@ -54,11 +55,11 @@ public partial class MCSettings : INotifyPropertyChanged {
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 980.0;
 #if DEBUG
-      Version = "Debug 82";
+      Version = "Debug 83";
 #elif TESTRELEASE
-      Version = "Test Release 82";
+      Version = "Test Release 83";
 #else
-      Version = "1.0.17";
+      Version = "1.0.17.1";
 #endif
    }
    #endregion
@@ -674,12 +675,8 @@ public partial class MCSettings : INotifyPropertyChanged {
 
    [JsonPropertyName ("version")]
    [Key (99)]
-   public string Version {
-      get => mVersion;
-      set => SetProperty (ref mVersion, value);
-   }
-   [IgnoreMember] // Ignore this field for MessagePack serialization
-   string mVersion;
+   public string Version { get; init; }
+
 
    #endregion Properties with JSON Attributes
 
@@ -735,17 +732,20 @@ public partial class MCSettings : INotifyPropertyChanged {
          mJSONReadOptions ??= new JsonSerializerOptions {
             Converters = { new JsonStringEnumConverter () } // Converts Enums from their string representation
          };
-
          byte[] fileBytes = File.ReadAllBytes (filePath);
-
          // Check if the file is binary JSON (e.g., MessagePack) or ASCII JSON
          bool isBinary = IsBinaryFile (fileBytes);
-
-
          if (isBinary) {
             // Deserialize from binary JSON (e.g., MessagePack)
             try {
-               sIt = MessagePackSerializer.Deserialize<MCSettings> (fileBytes);
+               // Deserialize into a temporary object to avoid overwriting Version
+               var tempSettings = MessagePackSerializer.Deserialize<MCSettings> (fileBytes);
+               // Create a new instance with constructor-default Version
+               sIt = new MCSettings (); // Assumes constructor sets Version = "1.0.17"
+                                        // Copy relevant properties from temp, excluding Version
+               CopySettingsExcludingVersion (tempSettings, sIt);
+               // Optional: Log the file's original version for compatibility checks
+               // Debug.WriteLine($"File written by version: {tempSettings.Version}");
             } catch (MessagePackSerializationException ex) {
                throw new InvalidOperationException ("Failed to deserialize binary JSON.", ex);
             }
@@ -753,10 +753,33 @@ public partial class MCSettings : INotifyPropertyChanged {
             // Deserialize from ASCII JSON
             try {
                var json = Encoding.UTF8.GetString (fileBytes);
-               sIt = JsonSerializer.Deserialize<MCSettings> (json, mJSONReadOptions);
+               // Deserialize into a temporary object to avoid overwriting Version
+               var tempSettings = JsonSerializer.Deserialize<MCSettings> (json, mJSONReadOptions);
+               // Create a new instance with constructor-default Version
+               sIt = new MCSettings (); // Assumes constructor sets Version = "1.0.17"
+                                        // Copy relevant properties from temp, excluding Version
+               CopySettingsExcludingVersion (tempSettings, sIt);
+               // Optional: Log the file's original version for compatibility checks
+               // var fileVersion = tempSettings.Version;
+               // Debug.WriteLine($"File written by version: {fileVersion}");
             } catch (JsonException ex) {
                throw new InvalidOperationException ("Failed to deserialize ASCII JSON.", ex);
             }
+         }
+      } else {
+         // If file doesn't exist, ensure sIt is initialized with constructor defaults
+         sIt ??= new MCSettings (); // Version will be "1.0.17" from constructor
+         MessageBox.Show ($"Settings file FChassis.User.Settings.JSON not found. Created default settings",
+             "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+      }
+   }
+
+   private void CopySettingsExcludingVersion (MCSettings source, MCSettings target) {
+      var properties = typeof (MCSettings).GetProperties (BindingFlags.Public | BindingFlags.Instance);
+      foreach (var prop in properties) {
+         if (prop.Name != nameof (MCSettings.Version) && prop.CanRead && prop.CanWrite) {
+            var value = prop.GetValue (source);
+            prop.SetValue (target, value);
          }
       }
    }
