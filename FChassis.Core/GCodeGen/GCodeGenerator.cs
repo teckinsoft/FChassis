@@ -3090,6 +3090,7 @@ public class GCodeGenerator {
       else if (wjtSeg.Vec1.Normalized ().EQ (XForm4.mZAxis)) isFromWebFlange = true;
 
       // Initialize tooling block for valid notches or cutouts
+      if (toolingItem.IsDualFlangeCutout ()) comment = "Dual Flange Cutout Notch: " + comment;
       if (toolingItem.IsCutout ()) comment = "CutOut: " + comment;
       else if (toolingItem.IsNotch () && isValidNotch) comment = "Notch: " + comment;
 

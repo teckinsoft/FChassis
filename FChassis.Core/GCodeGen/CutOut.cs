@@ -866,7 +866,7 @@ public class CutOut : ToolingFeature {
                   GCGen.WriteWireJointTrace (wjtTS, nextSeg: nextTS, scrapSideNormal,
                         mMostRecentPrevToolPosition.Value, NotchApproachLength, ref mPrevPlane, flangeType, ToolingItem,
                         ref mBlockCutLength, mTotalToolingsCutLength, mXStart, mXPartition, mXEnd,
-                           isFlexCut: false, isValidNotch: true, flexRefTS: mFlexStartRef, out mMostRecentPrevToolPosition,
+                           isFlexCut: true, isValidNotch: true, flexRefTS: mFlexStartRef, out mMostRecentPrevToolPosition,
                            toCompleteToolingBlock: false, comment1, relativeCoords: true, firstWJTTrace: false);
 
                } else {
