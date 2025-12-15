@@ -1,4 +1,5 @@
-﻿namespace FChassis.Core;
+﻿using System.Windows;
+namespace FChassis.Core;
 public class SettingServices {
    readonly string settingsFilePath;
    public static SettingServices It => sIt ??= new ();
