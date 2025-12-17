@@ -3,27 +3,61 @@ setlocal enabledelayedexpansion
 :: =============================================================
 :: PURE BATCH: Map W: to any folder + make it survive reboots
 :: Run ONCE as Administrator
+:: Usage: MapToWDrive.bat "C:\Path\To\Folder"
 :: =============================================================
 title Map W: to Folder (Pure Batch)
 
-:: ------------------- 1. Pick folder -------------------
-echo.
-echo Select the folder you want as W:
-for /f "usebackq delims=" %%A in (`powershell -noprofile -command ^
-    "($f=(New-Object -ComObject Shell.Application).BrowseForFolder(0,'Pick folder for W:',0,0)).Self.Path" ^
-    ^| findstr /v "^$"`) do set "TARGET=%%A"
-if "%TARGET%"=="" (
+:: ------------------- 1. Check parameter -------------------
+if "%~1"=="" (
     echo.
-    echo You cancelled or picked nothing.
-    pause & exit /b 1
+    echo Usage: %~nx0 "C:\Path\To\Folder"
+    echo.
+    echo Example: %~nx0 "C:\MyProjects"
+    echo Example: %~nx0 "D:\Work\Documents"
+    echo.
+    pause
+    exit /b 1
 )
-:: Clean trailing slash
-if "%TARGET:~-1%"=="\" set "TARGET=%TARGET:~0,-1%"
+
+set "TARGET=%~1"
+
+:: ------------------- 2. Validate the path -------------------
 echo.
-echo You chose: "%TARGET%"
+echo Validating path: "%TARGET%"
+
+:: Clean and normalize path first
+if "%TARGET:~-1%"=="\" set "TARGET=%TARGET:~0,-1%"
+for %%A in ("%TARGET%") do set "TARGET=%%~fA"
+
+:: Check if path exists and is accessible
+if not exist "%TARGET%\" (
+    echo ERROR: Path does not exist or is inaccessible: "%TARGET%"
+    echo.
+    pause
+    exit /b 1
+)
+
+:: Check if it's a directory
+if not exist "%TARGET%\*" (
+    echo ERROR: "%TARGET%" is not a valid folder.
+    echo.
+    pause
+    exit /b 1
+)
+
+:: Quick check for obvious issues - no quotes allowed
+if not "%TARGET:""=%"=="%TARGET%" (
+    echo ERROR: Path cannot contain double quotes.
+    echo.
+    pause
+    exit /b 1
+)
+
+echo.
+echo Valid path: "%TARGET%"
 echo.
 
-:: ------------------- 2. Check and map temporarily -------------------
+:: ------------------- 3. Check and map temporarily -------------------
 :: Check if W: is already mapped
 subst | findstr /i "^W:" >nul
 if errorlevel 1 (
@@ -42,13 +76,12 @@ if errorlevel 1 (
         echo.
         echo Path "%TARGET%" is already mapped to W:
         echo.
-        pause
-        exit /b 0
+        goto :make_permanent
     ) else (
         :: Different, unmap old
         echo.
         echo Unmapping existing W: from "!CURRENT!"
-        subst /D W: >nul
+        subst W: /D >nul
         if errorlevel 1 (
             echo ERROR: Failed to unmap W:
             pause & exit /b 1
@@ -61,13 +94,19 @@ if errorlevel 1 (
 subst W: "%TARGET%" >nul
 if errorlevel 1 (
     echo ERROR: Failed to map W: to "%TARGET%"
+    echo Possible reasons:
+    echo   - W: is in use by another device
+    echo   - Path contains invalid characters
+    echo   - Insufficient privileges
+    echo.
     pause & exit /b 1
 )
 echo.
 echo W: is now mapped (temporary) to "%TARGET%"
 echo.
 
-:: ------------------- 3. Make PERMANENT -------------------
+:make_permanent
+:: ------------------- 4. Make PERMANENT -------------------
 echo Making W: permanent across reboots...
 echo.
 
@@ -87,8 +126,6 @@ endlocal
 
 :: Display what we're writing for debugging
 echo Writing to registry: W: = "%VAL%"
-echo Registry file content:
-type "%TEMP%\persistW.reg"
 echo.
 
 :: Import registry file
@@ -108,7 +145,11 @@ echo Registry updated successfully!
 echo.
 echo W: is now PERMANENTLY mapped to "%TARGET%"
 echo.
-echo Test: close this window, open new CMD, type W:
+echo Note: The permanent mapping will take effect after reboot.
+echo For now, W: is temporarily mapped (active this session).
+echo.
+echo To test: Close this window, open new CMD, type: W:
+echo To remove: Delete registry key: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\DOS Devices "W:"
 echo.
 pause
-
+exit /b 0
