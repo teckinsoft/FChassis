@@ -55,11 +55,11 @@ public partial class MCSettings : INotifyPropertyChanged {
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 980.0;
 #if DEBUG
-      Version = "Debug 86";
+      Version = "Debug 86"; 
 #elif TESTRELEASE
       Version = "Test Release 86";
 #else
-      Version = "1.0.20";
+      Version = "1.0.20"; 
 #endif
    }
    #endregion

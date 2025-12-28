@@ -13,7 +13,7 @@ namespace FChassis {
          
       }
 
-      public string Version { get; } = MCSettings.It.Version;
+      public string Version { get; } = MCSettings.It.Version; 
 
       void OnAboutCloseClick (object sender, RoutedEventArgs e) => this.Close ();
    }
