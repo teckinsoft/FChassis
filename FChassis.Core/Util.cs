@@ -879,11 +879,11 @@ public static class Utils {
    /// <returns>The vector from the given point to the point on the nearest boundary along -X or X or -Z</returns>
    /// <exception cref="Exception">If the notch type is of type unknown, an exception is thrown</exception>
    static Vector3 GetVectorToProximalBoundary (Point3 pt, Bound3 bound, ToolingSegment seg,
-                                               ECutKind profileKind, out XForm4.EAxis proxBdy,
-                                               bool doubleFlangeNotchWithSameSideStartAndEnd,
-                                               ToolingSegment startSeg, ToolingSegment endSeg,
-                                               double radius, double thickness,
-                                               bool isFlexMachining = false, double bdyYExtreme = 0) {
+                                            ECutKind profileKind, out XForm4.EAxis proxBdy,
+                                            bool doubleFlangeNotchWithSameSideStartAndEnd,
+                                            ToolingSegment startSeg, ToolingSegment endSeg,
+                                            double radius, double thickness,
+                                            bool isFlexMachining = false, double bdyYExtreme = 0) {
       Vector3 res;
       Point3 bdyPtXMin, bdyPtXMax, bdyPtZMin;
       Vector3 normalAtNotchPt;
@@ -970,12 +970,17 @@ public static class Utils {
                      OrdX = bound.Min.X;
                   else
                      OrdX = bound.Max.X;
+
                   if (profileKind == ECutKind.YPos) {
+                     OrdX = pt.X;
                      OrdY = bound.Max.Y;
                      OrdZ = bound.Min.Z;
+                     proxBdy = XForm4.EAxis.NegZ;
                   } else if (profileKind == ECutKind.YNeg) {
+                     OrdX = pt.X;
                      OrdY = bound.Min.Y;
                      OrdZ = bound.Min.Z;
+                     proxBdy = XForm4.EAxis.NegZ;
                   } else if (profileKind == ECutKind.Top2YPos || profileKind == ECutKind.Top2YNeg) {
                      OrdY = pt.Y;
                      OrdZ = pt.Z;
@@ -2632,7 +2637,7 @@ public static class Utils {
       return len;
    }
    public static double GetToolingLength (List<ToolingSegment> segs) {
-      if ( segs == null ) throw new ArgumentException("argument List<ToolingSegment> segs is null,", nameof(segs));
+      if (segs == null) throw new ArgumentException ("argument List<ToolingSegment> segs is null,", nameof (segs));
       double cumLen = 0;
       foreach (var seg in segs)
          cumLen += seg.Curve.Length;
