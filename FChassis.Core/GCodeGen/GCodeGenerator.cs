@@ -2356,7 +2356,7 @@ public class GCodeGenerator {
       var minPt = new Point3 (xMin, 0, 0); var maxPt = new Point3 (xMax, 0, 0);
       var mcMinPt = GCodeGenerator.XfmToMachine (this, minPt);
       var mcMaxPt = GCodeGenerator.XfmToMachine (this, maxPt);
-      var toolingLen = Utils.GetToolingLength (toolingItem, startIndex, endIndex);
+      var toolingLen = Utils.GetToolingLength (segments, startIndex, endIndex);
       if (LeftToRightMachining)
          sw.WriteLine ($"START_X={mcMinPt.X:F3} END_X={mcMaxPt.X:F3} PathLength={toolingLen:F2}");
       else

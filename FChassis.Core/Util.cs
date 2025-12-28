@@ -2631,6 +2631,22 @@ public static class Utils {
          len += toolingItem.Segs[startIndex].Curve.Length;
       return len;
    }
+   public static double GetToolingLength (List<ToolingSegment> segs) {
+      if ( segs == null ) throw new ArgumentException("argument List<ToolingSegment> segs is null,", nameof(segs));
+      double cumLen = 0;
+      foreach (var seg in segs)
+         cumLen += seg.Curve.Length;
+      return cumLen;
+   }
+   public static double GetToolingLength (List<ToolingSegment> segs, int startIndex = -1, int endIndex = -1) {
+      if (segs == null) throw new ArgumentException ("argument List<ToolingSegment> segs is null,", nameof (segs));
+      if (startIndex == -1 && endIndex == -1) return GetToolingLength (segs);
+      if (startIndex == -1 || endIndex == -1) throw new Exception ("Start and End indices should be valid index");
+      double len = 0;
+      for (int ii = startIndex; ii <= endIndex; ii++)
+         len += segs[startIndex].Curve.Length;
+      return len;
+   }
 
    public static bool IsSameSideExitNotch (Tooling ti) {
       if (ti.ProfileKind == ECutKind.Top2YPos || ti.ProfileKind == ECutKind.Top2YNeg) {
