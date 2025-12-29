@@ -54,6 +54,7 @@ public partial class MCSettings : INotifyPropertyChanged {
       NotchCutEndToken = "NCutEnd";
       WorkpieceOptionsFilename = @"W:\FChassis\LCM2HWorkpieceOptions.json";
       DeadbandWidth = 980.0;
+      LeastWJLength = 0.24999999999999999999999;
 #if DEBUG
       Version = "Debug 86"; 
 #elif TESTRELEASE
@@ -96,6 +97,7 @@ public partial class MCSettings : INotifyPropertyChanged {
    private void UpdateFields (MCSettings other) {
       Heads = other.Heads;
       Standoff = other.Standoff;
+      LeastWJLength = other.LeastWJLength;
       FlexCuttingGap = other.FlexCuttingGap;
       ToolingPriority = other.ToolingPriority;
       MarkTextPosX = other.MarkTextPosX;
@@ -677,6 +679,12 @@ public partial class MCSettings : INotifyPropertyChanged {
    [Key (99)]
    public string Version { get; init; }
 
+   [Key (100)]
+   [JsonPropertyName ("leastWJLength")]
+   public double LeastWJLength { get => mLeastWJLength; set => SetProperty (ref mLeastWJLength, value); }
+
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   double mLeastWJLength;
 
    #endregion Properties with JSON Attributes
 

@@ -10,7 +10,7 @@
         Title="Settings" SizeToContent="WidthAndHeight">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="RestrictedSettingsVisibilityConverter" />
-        
+
         <Style TargetType="Label">
             <Setter Property="HorizontalContentAlignment" Value="Right"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -212,7 +212,7 @@
                             <TextBox Name="tbInputDirectoryWPath" Grid.Row="0" Grid.Column="1" IsReadOnly="True"/>
                             <!--<Button Name="btnSelIpDir" Grid.Row="0" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
                                 Width="60" Height="20" Margin="5 0" Click="OnInputFolderSelect"/>-->
-                            
+
                             <Label Grid.Row="1">Output Directory</Label>
                             <TextBox Name="tbDirectoryPath" Grid.Row="1" Grid.Column="1" IsReadOnly="False"/>
                             <Button Name="btnSelOpDir" Grid.Row="1" Grid.Column="2" Content="Browse" HorizontalAlignment="Left"
@@ -246,6 +246,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
+                                    <RowDefinition />
                                     <RowDefinition />
                                     <RowDefinition />
                                     <RowDefinition />
@@ -303,6 +304,34 @@
                                     <RadioButton Name="rbDP" Content="DP Optimization"/>
                                     <RadioButton Name="rbTime" Content="Time Optimization"/>
                                 </StackPanel>
+
+                                <Label Grid.Row="12">Least Wire Joint Length</Label>
+                                <TextBox Grid.Row="12" Grid.Column="1" Name="tbLeastWJLength">
+                                    <TextBox.ToolTip>
+                                        <ToolTip Background="#FFF0F0" BorderBrush="#FF9900" BorderThickness="1">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                                    <Path Data="M12 2L1 21h22L12 2zm0 4h0v10h0V6zm0 12h0v2h0v-2z" 
+                                                            Fill="#FF9900" Stretch="Uniform" Width="16" Height="16" 
+                                                            Margin="0,0,5,0"/>
+                                                    <TextBlock FontWeight="Bold" Foreground="#CC3300">WARNING</TextBlock>
+                                                </StackPanel>
+                                                <TextBlock TextWrapping="Wrap" MaxWidth="250" Margin="5,0,5,5">
+                                                    <Run FontWeight="SemiBold">Smaller Wire Joint Length</Run>
+                                                    <Run> might yield unexpected results.</Run>
+                                                </TextBlock>
+                                                <TextBlock TextWrapping="Wrap" MaxWidth="250" Margin="5,0,5,5">
+                                                    The safe limit is from 0.25 mm to 5 mm.
+                                                </TextBlock>
+                                                <TextBlock TextWrapping="Wrap" MaxWidth="250" 
+                                                    FontWeight="Bold" Foreground="#CC3300" Margin="5,0,5,0">
+                                                        USE THIS RESPONSIBLY.
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </TextBox.ToolTip>
+                                </TextBox>
+                                <Label Grid.Row="12" Grid.Column="2" Style="{StaticResource Unit}">mm</Label>
                             </Grid>
                         </StackPanel>
                     </Grid>

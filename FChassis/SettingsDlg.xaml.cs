@@ -65,6 +65,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       // Set the internal property to the passed settings object
       Settings = set;
       tbStandoff.Bind (() => Settings.Standoff, f => { Settings.Standoff = f.Clamp (0, 100); IsModified = true; });
+      tbLeastWJLength.Bind (() => Settings.LeastWJLength, f => { Settings.LeastWJLength = f.Clamp (0.25, 100); IsModified = true; });
       tbFlexCuttingGap.Bind (() => Settings.FlexCuttingGap, f => { Settings.FlexCuttingGap = f.Clamp (0, 100); IsModified = true; });
       tbPartition.Bind (() => Settings.PartitionRatio, f => { Settings.PartitionRatio = f.Clamp (0, 1); IsModified = true; });
       tbStepLength.Bind (() => Settings.StepLength, f => { Settings.StepLength = f.Clamp (0.001, 50); IsModified = true; });
@@ -88,7 +89,7 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
          () => { Settings.PartConfig = MCSettings.PartConfigType.RHComponent; IsModified = true; });
       tbApproachLength.Bind (() => Settings.ApproachLength, al => { Settings.ApproachLength = al.Clamp (0, 6); IsModified = true; });
       tbNotchApproachLength.Bind (() => Settings.NotchApproachLength,
-         al => { Settings.NotchApproachLength = al.Clamp (0, 6); IsModified = true; });
+         al => { Settings.NotchApproachLength = al.Clamp (0, 20); IsModified = true; });
       tbNotchWireJointDistance.Bind (() => Settings.NotchWireJointDistance,
          al => { Settings.NotchWireJointDistance = al.Clamp (0, 5); IsModified = true; });
       tbMinNotchLengthThreshold.Bind (() => Settings.MinNotchLengthThreshold,

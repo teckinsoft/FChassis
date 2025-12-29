@@ -442,6 +442,7 @@ public class GCodeGenerator {
    public void ResetForTesting (MCSettings mcs) {
       ResetBookKeepers ();
       Standoff = mcs.Standoff;
+      LeastWJLength = mcs.LeastWJLength;
       FlexCuttingGap = mcs.FlexCuttingGap;
       ApproachLength = mcs.ApproachLength;
       UsePingPong = mcs.UsePingPong;
@@ -509,6 +510,7 @@ public class GCodeGenerator {
    public MCSettings.PartConfigType PartConfigType { get; set; }
    public string MarkText { get; set; }
    public int MarkTextHeight { get; set; }
+   public double LeastWJLength {  get; set; }
    public uint SerialNumber { get; set; }
    public double PartitionRatio { get; set; }
    public MCSettings.EHeads Heads { get; set; }
@@ -699,6 +701,7 @@ public class GCodeGenerator {
    /// </summary>
    public void SetFromMCSettings () {
       Standoff = MCSettings.It.Standoff;
+      LeastWJLength = MCSettings.It.LeastWJLength;
       FlexCuttingGap = MCSettings.It.FlexCuttingGap;
       ApproachLength = MCSettings.It.ApproachLength;
       UsePingPong = MCSettings.It.UsePingPong;
@@ -1233,6 +1236,7 @@ public class GCodeGenerator {
          sw.WriteLine (GetGCodeComment ($"Job Inner Radius = {JobInnerRadius:F3}"));
          sw.WriteLine (GetGCodeComment ($"Flex Cutting Gap = {FlexCuttingGap:F3}"));
          sw.WriteLine (GetGCodeComment ($"Multipass = {EnableMultipassCut && MultiPassCuts.IsMultipassCutTask (Process.Workpiece.Model)}"));
+         //sw.WriteLine (GetGCodeComment ($"Least Wire Joint Length = {LeastWJLength}"));
          sw.WriteLine (GetGCodeComment ($"Version = {MCSettings.It.Version}"));
          sw.WriteLine ("(---Don't alter above Parameters---)");
          sw.WriteLine ();
@@ -2883,7 +2887,7 @@ public class GCodeGenerator {
                 prevToolingSegs, first, previousPlaneType, xStart, xPartition, xEnd,
                 NotchWireJointDistance, NotchApproachLength, MinNotchLengthThreshold, mPercentLengths,
                 prevCutToolingsLength, cutscopeToolingLength, isWireJointsNeeded: isWireJointsNeeded,
-                curveLeastLength: mCurveLeastLength);
+                LeastWJLength, curveLeastLength: mCurveLeastLength);
          } else if (toolingItem.IsCutout () || toTreatAsCutOut) {
             Utils.EPlane previousPlaneType = Utils.EPlane.None;
             feature = new CutOut (

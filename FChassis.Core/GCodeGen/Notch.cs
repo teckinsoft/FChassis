@@ -239,6 +239,7 @@ public class Notch : ToolingFeature {
      double totalPrevCutToolingsLength,
      double totalToolingsCutLength,
      bool isWireJointsNeeded,
+     double leastWJLength,
      double curveLeastLength = 0.5) {
       if (!toolingItem.IsNotch ())
          throw new Exception ("Cannot create a notch from a non-notch feature");
@@ -268,6 +269,8 @@ public class Notch : ToolingFeature {
       PreviousToolingSegment = prevToolingSegment;
       mFirstTooling = firstTooling;
       mPrevToolingSegments = prevToolingSegs;
+
+      mLeastWJLength = leastWJLength;
 
       // Check if the notch starts and ends on the same flange while it is
       // dual flange notch
@@ -329,6 +332,7 @@ public class Notch : ToolingFeature {
    EPlane mPrevPlane = EPlane.None;
    bool mFirstTooling = false;
    List<ToolingSegment> mPrevToolingSegments;
+   double mLeastWJLength;
    public EPlane PrevPlane { get => mPrevPlane; set => mPrevPlane = value; }
    public Tooling PreviousTooling { get; set; }
    public ToolingSegment? PreviousToolingSegment { get; set; }
@@ -1255,7 +1259,7 @@ public class Notch : ToolingFeature {
       var tname = mToolingItem.Name;
 
       // Toolpath computations
-      mNToolPath = new (mSegments, MinNotchLengthThreshold, NotchWireJointDistance);
+      mNToolPath = new (mSegments, MinNotchLengthThreshold, NotchWireJointDistance, mLeastWJLength);
       mNToolPath.EvalNotchSpecPositions ();
       var positions = mNToolPath.NotchPositions;
       mNToolPath.SegmentPath ();
