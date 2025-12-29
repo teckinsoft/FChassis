@@ -56,11 +56,11 @@ public partial class MCSettings : INotifyPropertyChanged {
       DeadbandWidth = 980.0;
       LeastWJLength = 0.24999999999999999999999;
 #if DEBUG
-      Version = "Debug 86"; 
+      Version = "Debug 87"; 
 #elif TESTRELEASE
-      Version = "Test Release 86";
+      Version = "Test Release 87";
 #else
-      Version = "1.0.20"; 
+      Version = "1.0.21"; 
 #endif
    }
    #endregion
