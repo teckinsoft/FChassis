@@ -1650,6 +1650,16 @@ public class MultiPassCuts {
    double CostFunc (int i, int j, List<ToolingScope> xs)
       => xs.Skip (i).Take (j - i + 1).Sum (t => t.Length) + 100;
 
+   /// <summary>
+   /// Builds a cut-scope sequence using a branch-and-bound search.
+   ///
+   /// Flow:
+   /// 1) Compute dead-band region location within a scope.
+   /// 2) Optionally carve out special “protrusion” scopes at the start and end of the part.
+   /// 3) Run the recursive search to obtain the best middle sequence.
+   /// 4) For each scope in the final sequence, split tooling at dead-band boundaries and scope end,
+   ///    then assign tool head indices and populate the machinable tooling list.
+   /// </summary>
    List<CutScope> GetBranchAndBoundCutscopes (ref MultiPassCuts mpc, double maxScopeLength, double protrudingPercent = 0) {
       (double Time, List<CutScope> Seq) bestCutScopeSeq = (0, []);
       double deadZoneXmin = maxScopeLength / 2 - (MCSettings.It.DeadbandWidth / 2);
@@ -1657,21 +1667,33 @@ public class MultiPassCuts {
 
       List<ToolingScope> unProcessedTS = [.. mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.EndX)];
 
+      // "protrudingPercent" is used to carve out a region on both ends of the workpiece
+      // (as a fraction of maxScopeLength) that will be handled by dedicated scopes.
       double protrusion = protrudingPercent * maxScopeLength;
+
+      // First dedicated scope: handles the left-most protrusion region.
       CutScope firstScope = new (0, protrusion, unProcessedTS, deadZoneXmin, deadZoneXmax);
       unProcessedTS = [.. unProcessedTS.Where (cs => !firstScope.TSInScope1.Contains (cs.Index) &&
                                                 !firstScope.TSInScope2.Contains (cs.Index))];
 
       unProcessedTS = [.. unProcessedTS.Where (ts => !ts.IsProcessed).OrderBy (x => x.StartX)];
+
+      // Last dedicated scope: handles the right-most protrusion region.
       CutScope lastScope = new (mpc.XMax - protrusion, mpc.XMax, unProcessedTS, deadZoneXmin, deadZoneXmax);
       unProcessedTS = [.. unProcessedTS.Where (cs => !lastScope.TSInScope1.Contains (cs.Index) &&
                                                 !lastScope.TSInScope2.Contains (cs.Index))];
 
       unProcessedTS = [.. mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.EndX)];
       double start = unProcessedTS.Min (ts => ts.StartX);
+
+      // In single-head mode, the effective "reachable" scope length is limited to the region before the dead band,
+      // hence using deadZoneXmin instead of maxScopeLength.
       double maxScope = MCSettings.It.Heads == MCSettings.EHeads.Both ? maxScopeLength : deadZoneXmin;
+
+      // Find a best middle sequence using branch-and-bound with memoization (mSubsequences).
       FindBestSequence (mpc, unProcessedTS, (0, []), start, maxScope, deadZoneXmin, deadZoneXmax, out bestCutScopeSeq);
 
+      // Finalize first/middle/last scopes: split toolings at dead-band boundaries and set head assignments.
       PopulateMachinableToolingScopesForCutScope (ref mpc, firstScope, deadZoneXmin, deadZoneXmax);
       foreach (var cs in bestCutScopeSeq.Seq) {
          PopulateMachinableToolingScopesForCutScope (ref mpc, cs, deadZoneXmin, deadZoneXmax);
@@ -1681,55 +1703,113 @@ public class MultiPassCuts {
       return bestCutScopeSeq.Seq;
    }
 
+   /// <summary>
+   /// Populates the machinable tooling list for a scope by splitting toolings at the dead-band boundaries
+   /// and at the scope end, then mapping the per-head index lists to tooling scope objects and assigning
+   /// the tool head for each tooling.
+   ///
+   /// Flow:
+   /// 1) Normalize head lists when only the right head is active.
+   /// 2) Compute the absolute dead-band boundaries for this scope.
+   /// 3) Split toolings at dead-band start/end (when they lie inside the scope) and at the scope end.
+   /// 4) Replace the tooling scope list with the split result and build an index lookup.
+   /// 5) Fill machinable tooling scopes for head 0 (scope1) and head 1 (scope2).
+   /// </summary>
    void PopulateMachinableToolingScopesForCutScope (ref MultiPassCuts mpc, CutScope cs, double deadZoneXmin, double deadZoneXmax) {
       cs.MachinableToolingScopes = [];
+
+      // If only the Right head is active, this codebase treats it as "head 1".
+      // Move everything from scope1 to scope2 so later head assignment stays consistent.
       if (MCSettings.It.Heads == MCSettings.EHeads.Right) {
          cs.TSInScope2 = [.. cs.TSInScope1]; cs.TSInScope1.Clear ();
       }
 
+      // Absolute dead-band boundaries for this cut scope (deadZoneXmin/max are offsets within the scope window).
       double deadMin = cs.StartX + deadZoneXmin, deadMax = cs.StartX + deadZoneXmax;
+
       List<ToolingScope> splitTSS = [];
+
+      // Only attempt to split at dead-band boundaries if the dead band lies strictly inside the scope;
+      // otherwise split only at the scope end.
       if (deadMax < cs.EndX) {
+         // Split at dead-band start boundary.
          (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+
+         // Split at dead-band end boundary.
          (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
+
+         // Split at cut scope end boundary (ensures no tooling spans beyond the cut window).
          (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       } else (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
 
+      // Replace the tooling list with the split result. Index-based selection below must use this updated list.
       mpc.ToolingScopes = splitTSS;
       var toolingDict = mpc.ToolingScopes.ToDictionary (ts => ts.Index);
 
+      // Map indices -> ToolingScope objects and assign head 0 for scope1.
       cs.MachinableToolingScopes.AddRange (cs.TSInScope1.Where (toolingDict.ContainsKey)
             .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 0; return ts; }));
 
+      // Map indices -> ToolingScope objects and assign head 1 for scope2.
       cs.MachinableToolingScopes.AddRange (cs.TSInScope2.Where (toolingDict.ContainsKey)
             .Select (i => { var ts = toolingDict[i]; ts.Tooling.Head = 1; return ts; }));
    }
 
+   /// <summary>
+   /// Recursively searches for the lowest-time sequence of cut scopes.
+   ///
+   /// Flow:
+   /// 1) Apply pruning using current best known sequence length and time.
+   /// 2) Build the candidate scope window from the current start position and compute dead-band boundaries.
+   /// 3) Split toolings at dead-band boundaries and at the chosen scope end so toolings do not cross boundaries.
+   /// 4) Partition the resulting toolings into head-1 and head-2 regions (left of dead-band, right of dead-band).
+   /// 5) Greedily assign toolings between heads to estimate incremental makespan for each prefix.
+   /// 6) Walk backwards over prefixes, creating a candidate scope each time, and recurse on the remaining toolings.
+   /// 7) Use a memoization cache keyed by next start position and remaining tooling index set to avoid recomputing subproblems.
+   /// </summary>
    void FindBestSequence (MultiPassCuts mpc, List<ToolingScope> tss, (double Time, List<CutScope> Seq) cutSequence,
       double start, double maxScopeLength, double deadZoneXmin, double deadZoneXmax, out (double Time, List<CutScope> Seq) bestSubSeq) {
       bestSubSeq = (0, []);
+
+      // Pruning: if current partial sequence is already worse than best known, stop exploring.
       if (cutSequence.Seq.Count > mBestSeqCount) return;
       if (cutSequence.Time > mBestSeqTime) return;
 
+      // Dead-band absolute boundaries for a scope starting at 'start'.
       double deadMin = start + deadZoneXmin;
       double deadMax = start + deadZoneXmax;
+
+      // Maximum end of the scope window for this recursion step.
       double scopeMax = start + maxScopeLength;
+
+      // Find the last tooling that can fully fit within the scope window end.
       int endIndex = tss.FindLastIndex (ts => ts.EndX <= scopeMax);
 
       List<ToolingScope> processedTS = [];
       List<double> processTimes = [];
       List<bool> tracker = [];
+
+      // The right boundary to end the current scope at (based on the last fitting tooling).
       double end = tss[endIndex].EndX;
 
+      // Split toolings at the dead-band boundaries and at the scope end so that:
+      // - no tooling crosses deadMin/deadMax,
+      // - no tooling crosses the chosen end boundary.
       (var splitTSS, _) = CutScope.SplitToolingScopesAtIxn (tss.GetRange (0, endIndex + 1), deadMin, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, deadMax, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (splitTSS, end, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
       var nontss = tss.Except (splitTSS).ToList (); ;
 
+      // Accumulated index lists for each head in the current scope.
       List<int> tss1 = [], tss2 = [];
+
+      // Candidate toolings that lie completely in head1/head2 machinable zones (outside dead band).
       List<ToolingScope> tssH1 = [];
       List<ToolingScope> tssH2 = [];
 
+      // Partition the split toolings into the two zones:
+      // - head1: [start, deadMin]
+      // - head2: [deadMax, scopeMax]
       for (int i = 0; i < splitTSS.Count && splitTSS[i].EndX <= scopeMax; i++) {
          if (start <= splitTSS[i].StartX && splitTSS[i].EndX <= deadMin)
             tssH1.Add (splitTSS[i]);
@@ -1742,6 +1822,8 @@ public class MultiPassCuts {
       double h1Len = 0, h2Len = 0;
       int h1Index = 0, h2Index = 0;
 
+      // Greedy scheduling inside this scope:
+      // Repeatedly pick from the head that currently has the smaller accumulated "work length" to balance finishing time.
       while (true) {
          int head = 0;
          if (h1Index < tssH1.Count && h1Len <= h2Len) head = 1;
@@ -1754,10 +1836,14 @@ public class MultiPassCuts {
             tss1.Add (tssH1[h1Index].Index);
             processedTS.Add (tssH1[h1Index]);
             var pt = tssH1[h1Index].Tooling.Segs.FirstOrDefault ().Curve.Start;
+
+            // Movement time is estimated using point-to-point distance between successive toolings,
+            // based on the first segment's start point for each tooling.
             if (timeH1 != 0) {
                double dist = preH1.DistTo (pt);
                timeH1 += dist * MovementTime;
             }
+
             double len = tssH1[h1Index].Length;
             timeH1 += len * MachiningTime;
             tracker.Add (true);
@@ -1774,6 +1860,7 @@ public class MultiPassCuts {
                double dist = preH2.DistTo (pt);
                timeH2 += dist * MovementTime;
             }
+
             double len = tssH2[h2Index].Length;
             timeH2 += len * MachiningTime;
             tracker.Add (false);
@@ -1783,14 +1870,20 @@ public class MultiPassCuts {
             h2Index++;
          }
 
+         // A scope's processing time is governed by the slower head (makespan) plus a fixed initiation overhead.
          processTimes.Add (Math.Max (timeH1, timeH2) + InitiationTime);
       }
 
       h1Index--;
       h2Index--;
+
+      // Walk backwards through the greedy assignment and branch on prefix length.
+      // This creates alternative cut scopes that end earlier (fewer processed toolings),
+      // which then changes the remaining set and potentially improves the global solution.
       for (int i = processedTS.Count - 1; i >= 0; i--) {
          double endx = h2Index >= 0 ? tssH2[h2Index].EndX : tssH1[h1Index].EndX;
          CutScope cutscope = new (start, endx, [.. tss1], [.. tss2], processTimes[i]);
+
          if (tracker[i]) tss1.RemoveAt (h1Index--);
          else tss2.RemoveAt (h2Index--);
 
@@ -1798,6 +1891,7 @@ public class MultiPassCuts {
          processedTS.GetRange (0, i + 1).ForEach (ts => newUnProcessedTS.Remove (ts));
          (double Time, List<CutScope> Seq) newCutSeq = (cutSequence.Time + cutscope.ProcessTime, [.. cutSequence.Seq, cutscope]);
 
+         // Base case: no remaining toolings after this cutscope.
          if (newUnProcessedTS.Count == 0) {
             if (bestSubSeq.Seq.Count == 0 || cutscope.ProcessTime < bestSubSeq.Time) {
                bestSubSeq = (cutscope.ProcessTime, [cutscope]);
@@ -1808,7 +1902,11 @@ public class MultiPassCuts {
             }
          }
 
+         // Next recursion starts at the earliest remaining tooling start position.
          double startx = newUnProcessedTS.Min (ts => ts.StartX);
+
+         // Memoization key combines next start position and remaining tool index set (hashed).
+         // This is a performance tradeoff: hashing reduces key size, but increases collision risk.
          string seqKey = $"S : {startx}, uts : {string.Join (",", newUnProcessedTS.Select (ts => ts.Index)).GetHashCode ()}";
 
          (double Time, List<CutScope> Seq) subSeq = (0, []);
@@ -1823,7 +1921,6 @@ public class MultiPassCuts {
          }
       }
    }
-
    List<CutScope> GetSpatialOptimizationCutscopes (ref MultiPassCuts mpc, double maxScopeLength, double maxXWorkPiece) {
       int maxCutScopesCount = ((int)(maxXWorkPiece / maxScopeLength)) * 3;
       List<CutScope> cutScopeSeq = [];
