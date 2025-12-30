@@ -1650,17 +1650,22 @@ public class MultiPassCuts {
    double CostFunc (int i, int j, List<ToolingScope> xs)
       => xs.Skip (i).Take (j - i + 1).Sum (t => t.Length) + 100;
 
-   List<CutScope> GetBranchAndBoundCutscopes (ref MultiPassCuts mpc, double maxScopeLength, double overlookPercent = 0) {
+   List<CutScope> GetBranchAndBoundCutscopes (ref MultiPassCuts mpc, double maxScopeLength, double protrudingPercent = 0) {
       (double Time, List<CutScope> Seq) bestCutScopeSeq = (0, []);
       double deadZoneXmin = maxScopeLength / 2 - (MCSettings.It.DeadbandWidth / 2);
       double deadZoneXmax = maxScopeLength / 2 + (MCSettings.It.DeadbandWidth / 2);
 
-      List<ToolingScope> unProcessedTS = [.. mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.StartX)];
+      List<ToolingScope> unProcessedTS = [.. mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.EndX)];
 
-      double overlook = overlookPercent * maxScopeLength;
-      CutScope firstScope = new (overlook, maxScopeLength, unProcessedTS, deadZoneXmin, deadZoneXmax);
+      double protrusion = protrudingPercent * maxScopeLength;
+      CutScope firstScope = new (0, protrusion, unProcessedTS, deadZoneXmin, deadZoneXmax);
       unProcessedTS = [.. unProcessedTS.Where (cs => !firstScope.TSInScope1.Contains (cs.Index) &&
-                                                !firstScope.TSInScope2.Contains (cs.Index) && cs.StartX > overlook)];
+                                                !firstScope.TSInScope2.Contains (cs.Index))];
+
+      unProcessedTS = [.. unProcessedTS.Where (ts => !ts.IsProcessed).OrderBy (x => x.StartX)];
+      CutScope lastScope = new (mpc.XMax - protrusion, mpc.XMax, unProcessedTS, deadZoneXmin, deadZoneXmax);
+      unProcessedTS = [.. unProcessedTS.Where (cs => !lastScope.TSInScope1.Contains (cs.Index) &&
+                                                !lastScope.TSInScope2.Contains (cs.Index))];
 
       unProcessedTS = [.. mpc.ToolingScopes.Where (ts => !ts.IsProcessed).OrderBy (x => x.EndX)];
       double start = unProcessedTS.Min (ts => ts.StartX);
@@ -1671,6 +1676,7 @@ public class MultiPassCuts {
       foreach (var cs in bestCutScopeSeq.Seq) {
          PopulateMachinableToolingScopesForCutScope (ref mpc, cs, deadZoneXmin, deadZoneXmax);
       }
+      PopulateMachinableToolingScopesForCutScope (ref mpc, lastScope, deadZoneXmin, deadZoneXmax);
 
       return bestCutScopeSeq.Seq;
    }
