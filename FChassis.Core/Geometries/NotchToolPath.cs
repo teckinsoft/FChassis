@@ -68,29 +68,30 @@ public struct SegmentedPosition (Point3 pos, string segPostType = SegmentedPosit
 }
 public class NotchToolPath {
    #region Properties
-   public List<ToolingSegment> mTs = [];
-   public List<ToolingSegment> mRevTs = [];
-   List<NotchPosition> mNotchPos = [];
    public List<NotchPosition> NotchPositions { get => mNotchPos; }
    public IEnumerable<ToolingSegment> Segs { get => mTs; }
-   List<NotchSequenceSection> mNotchSequences = [];
    public double PathLength { get; set; } = 0;
    public double NotchMinThresholdLength { get; set; } = 0;
    public double NotchWJTLength { get; set; } = 0;
    public (int SegIndex, Point3 NPosition, double Param, Vector3 Normal, double SegParam)? ApproachParameters { get; set; }
-   #endregion
+   #endregion Properties
    #region Fields
-
-   #endregion
+   public List<ToolingSegment> mTs = [];
+   public List<ToolingSegment> mRevTs = [];
+   List<NotchPosition> mNotchPos = [];
+   List<NotchSequenceSection> mNotchSequences = [];
+   double mLeastWireJointLength;
+   #endregion Fields
    #region Constructor
-   public NotchToolPath (List<ToolingSegment> segments, double notchMinThresholdLen, double notchWJTLength) {
+   public NotchToolPath (List<ToolingSegment> segments, double notchMinThresholdLen, double notchWJTLength, double leastWireJointLength) {
       mTs = [.. segments.Select (seg => /*Geom.CreateToolingSegmentForCurve (seg, seg.Curve, seg.NotchSectionType, clone: true)*/seg.Clone ())];
       PathLength = mTs.Sum (seg => seg.Length);
       mRevTs = Geom.GetReversedToolingSegments (segments);
       NotchWJTLength = notchWJTLength;
       NotchMinThresholdLength = notchMinThresholdLen;
+      mLeastWireJointLength = leastWireJointLength;
    }
-   #endregion
+   #endregion Constructor
 
    #region Segmentation for notches
    void CheckApproachSegsSanity () {
@@ -768,6 +769,7 @@ public class NotchToolPath {
       // -------------------------------------
       double wjtLen = 2.0;
       if (flex1StartIdx != -1) {
+         // Create WJT before beginning of Flex machining only if the WJ length >= 1.0
          wjtLen = NotchWJTLength.SLT (1.0) ? 2.0 : NotchWJTLength;
          // Find the parameter of the pre-flexWJT position
          var preFlex1WJTParamData = ParamAtPositionFromPointAtLength (mTs[flex1StartIdx].Curve.Start, -wjtLen);
@@ -806,6 +808,7 @@ public class NotchToolPath {
       // Add positions corresponding to flex-2 
       // -------------------------------------
       if (flex2StartIdx != -1) {
+         // Create WJT after end of Flex machining only if the WJ length >= 1.0
          wjtLen = NotchWJTLength.SLT (1.0) ? 2.0 : NotchWJTLength;
          // Find the parameter of the pre-flexWJT position
          var preFlex2WJTParamData = ParamAtPositionFromPointAtLength (mTs[flex2StartIdx].Curve.Start, -wjtLen);
@@ -847,7 +850,7 @@ public class NotchToolPath {
       mNotchPos.Add (approachNPos.Value);
 
       // Add GambitPreApproach
-      wjtLen = NotchWJTLength.SLT (1.0) ? 2.0 : NotchWJTLength;
+      wjtLen = NotchWJTLength.SLT (mLeastWireJointLength) ? 2.0 : NotchWJTLength;
 
       var gambitPreApproachData = ParamAtPositionFromPointAtLength (ApproachParameters.Value.NPosition, -wjtLen);
       gambitPreApproachNPos = new NotchPosition (gambitPreApproachData.Value.position, gambitPreApproachData.Value.segIndex, gambitPreApproachData.Value.param,
@@ -868,7 +871,9 @@ public class NotchToolPath {
       // Sort the positions list
       mNotchPos.Sort ();
 
-      if (NotchWJTLength.GTEQ (0.5)) {
+      // Create Wire joint traces on planar machining only if the NotchWJTLength specified 
+      // is >= Least Wire Joint Length ( Restricted settings).
+      if (NotchWJTLength.GTEQ (mLeastWireJointLength)) {
          // Adding Planar Wire joint positions
          // ---------------------------
          // Start with the start position as the prev (ref) Position
