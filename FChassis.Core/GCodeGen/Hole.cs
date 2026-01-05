@@ -91,17 +91,19 @@ public class Hole : ToolingFeature {
       // We are using G42 than G41 while cutting holes
       // If we are reversing y and not reversing x. We are in 4th quadrant. Flip 42 or 41
       // Tool diameter compensation
-      var isFromWebNotch = Utils.IsMachiningFromWebFlange (ToolingSegments, 0);
-      if (GCGen.RapidMoveToPiercingPositionWithPingPong)
-         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch, isFlexTooling: false);
-      else {
-         GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Hole, usePingPongOption: true);
-         GCGen.WriteToolCorrectionData (ToolingItem, isFromWebNotch, isFlexTooling: false);
-      }
+      var isFromWebFlange = Utils.IsMachiningFromWebFlange (ToolingSegments, 0);
       
+      if (!GCGen.RapidMoveToPiercingPositionWithPingPong)
+         GCGen.RapidMoveToPiercingPosition (ToolingSegments[0].Curve.Start, ToolingSegments[0].Vec0, EKind.Hole, usePingPongOption: true);
+
+      GCGen.WriteToolCorrectionData (ToolingItem);
+      GCGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: false);
+      GCGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+      GCGen.EnableMachiningDirective ();
       // ** Machining **
       if (GCGen.CreateDummyBlock4Master) return;
       mLastToolingSegment = GCGen.WriteTooling (ToolingSegments, ToolingItem);
+      GCGen.DisableMachiningDirective ();
 
       // ** Tooling block finalization - Start**
       GCGen.FinalizeToolingBlock (ToolingItem, mPrevCutToolingsLength,

@@ -510,7 +510,7 @@ public class GCodeGenerator {
    public MCSettings.PartConfigType PartConfigType { get; set; }
    public string MarkText { get; set; }
    public int MarkTextHeight { get; set; }
-   public double LeastWJLength {  get; set; }
+   public double LeastWJLength { get; set; }
    public uint SerialNumber { get; set; }
    public double PartitionRatio { get; set; }
    public MCSettings.EHeads Heads { get; set; }
@@ -2790,22 +2790,14 @@ public class GCodeGenerator {
    /// <param name="toolingItem">The input tooling item</param>
    /// <param name="fromWebFlange">Flag to intimate if the tooling happens from
    /// web flange</param>
-   public void WriteToolCorrectionData (Tooling toolingItem, bool fromWebFlange, bool isFlexTooling,
-      bool isNotchCut = false) {
+   public void WriteToolCorrectionData (Tooling toolingItem) {
       if (CreateDummyBlock4Master) return;
 
-      if (!toolingItem.IsMark ()) {
+      if (!toolingItem.IsMark ())
          sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
-         WritePlaneForCircularMotionCommand (fromWebFlange, isNotchCut: isNotchCut);
-      }
-
-      // For Flex tooling alone, G40 or G41 statement shall not be written
-      if (!isFlexTooling)
-         sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
    }
 
    public void WriteNotchToolCorrectionCmd (bool isFlexTooling) {
-      sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
       // For Flex tooling alone, G40 or G41 statement shall not be written
       if (!isFlexTooling)
          sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
@@ -3133,19 +3125,16 @@ public class GCodeGenerator {
       );
 
       MoveToMachiningStartPosition (nextMachiningStart, wjtSeg.Vec0, toolingItem.Name);
-      if (isValidNotch) {
-         WriteNotchToolCorrectionCmd (isFlexCut);
-         WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: false);
-      } else
-         WriteToolCorrectionData (toolingItem, isFromWebFlange, isFlexTooling: isFlexCut, isNotchCut: isValidNotch);
-
-      prevRapidPos = Utils.MovePoint (nextMachiningStart, wjtSeg.Vec0.Normalized (), mRetractClearance);
+      
+      WriteToolCorrectionData (toolingItem);
       if (isValidNotch) {
          WriteLineStatement (NotchCutStartToken);
          WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: isValidNotch);
+         WriteNotchToolCorrectionCmd (isFlexTooling: isFlexCut);
       }
       EnableMachiningDirective ();
 
+      prevRapidPos = Utils.MovePoint (nextMachiningStart, wjtSeg.Vec0.Normalized (), mRetractClearance);
       // Write the machining trace
       if (isFlexCut) {
          if (flexRefTS == null)
