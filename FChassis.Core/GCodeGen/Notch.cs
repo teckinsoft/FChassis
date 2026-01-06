@@ -1925,7 +1925,7 @@ public class Notch : ToolingFeature {
                          isValidNotch: true,
                          flexRefTS: mFlexStartRef,
                          out prevAbsToolPosition,
-                         toCompleteToolingBlock: true,
+                         toCompleteToolingBlock: isNextSeqFlexMc || isPrevSeqFlexMc,
                          comment1, relativeCoords: relCoords,
                          firstWJTTrace: true);
                PreviousToolingSegment = new (mFlexStartRef.Value.Curve, PreviousToolingSegment.Value.Vec1, mFlexStartRef.Value.Vec0);
@@ -1984,10 +1984,11 @@ public class Notch : ToolingFeature {
                //         toCompleteToolingBlock: false,
                //         comment, relativeCoords: relCoords);
 
-               if (isNextSeqFlexMc || isPrevSeqFlexMc)
-                  continueMachining = true;
-               else
-                  continueMachining = false;
+               //if (isNextSeqFlexMc || isPrevSeqFlexMc)
+               //   continueMachining = true;
+               //else
+               //   continueMachining = false;
+               continueMachining = true;
 
                break;
             case NotchSectionType.MachineToolingForward: {
