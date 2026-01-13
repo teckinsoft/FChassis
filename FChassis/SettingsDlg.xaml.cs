@@ -71,6 +71,8 @@ public partial class SettingsDlg : Window, INotifyPropertyChanged {
       tbStepLength.Bind (() => Settings.StepLength, f => { Settings.StepLength = f.Clamp (0.001, 50); IsModified = true; });
       cbPingPong.Bind (() => Settings.UsePingPong, b => { Settings.UsePingPong = b; IsModified = true; });
       cbOptimize.Bind (() => Settings.OptimizePartition, b => { Settings.OptimizePartition = b; IsModified = true; });
+      cbOnlyWJTSlot.Bind (() => Settings.SlotWithWJTOnly, b => { Settings.SlotWithWJTOnly = b; IsModified = true; });
+      cbDualFlangeCutoutNotch.Bind (() => Settings.DualFlangeCutoutNotchOnly, b => { Settings.DualFlangeCutoutNotchOnly = b; IsModified = true; });
       tbMarkText.Bind (() => Settings.MarkText, s => { Settings.MarkText = s; IsModified = true; });
       tbMarkTextHeight.Bind (() => Settings.MarkTextHeight, h => { Settings.MarkTextHeight = h.Clamp (8, 80); IsModified = true; });
       cbMarkTextAngle.ItemsSource = Enum.GetValues (typeof (ERotate)).Cast<ERotate> ().ToList ();

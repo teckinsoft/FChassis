@@ -238,7 +238,7 @@ public class Tooling {
          OffsetStartingTraceToE3PlaneRef ();
       }
    }
-   public bool IsDualFlangeCutout () {
+   public bool IsDualFlangeCutoutNotch () {
       bool toTreatAsCutOut = CutOut.ToTreatAsCutOut (Segs, Bound3, MCSettings.It.MinCutOutLengthThreshold);
       if ((IsClosed () && Kind == EKind.Cutout) || (Kind == EKind.Hole && toTreatAsCutOut)) {
          if (Utils.IsDualFlangeSameSideCutout (Segs))
@@ -600,6 +600,13 @@ public class Tooling {
          }
       }
       return minVal.LTEQ (min);
+   }
+
+   public bool IsSlotWithWJT () {
+      bool toTreatAsCutOut = false;
+      if (IsHole() || IsCutout() )
+         toTreatAsCutOut = CutOut.ToTreatAsCutOut (Segs, mBound3.Value, MCSettings.It.MinCutOutLengthThreshold);
+      return toTreatAsCutOut;
    }
 
    public double Length {

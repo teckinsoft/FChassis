@@ -20,6 +20,11 @@
 
 		<!-- Set application icon -->
 		<ApplicationIcon>Resources\FChassis.ico</ApplicationIcon>
+		<Title>G Code genetrator for Proteck Dual Head Laser Cutting Machine</Title>
+		<Company>TeckinSoft Neuronics Pvt Ltd</Company>
+		<Description>G Code genetrator for Proteck Dual Head Laser Cutting Machine</Description>
+		<PackageProjectUrl>https://www.teckinsoft.in/</PackageProjectUrl>
+		<Version>1.0.23</Version>
 	</PropertyGroup>
 
 	<!-- Configuration-specific constants -->

@@ -98,7 +98,7 @@ public class Hole : ToolingFeature {
 
       GCGen.WriteToolCorrectionData (ToolingItem);
       GCGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: false);
-      GCGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+      GCGen.WriteToolDiaCompensation (isFlexTooling: false);
       GCGen.EnableMachiningDirective ();
       // ** Machining **
       if (GCGen.CreateDummyBlock4Master) return;

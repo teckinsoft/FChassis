@@ -1070,7 +1070,7 @@ public static class Utils {
          toolingSegmentsList = segs;
 
       // Do not make the flex tool segment as the first in the segment list
-      if (toolingItem.IsDualFlangeCutout ()) {
+      if (toolingItem.IsDualFlangeCutoutNotch ()) {
          //EFlange priorityFlange = EFlange.Web;
          //int newStartIndex = -1;
 
@@ -2674,7 +2674,7 @@ public static class Utils {
       } else {
          var ssegs = toolingSegs;
 
-         if (toolingItem.IsDualFlangeCutout ())
+         if (toolingItem.IsDualFlangeCutoutNotch ())
             ssegs = MoveStartSegToPriorityFlange (ssegs, EFlange.Web);
 
          bool isWebFlangeFeature = toolingItem.IsWebFlangeFeature ();

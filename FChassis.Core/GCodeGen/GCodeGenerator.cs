@@ -460,6 +460,8 @@ public class GCodeGenerator {
       MarkAngle = mcs.MarkAngle;
       ToolingPriority = mcs.ToolingPriority;
       OptimizePartition = mcs.OptimizePartition;
+      SlotWithWJTOnly = mcs.SlotWithWJTOnly;
+      DualFlangeCutoutNotchOnly = mcs.DualFlangeCutoutNotchOnly;
       OptimizeSequence = mcs.OptimizeSequence;
       SafetyZone = mcs.SafetyZone;
       EnableMultipassCut = mcs.EnableMultipassCut;
@@ -518,6 +520,8 @@ public class GCodeGenerator {
    public ERotate MarkAngle { get; set; }
    public bool OptimizeSequence { get; set; }
    public bool OptimizePartition { get; set; }
+   public bool SlotWithWJTOnly { get; set; }
+   public bool DualFlangeCutoutNotchOnly { get; set; }
    public double SafetyZone { get; set; }
    public EKind[] ToolingPriority { get; set; }
    public double NotchWireJointDistance { get; set; } = 2.0;
@@ -719,7 +723,8 @@ public class GCodeGenerator {
       MarkAngle = MCSettings.It.MarkAngle;
       ToolingPriority = MCSettings.It.ToolingPriority;
       OptimizePartition = MCSettings.It.OptimizePartition;
-      OptimizeSequence = MCSettings.It.OptimizeSequence;
+      SlotWithWJTOnly = MCSettings.It.SlotWithWJTOnly;
+      DualFlangeCutoutNotchOnly = MCSettings.It.DualFlangeCutoutNotchOnly;
       SafetyZone = MCSettings.It.SafetyZone;
       EnableMultipassCut = MCSettings.It.EnableMultipassCut;
       MaxFrameLength = MCSettings.It.MaxFrameLength;
@@ -2797,7 +2802,7 @@ public class GCodeGenerator {
          sw.WriteLine ("ToolCorrection\t( Correct Tool Position based on Job )");
    }
 
-   public void WriteNotchToolCorrectionCmd (bool isFlexTooling) {
+   public void WriteToolDiaCompensation (bool isFlexTooling) {
       // For Flex tooling alone, G40 or G41 statement shall not be written
       if (!isFlexTooling)
          sw.WriteLine ($"G{(mXformRHInv[1, 3] < 0.0 ? 41 : 42)} D1 R=KERF E0\t( Tool Dia Compensation)");
@@ -2854,6 +2859,8 @@ public class GCodeGenerator {
          // Check if the web and flanges are included to be machined.
          if (toolingItem.Flange == EFlange.Web && !CutWeb) continue;
          if ((toolingItem.Flange == EFlange.Top || toolingItem.Flange == EFlange.Bottom) && !CutFlange) continue;
+         if (SlotWithWJTOnly && !toolingItem.IsSlotWithWJT ()) continue;
+         if (DualFlangeCutoutNotchOnly && !toolingItem.IsDualFlangeCutoutNotch()) continue;
 
          // Debug_Debug
          firstTlgStartPoint = toolingItem.Segs.ToList ()[0].Curve.Start;
@@ -3086,7 +3093,7 @@ public class GCodeGenerator {
       else if (wjtSeg.Vec1.Normalized ().EQ (XForm4.mZAxis)) isFromWebFlange = true;
 
       // Initialize tooling block for valid notches or cutouts
-      if (toolingItem.IsDualFlangeCutout ()) comment = "Dual Flange Cutout Notch: " + comment;
+      if (toolingItem.IsDualFlangeCutoutNotch ()) comment = "Dual Flange Cutout Notch: " + comment;
       if (toolingItem.IsCutout ()) comment = "CutOut: " + comment;
       else if (toolingItem.IsNotch () && isValidNotch) comment = "Notch: " + comment;
 
@@ -3127,11 +3134,12 @@ public class GCodeGenerator {
       MoveToMachiningStartPosition (nextMachiningStart, wjtSeg.Vec0, toolingItem.Name);
       
       WriteToolCorrectionData (toolingItem);
-      if (isValidNotch) {
+
+      if (isValidNotch)
          WriteLineStatement (NotchCutStartToken);
-         WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: isValidNotch);
-         WriteNotchToolCorrectionCmd (isFlexTooling: isFlexCut);
-      }
+      WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: isValidNotch);
+      WriteToolDiaCompensation (isFlexTooling: isFlexCut);
+
       EnableMachiningDirective ();
 
       prevRapidPos = Utils.MovePoint (nextMachiningStart, wjtSeg.Vec0.Normalized (), mRetractClearance);
@@ -3161,7 +3169,8 @@ public class GCodeGenerator {
       if (toCompleteToolingBlock) {
          // Diable Machining only if the next tooling block will start on flex
          DisableMachiningDirective ();
-         WriteLineStatement (NotchCutEndToken);
+         if (isValidNotch)
+            WriteLineStatement (NotchCutEndToken);
 
          // Finalize (end) the tooling block with one stroke of approach machining
          FinalizeNotchToolingBlock (toolingItem, blockCutLength, totalToolingsCutLength);

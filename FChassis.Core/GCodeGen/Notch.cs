@@ -1596,7 +1596,7 @@ public class Notch : ToolingFeature {
          mGCodeGen.WriteToolCorrectionData (mToolingItem);
          mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
          mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebNotch, isNotchCut: false);
-         mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+         mGCodeGen.WriteToolDiaCompensation (isFlexTooling: false);
 
          mGCodeGen.EnableMachiningDirective ();
          {
@@ -1673,7 +1673,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteToolCorrectionData (mToolingItem);
                      mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                      mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
-                     mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+                     mGCodeGen.WriteToolDiaCompensation (isFlexTooling: false);
 
 
                      mGCodeGen.MoveToMachiningStartPosition (notchEntry.Item1, notchEntry.Item2, mToolingItem.Name);
@@ -1758,7 +1758,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteToolCorrectionData (mToolingItem);
                      mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                      mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
-                     mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+                     mGCodeGen.WriteToolDiaCompensation (isFlexTooling: false);
 
                      mGCodeGen.EnableMachiningDirective ();
                      {
@@ -1807,7 +1807,7 @@ public class Notch : ToolingFeature {
                         mGCodeGen.WriteToolCorrectionData (mToolingItem);
                         mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                         mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
-                        mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+                        mGCodeGen.WriteToolDiaCompensation (isFlexTooling: false);
                         mGCodeGen.EnableMachiningDirective ();
                      }
                      {
@@ -2016,7 +2016,7 @@ public class Notch : ToolingFeature {
                         mGCodeGen.WriteToolCorrectionData (mToolingItem);
                         mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                         mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
-                        mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+                        mGCodeGen.WriteToolDiaCompensation (isFlexTooling: false);
                         mGCodeGen.EnableMachiningDirective ();
                      }
 
@@ -2063,7 +2063,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteToolCorrectionData (mToolingItem);
                      mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                      mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
-                     mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: false);
+                     mGCodeGen.WriteToolDiaCompensation (isFlexTooling: false);
 
                      mGCodeGen.EnableMachiningDirective ();
                   }
@@ -2106,7 +2106,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteToolCorrectionData (mToolingItem);
                      mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                      mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
-                     mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: true);
+                     mGCodeGen.WriteToolDiaCompensation (isFlexTooling: true);
 
                      mGCodeGen.EnableMachiningDirective ();
                   }
@@ -2148,7 +2148,7 @@ public class Notch : ToolingFeature {
                      mGCodeGen.WriteToolCorrectionData (mToolingItem);
                      mGCodeGen.WriteLineStatement (mGCodeGen.NotchCutStartToken);
                      mGCodeGen.WritePlaneForCircularMotionCommand (isFromWebFlange, isNotchCut: true);
-                     mGCodeGen.WriteNotchToolCorrectionCmd (isFlexTooling: true);
+                     mGCodeGen.WriteToolDiaCompensation (isFlexTooling: true);
                      mGCodeGen.EnableMachiningDirective ();
                   }
 

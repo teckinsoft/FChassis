@@ -114,6 +114,8 @@ public partial class MCSettings : INotifyPropertyChanged {
       UsePingPong = other.UsePingPong;
       PartConfig = other.PartConfig;
       OptimizePartition = other.OptimizePartition;
+      SlotWithWJTOnly = other.SlotWithWJTOnly;
+      DualFlangeCutoutNotchOnly = other.DualFlangeCutoutNotchOnly;
       //RotateX180 = other.RotateX180;
       IncludeFlange = other.IncludeFlange;
       IncludeCutout = other.IncludeCutout;
@@ -685,6 +687,26 @@ public partial class MCSettings : INotifyPropertyChanged {
 
    [IgnoreMember] // Ignore this field for MessagePack serialization
    double mLeastWJLength;
+
+   [JsonPropertyName ("slotWithWJTOnly")]
+   [Key (101)]
+   public bool SlotWithWJTOnly {
+      get => mSlotWithWJTOnly;
+      set => SetProperty (ref mSlotWithWJTOnly, value);
+   }
+   
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   bool mSlotWithWJTOnly;
+
+   [JsonPropertyName ("dualFlangeCutoutNotchOnly")]
+   [Key (102)]
+   public bool DualFlangeCutoutNotchOnly {
+      get => mDualFlangeCutoutNotchOnly;
+      set => SetProperty (ref mDualFlangeCutoutNotchOnly, value);
+   }
+
+   [IgnoreMember] // Ignore this field for MessagePack serialization
+   bool mDualFlangeCutoutNotchOnly;
 
    #endregion Properties with JSON Attributes
 
