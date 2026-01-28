@@ -1682,6 +1682,12 @@ public class MultiPassCuts {
          } else (splitTSS, _) = CutScope.SplitToolingScopesAtIxn (mpc.ToolingScopes, cs.EndX, mpc.Bound, mpc.mGC, splitNotches: true, splitNonNotches: false);
 
          mpc.ToolingScopes = splitTSS;
+
+         var duplicates = mpc.ToolingScopes.GroupBy (ts => ts.Index).Where (g => g.Count () > 1).Select (g => g.Key);
+         
+         // Delete the duplicates if any: Customer issue FCH-71
+         if (duplicates.Any ())
+            mpc.ToolingScopes = [.. mpc.ToolingScopes.DistinctBy (ts => ts.Index)];
          var toolingDict = mpc.ToolingScopes.ToDictionary (ts => ts.Index);
 
          cs.MachinableToolingScopes.AddRange (cs.TSInScope1.Where (toolingDict.ContainsKey)
