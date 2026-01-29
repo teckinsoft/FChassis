@@ -1,3 +1,6 @@
+; -----------------------------------------------------------------------------
+; FChassis Installer - Version 1.0.24
+; -----------------------------------------------------------------------------
 !include "x64.nsh"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
@@ -5,6 +8,7 @@
 !include "WinMessages.nsh"
 !include "MUI2.nsh"
 !include "nsDialogs.nsh"
+
 ; -----------------------------------------------------------------------------
 ; General Settings
 ; -----------------------------------------------------------------------------
@@ -18,13 +22,16 @@
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 !define INSTALL_FLAG_KEY "Software\${COMPANY}\${APPNAME}"
 !define LICENSE_FILE "${__FILEDIR__}\FChassis-License-Agreement.txt"
+
 !if ! /FileExists "${LICENSE_FILE}"
   !error "LICENSE_FILE not found at: ${LICENSE_FILE}"
 !endif
+
 Name "${APPNAME} ${VERSION}"
 OutFile "FChassis-Installer-${VERSION}.exe"
 InstallDir "${INSTALLDIR}"
 RequestExecutionLevel admin
+
 ; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
@@ -38,6 +45,7 @@ Var AppDataDir
 Var IsInstalling
 Var ShowRepairPage
 Var RepairPageHWND
+
 ; -----------------------------------------------------------------------------
 ; Logging Macros
 ; -----------------------------------------------------------------------------
@@ -49,6 +57,7 @@ Var RepairPageHWND
   DetailPrint "LOG: ${message}"
   Pop $0
 !macroend
+
 !macro LogVar varname varvalue
   Push $0
   ${If} $LogFileHandle != 0
@@ -57,6 +66,7 @@ Var RepairPageHWND
   DetailPrint "LOG: ${varname}: ${varvalue}"
   Pop $0
 !macroend
+
 !macro LogError message
   Push $0
   ${If} $LogFileHandle != 0
@@ -65,6 +75,73 @@ Var RepairPageHWND
   DetailPrint "ERROR: ${message}"
   Pop $0
 !macroend
+
+; -----------------------------------------------------------------------------
+; PATH Management Macro (Fixed as per ChatGPT's diagnosis)
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; PATH Management Macro (Fixed)
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; PATH Management Macro (Fixed - using unique label without decimals)
+; -----------------------------------------------------------------------------
+!macro AddToSystemPathIfMissing dir
+  Push $0
+  Push $1
+  Push $2
+  Push $3
+  
+  ; Create a unique label name without decimals
+  !define _UNIQUE_LABEL _AddToPath_${__LINE__}
+  
+  SetRegView 64
+  ClearErrors
+  ReadRegStr $0 HKLM \
+    "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
+
+  ${If} ${Errors}
+    !insertmacro LogError "FAILED to read System PATH. Aborting PATH modification for ${dir}."
+    Goto ${_UNIQUE_LABEL}
+  ${EndIf}
+
+  ; Length check
+  StrLen $1 $0
+  ${If} $1 > 32000
+    !insertmacro LogError "System PATH too long ($1 chars). Cannot append ${dir}."
+    Goto ${_UNIQUE_LABEL}
+  ${EndIf}
+
+  ; Duplicate check
+  StrCpy $2 "$0;"
+  StrCpy $3 ";${dir};"
+  System::Call "shlwapi::StrStrI(t r2, t r3) i .r2"
+  ${If} $2 != 0
+    !insertmacro LogMessage "${dir} already present in System PATH"
+    Goto ${_UNIQUE_LABEL}
+  ${EndIf}
+
+  ; Append
+  ${If} $0 == ""
+    StrCpy $0 "${dir}"
+  ${Else}
+    StrCpy $0 "$0;${dir}"
+  ${EndIf}
+
+  WriteRegExpandStr HKLM \
+    "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
+    "Path" "$0"
+
+  ${_UNIQUE_LABEL}:
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+  
+  !undef _UNIQUE_LABEL
+!macroend
+
+
+
 ; -----------------------------------------------------------------------------
 ; Custom Repair Page Interface
 ; -----------------------------------------------------------------------------
@@ -102,6 +179,7 @@ Function RepairPageCreate
   nsDialogs::Show
   !insertmacro LogMessage "=== Repair Page Created ==="
 FunctionEnd
+
 Function RepairPageLeave
   ${If} $ShowRepairPage != 1
     Abort
@@ -110,27 +188,37 @@ Function RepairPageLeave
   !insertmacro LogMessage "=== Repair Page Leave ==="
   !insertmacro LogMessage "=== Repair Page Navigation Complete ==="
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Pages
 ; -----------------------------------------------------------------------------
 !define MUI_ABORTWARNING
 !define MUI_UNABORTWARNING
+
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW WelcomeShow
 !insertmacro MUI_PAGE_WELCOME
+
 !insertmacro MUI_PAGE_LICENSE "${LICENSE_FILE}"
+
 Page custom RepairPageCreate RepairPageLeave
+
 !define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW DirectoryShow
 !insertmacro MUI_PAGE_DIRECTORY
+
 !define MUI_PAGE_CUSTOMFUNCTION_PRE PreInstFiles
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
 !insertmacro MUI_PAGE_INSTFILES
+
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
+
 !define MUI_CUSTOMFUNCTION_ABORT OnInstFilesAbort
 !define MUI_INSTFILESPAGE_ABORTHEADER_TEXT "Installation Aborted"
 !define MUI_INSTFILESPAGE_ABORTHEADER_SUBTEXT "The installation was canceled and changes have been rolled back."
+
 !insertmacro MUI_LANGUAGE "English"
+
 ; -----------------------------------------------------------------------------
 ; Page Pre-functions and Show functions
 ; -----------------------------------------------------------------------------
@@ -150,6 +238,7 @@ Function WelcomeShow
  
   !insertmacro LogMessage "=== Welcome Page Buttons Customized (Always 'Next') ==="
 FunctionEnd
+
 Function DirectoryPre
   !insertmacro LogMessage "=== Starting DirectoryPre function ==="
   ${If} $InstalledState == 3
@@ -161,6 +250,7 @@ Function DirectoryPre
   ${EndIf}
   !insertmacro LogMessage "=== DirectoryPre function completed ==="
 FunctionEnd
+
 Function DirectoryShow
   !insertmacro LogMessage "=== Directory Page Show ==="
  
@@ -174,15 +264,18 @@ Function DirectoryShow
  
   !insertmacro LogMessage "=== Directory Page Buttons Customized ==="
 FunctionEnd
+
 Function PreInstFiles
   !insertmacro LogMessage "=== Entering InstFiles page (setting IsInstalling flag) ==="
   StrCpy $IsInstalling 1
 FunctionEnd
+
 Function InstFilesShow
   !insertmacro LogMessage "=== InstFiles page shown ==="
   GetDlgItem $0 $HWNDPARENT 2
   EnableWindow $0 1
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Helper: Broadcast Environment Change
 ; -----------------------------------------------------------------------------
@@ -191,6 +284,7 @@ FunctionEnd
   System::Call 'USER32::SendMessageTimeout(i ${HWND_BROADCAST}, i ${WM_SETTINGCHANGE}, i 0, w "Environment", i 0, i 5000, i 0)'
   !insertmacro LogMessage "Environment change broadcast completed"
 !macroend
+
 ; -----------------------------------------------------------------------------
 ; Helper: Purge $INSTDIR (Blocking)
 ; -----------------------------------------------------------------------------
@@ -228,6 +322,7 @@ FunctionEnd
     DetailPrint "Could not remove all files now. Cleanup will complete after restart."
   ${EndIf}
 !macroend
+
 ; -----------------------------------------------------------------------------
 ; Delete Installer EXE
 ; -----------------------------------------------------------------------------
@@ -237,6 +332,7 @@ Function DeleteInstaller
   ExecWait '"cmd.exe" /C ping 127.0.0.1 -n 2 > nul & del /f /q "$EXEPATH"'
   !insertmacro LogMessage "Scheduled installer deletion: $EXEPATH"
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; GUI End Hook
 ; -----------------------------------------------------------------------------
@@ -246,6 +342,7 @@ Function .onGUIEnd
     Call DeleteInstaller
   ${EndIf}
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Install Failed Hook
 ; -----------------------------------------------------------------------------
@@ -254,6 +351,7 @@ Function .onInstFailed
   !insertmacro LogMessage "Installation failed, deleting installer..."
   Call DeleteInstaller
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Install Success Hook
 ; -----------------------------------------------------------------------------
@@ -263,6 +361,7 @@ Function .onInstSuccess
   Call CreateShortcuts
   !insertmacro LogMessage "Installation completed successfully!"
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Version Comparison
 ; -----------------------------------------------------------------------------
@@ -277,42 +376,55 @@ Function CompareVersions
   Push $6
   Push $7
   Push $8
+
   !insertmacro LogVar "Comparing version" $0
   !insertmacro LogVar "With version" $1
+
   StrCpy $8 $0
   ${WordFind} $8 "." "E+1" $2
   ${WordFind} $8 "." "E+2" $3
   ${WordFind} $8 "." "E+3" $4
+
   StrCpy $8 $1
   ${WordFind} $8 "." "E+1" $5
   ${WordFind} $8 "." "E+2" $6
   ${WordFind} $8 "." "E+3" $7
+
   ${If} $4 == ""
     StrCpy $4 "0"
   ${EndIf}
   ${If} $7 == ""
     StrCpy $7 "0"
   ${EndIf}
+
   IntCmp $2 $5 major_equal major1_greater major2_greater
+
 major1_greater:
   StrCpy $0 "1"
   goto done
+
 major2_greater:
   StrCpy $0 "-1"
   goto done
+
 major_equal:
   IntCmp $3 $6 minor_equal minor1_greater minor2_greater
+
 minor1_greater:
   StrCpy $0 "1"
   goto done
+
 minor2_greater:
   StrCpy $0 "-1"
   goto done
+
 minor_equal:
   IntCmp $4 $7 0 patch_diff
+
 patch_diff:
   IntOp $0 $4 - $7
   goto done
+
 done:
   Pop $8
   Pop $7
@@ -324,6 +436,7 @@ done:
   Pop $1
   Exch $0
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Create Shortcuts
 ; -----------------------------------------------------------------------------
@@ -331,15 +444,19 @@ Function CreateShortcuts
   !insertmacro LogMessage "=== Creating shortcuts ==="
   StrCpy $R1 "$INSTDIR\Bin\Resources\FChassis.ico"
   StrCpy $R2 "$INSTDIR\Bin\FChassis.exe"
+  
   !insertmacro LogVar "Icon path" $R1
   !insertmacro LogVar "Executable path" $R2
+
   IfFileExists "$R2" exe_found
     !insertmacro LogError "Target executable not found: $R2"
     MessageBox MB_OK|MB_ICONEXCLAMATION "Error: FChassis.exe not found at $R2. Shortcuts cannot be created."
     Goto _Done
+
 exe_found:
   IfFileExists "$R1" +2 0
     !insertmacro LogError "Icon file not found: $R1"
+
   SetShellVarContext all
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
   CreateDirectory "$9"
@@ -348,6 +465,7 @@ exe_found:
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
   IfFileExists "$R1" +2 0
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+
   SetShellVarContext current
   StrCpy $9 "$SMPROGRAMS\${APPNAME}"
   CreateDirectory "$9"
@@ -356,124 +474,19 @@ exe_found:
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
   IfFileExists "$R1" +2 0
     CreateShortCut "$9\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+
   SetShellVarContext current
   Delete "$DESKTOP\${APPNAME}.lnk"
   IfFileExists "$R1" 0 +2
     CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R1" 0 SW_SHOWNORMAL
   IfFileExists "$R1" +2 0
     CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$R2" "" "$R2" 0 SW_SHOWNORMAL
+
   !insertmacro LogMessage "=== Shortcut creation completed ==="
+
 _Done:
 FunctionEnd
-; -----------------------------------------------------------------------------
-; Installation Detection
-; -----------------------------------------------------------------------------
-Function .onInit
-  SetRegView 64
-  StrCpy $InstalledState 0
-  StrCpy $ExistingInstallDir "${INSTALLDIR}"
-  StrCpy $ExistingVersion ""
-  StrCpy $ExtractionCompleted 0
-  StrCpy $LogFileHandle 0
-  StrCpy $ShowRepairPage 0
-  ReadRegStr $LocalAppDataDir HKCU "Volatile Environment" "LOCALAPPDATA"
-  ${If} $LocalAppDataDir == ""
-    ReadRegStr $LocalAppDataDir HKCU "Environment" "LOCALAPPDATA"
-    ${If} $LocalAppDataDir == ""
-      StrCpy $LocalAppDataDir "$PROFILE\AppData\Local"
-    ${EndIf}
-  ${EndIf}
-  !insertmacro LogVar "LocalAppDataDir" $LocalAppDataDir
-  ReadRegStr $AppDataDir HKCU "Volatile Environment" "APPDATA"
-  ${If} $AppDataDir == ""
-    StrCpy $AppDataDir "$LocalAppDataDir"
-  ${EndIf}
-  !insertmacro LogVar "AppDataDir" $AppDataDir
-  CreateDirectory "$LocalAppDataDir"
-  CreateDirectory "$LocalAppDataDir\FChassis"
-  CreateDirectory "$LocalAppDataDir\FChassis\Sample"
-  CreateDirectory "$LocalAppDataDir\FChassis\Data"
-  FileOpen $LogFileHandle "$LocalAppDataDir\FChassis_Install.log" w
-  ${If} $LogFileHandle == ""
-    StrCpy $LocalAppDataDir "$TEMP"
-    FileOpen $LogFileHandle "$LocalAppDataDir\FChassis_Install.log" w
-    ${If} $LogFileHandle == ""
-      StrCpy $LogFileHandle 0
-      DetailPrint "ERROR: Failed to open log file in both locations"
-    ${Else}
-      FileWrite $LogFileHandle "=== FChassis Installation Log ===$\r$\n"
-      FileWrite $LogFileHandle "Started: [$(^Time)] (Fallback to TEMP)$\r$\n"
-      DetailPrint "Log file opened in TEMP directory"
-    ${EndIf}
-  ${Else}
-    FileWrite $LogFileHandle "=== FChassis Installation Log ===$\r$\n"
-    FileWrite $LogFileHandle "Started: [$(^Time)]$\r$\n"
-    DetailPrint "Log file opened: $LocalAppDataDir\FChassis_Install.log"
-  ${EndIf}
-  !insertmacro LogMessage "=== Starting .onInit function ==="
-  !insertmacro LogMessage "Checking registry for existing installation..."
-  ReadRegStr $0 HKLM "${UNINSTALL_KEY}" "UninstallString"
-  IfErrors check_install_flag
-  !insertmacro LogMessage "Found uninstall registry key"
-  !insertmacro LogVar "UninstallString" $0
-  ReadRegStr $ExistingInstallDir HKLM "${UNINSTALL_KEY}" "InstallLocation"
-  StrCmp $ExistingInstallDir "" 0 get_version
-  StrCpy $ExistingInstallDir "${INSTALLDIR}"
-  !insertmacro LogVar "ExistingInstallDir" $ExistingInstallDir
-get_version:
-  ReadRegStr $ExistingVersion HKLM "${UNINSTALL_KEY}" "DisplayVersion"
-  IfErrors check_install_flag
-  !insertmacro LogVar "ExistingVersion" $ExistingVersion
-  Push $ExistingVersion
-  Push "${VERSION}"
-  Call CompareVersions
-  Pop $1
-  !insertmacro LogVar "Version comparison result" $1
-  ${If} $1 == "0"
-    StrCpy $InstalledState 1
-    StrCpy $ShowRepairPage 1
-    !insertmacro LogMessage "Same version already installed"
-  ${ElseIf} $1 == "1"
-    StrCpy $InstalledState 3
-    !insertmacro LogMessage "Newer version already installed"
-  ${Else}
-    StrCpy $InstalledState 2
-    !insertmacro LogMessage "Older version installed"
-  ${EndIf}
-  Goto done
-check_install_flag:
-  !insertmacro LogMessage "Checking custom install flag registry..."
-  ReadRegStr $0 HKLM "${INSTALL_FLAG_KEY}" "Installed"
-  StrCmp $0 "1" 0 done
-  !insertmacro LogMessage "Found custom install flag"
-  ReadRegStr $ExistingVersion HKLM "${INSTALL_FLAG_KEY}" "Version"
-  ReadRegStr $ExistingInstallDir HKLM "${INSTALL_FLAG_KEY}" "InstallPath"
-  !insertmacro LogVar "ExistingVersion from custom key" $ExistingVersion
-  !insertmacro LogVar "ExistingInstallDir from custom key" $ExistingInstallDir
-  StrCmp $ExistingVersion "" done 0
-  Push $ExistingVersion
-  Push "${VERSION}"
-  Call CompareVersions
-  Pop $1
-  !insertmacro LogVar "Version comparison result (custom key)" $1
-  ${If} $1 == "0"
-    StrCpy $InstalledState 1
-    StrCpy $ShowRepairPage 1
-    !insertmacro LogMessage "Same version installed (custom key)"
-  ${ElseIf} $1 == "1"
-    StrCpy $InstalledState 3
-    !insertmacro LogMessage "Newer version installed (custom key)"
-  ${Else}
-    StrCpy $InstalledState 2
-    !insertmacro LogMessage "Older version installed (custom key)"
-  ${EndIf}
-done:
-  StrCpy $INSTDIR $ExistingInstallDir
-  !insertmacro LogVar "Final INSTDIR set to" $INSTDIR
-  !insertmacro LogVar "InstalledState" $InstalledState
-  !insertmacro LogVar "ShowRepairPage" $ShowRepairPage
-  !insertmacro LogMessage "=== .onInit function completed ==="
-FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Check if OCCT is installed
 ; -----------------------------------------------------------------------------
@@ -491,93 +504,134 @@ Function CheckOCCTInstalled
  
   Exch $0
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
-; Check if PATH contains a specific directory (improved for full entry match)
+; Installation Detection
 ; -----------------------------------------------------------------------------
-!macro CheckPathContains dir outVar
-  Push $0
-  Push $1
-  Push $2
-  Push $3
+Function .onInit
+  SetRegView 64
+  StrCpy $InstalledState 0
+  StrCpy $ExistingInstallDir "${INSTALLDIR}"
+  StrCpy $ExistingVersion ""
+  StrCpy $ExtractionCompleted 0
+  StrCpy $LogFileHandle 0
+  StrCpy $ShowRepairPage 0
 
-  ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
-  StrCpy $1 "$0;"
-  StrCpy $2 ";${dir};"
+  ReadRegStr $LocalAppDataDir HKCU "Volatile Environment" "LOCALAPPDATA"
+  ${If} $LocalAppDataDir == ""
+    ReadRegStr $LocalAppDataDir HKCU "Environment" "LOCALAPPDATA"
+    ${If} $LocalAppDataDir == ""
+      StrCpy $LocalAppDataDir "$PROFILE\AppData\Local"
+    ${EndIf}
+  ${EndIf}
+  !insertmacro LogVar "LocalAppDataDir" $LocalAppDataDir
 
-  System::Call "Shlwapi::StrStrIW(t r1, t r2) i .r3"
+  ReadRegStr $AppDataDir HKCU "Volatile Environment" "APPDATA"
+  ${If} $AppDataDir == ""
+    StrCpy $AppDataDir "$LocalAppDataDir"
+  ${EndIf}
+  !insertmacro LogVar "AppDataDir" $AppDataDir
 
-  ${If} $3 == 0
-    StrCpy ${outVar} 0
+  CreateDirectory "$LocalAppDataDir"
+  CreateDirectory "$LocalAppDataDir\FChassis"
+  CreateDirectory "$LocalAppDataDir\FChassis\Sample"
+  CreateDirectory "$LocalAppDataDir\FChassis\Data"
+
+  FileOpen $LogFileHandle "$LocalAppDataDir\FChassis_Install.log" w
+  ${If} $LogFileHandle == ""
+    StrCpy $LocalAppDataDir "$TEMP"
+    FileOpen $LogFileHandle "$LocalAppDataDir\FChassis_Install.log" w
+    ${If} $LogFileHandle == ""
+      StrCpy $LogFileHandle 0
+      DetailPrint "ERROR: Failed to open log file in both locations"
+    ${Else}
+      FileWrite $LogFileHandle "=== FChassis Installation Log ===$\r$\n"
+      FileWrite $LogFileHandle "Started: [$(^Time)] (Fallback to TEMP)$\r$\n"
+      DetailPrint "Log file opened in TEMP directory"
+    ${EndIf}
   ${Else}
-    StrCpy ${outVar} 1
+    FileWrite $LogFileHandle "=== FChassis Installation Log ===$\r$\n"
+    FileWrite $LogFileHandle "Started: [$(^Time)]$\r$\n"
+    DetailPrint "Log file opened: $LocalAppDataDir\FChassis_Install.log"
   ${EndIf}
 
-  Pop $3
-  Pop $2
-  Pop $1
-  Pop $0
-!macroend
-; -----------------------------------------------------------------------------
-; Add to PATH only if not already present
-; -----------------------------------------------------------------------------
-!macro AddToPathIfMissing dir
-  !insertmacro CheckPathContains "${dir}" $0
+  !insertmacro LogMessage "=== Starting .onInit function ==="
+  !insertmacro LogMessage "Checking registry for existing installation..."
 
-  ${If} $0 == 0
-    !insertmacro LogMessage "Adding ${dir} to PATH (not present)"
-    ReadRegStr $1 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
-    ${If} $1 != ""
-      StrCpy $1 "$1;"
-    ${EndIf}
-    StrCpy $1 "$1${dir}"
-    WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path" $1
-    IfErrors 0 +3
-      !insertmacro LogMessage "WARNING: Failed to add ${dir} to PATH"
-      Goto +2
-    !insertmacro LogMessage "Successfully added ${dir} to PATH"
+  ReadRegStr $0 HKLM "${UNINSTALL_KEY}" "UninstallString"
+  IfErrors check_install_flag
+  !insertmacro LogMessage "Found uninstall registry key"
+  !insertmacro LogVar "UninstallString" $0
+
+  ReadRegStr $ExistingInstallDir HKLM "${UNINSTALL_KEY}" "InstallLocation"
+  StrCmp $ExistingInstallDir "" 0 get_version
+  StrCpy $ExistingInstallDir "${INSTALLDIR}"
+  !insertmacro LogVar "ExistingInstallDir" $ExistingInstallDir
+
+get_version:
+  ReadRegStr $ExistingVersion HKLM "${UNINSTALL_KEY}" "DisplayVersion"
+  IfErrors check_install_flag
+  !insertmacro LogVar "ExistingVersion" $ExistingVersion
+
+  Push $ExistingVersion
+  Push "${VERSION}"
+  Call CompareVersions
+  Pop $1
+  !insertmacro LogVar "Version comparison result" $1
+
+  ${If} $1 == "0"
+    StrCpy $InstalledState 1
+    StrCpy $ShowRepairPage 1
+    !insertmacro LogMessage "Same version already installed"
+  ${ElseIf} $1 == "1"
+    StrCpy $InstalledState 3
+    !insertmacro LogMessage "Newer version already installed"
   ${Else}
-    !insertmacro LogMessage "${dir} is already in PATH, skipping"
+    StrCpy $InstalledState 2
+    !insertmacro LogMessage "Older version installed"
   ${EndIf}
-!macroend
-; -----------------------------------------------------------------------------
-; Remove directory from PATH
-; -----------------------------------------------------------------------------
-Function un.RemoveFromPath
-  Exch $0  ; dir to remove
-  Push $1
-  Push $2
-  Push $3
-  Push $4
+  Goto done
 
-  ReadRegStr $1 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
-  StrCpy $1 "$1;"
-  StrCpy $2 ";$0;"
+check_install_flag:
+  !insertmacro LogMessage "Checking custom install flag registry..."
+  ReadRegStr $0 HKLM "${INSTALL_FLAG_KEY}" "Installed"
+  StrCmp $0 "1" 0 done
+  !insertmacro LogMessage "Found custom install flag"
 
-  StrLen $3 $2
+  ReadRegStr $ExistingVersion HKLM "${INSTALL_FLAG_KEY}" "Version"
+  ReadRegStr $ExistingInstallDir HKLM "${INSTALL_FLAG_KEY}" "InstallPath"
+  
+  !insertmacro LogVar "ExistingVersion from custom key" $ExistingVersion
+  !insertmacro LogVar "ExistingInstallDir from custom key" $ExistingInstallDir
 
-  loop:
-    System::Call "Shlwapi::StrStrIW(t r1, t r2) i .r4"
-    ${If} $4 == 0
-      Goto done
-    ${EndIf}
-    StrCpy $R0 $1 $4  ; before
-    IntOp $4 $4 + $3
-    StrCpy $R1 $1 "" $4  ; after
-    StrCpy $1 "$R0$R1"
-    Goto loop
-
-  done:
-    StrCpy $1 $1 "" -1  ; remove trailing ;
-    WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path" $1
-    IfErrors 0 +2
-      !insertmacro LogMessage "WARNING: Failed to remove $0 from PATH"
-
-  Pop $4
-  Pop $3
-  Pop $2
+  StrCmp $ExistingVersion "" done 0
+  Push $ExistingVersion
+  Push "${VERSION}"
+  Call CompareVersions
   Pop $1
-  Pop $0
+  !insertmacro LogVar "Version comparison result (custom key)" $1
+
+  ${If} $1 == "0"
+    StrCpy $InstalledState 1
+    StrCpy $ShowRepairPage 1
+    !insertmacro LogMessage "Same version installed (custom key)"
+  ${ElseIf} $1 == "1"
+    StrCpy $InstalledState 3
+    !insertmacro LogMessage "Newer version installed (custom key)"
+  ${Else}
+    StrCpy $InstalledState 2
+    !insertmacro LogMessage "Older version installed (custom key)"
+  ${EndIf}
+
+done:
+  StrCpy $INSTDIR $ExistingInstallDir
+  !insertmacro LogVar "Final INSTDIR set to" $INSTDIR
+  !insertmacro LogVar "InstalledState" $InstalledState
+  !insertmacro LogVar "ShowRepairPage" $ShowRepairPage
+  
+  !insertmacro LogMessage "=== .onInit function completed ==="
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Installation Abort Handler
 ; -----------------------------------------------------------------------------
@@ -587,15 +641,19 @@ Function OnInstFilesAbort
     !insertmacro LogMessage "Aborted before installation started - no cleanup needed"
     Goto done
   ${EndIf}
+  
   !insertmacro LogMessage "Aborted during installation - performing cleanup (rollback)"
   MessageBox MB_OK|MB_ICONINFORMATION "Installation canceled. Rolling back..."
+
   SetShellVarContext all
   Delete "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
   RMDir "$SMPROGRAMS\${APPNAME}"
+  
   SetShellVarContext current
   Delete "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
   RMDir "$SMPROGRAMS\${APPNAME}"
   Delete "$DESKTOP\${APPNAME}.lnk"
+
   SetRegView 64
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
@@ -611,56 +669,70 @@ Function OnInstFilesAbort
  
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APPNAME}"
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${APPNAME}"
+
   Delete "$LOCALAPPDATA\FChassis\FChassis.User.RecentFiles.JSON"
   Delete "$LOCALAPPDATA\FChassis\FChassis.User.Settings.JSON"
   RMDir "$LOCALAPPDATA\FChassis"
+
   !insertmacro BroadcastEnvChange
   !insertmacro PurgeInstDirBlocking 1
   Call DeleteInstaller
   FileClose $LogFileHandle
+
 done:
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Main Installation
 ; -----------------------------------------------------------------------------
 Section "Main Installation" SecMain
   !insertmacro LogMessage "=== Starting Main Installation Section ==="
+  
   SetRegView 64
   SetOutPath "$INSTDIR"
   CreateDirectory "$INSTDIR\Bin"
   !insertmacro LogMessage "Created directory: $INSTDIR\Bin"
+
   ${If} $InstalledState == 1
     !insertmacro LogMessage "Same version already installed, proceeding with reinstallation"
   ${ElseIf} $InstalledState == 2
     !insertmacro LogMessage "Older version detected, proceeding with upgrade"
   ${EndIf}
+
   !insertmacro LogMessage "Copying main application files..."
   File /r "${FluxSDKDir}\*.*"
+
   !insertmacro LogMessage "Copying license file to installation directory..."
   IfFileExists "${FluxSDKDir}\FChassis-License-Agreement.txt" license_file_exists license_file_missing
+
 license_file_exists:
   CopyFiles /SILENT "${FluxSDKDir}\FChassis-License-Agreement.txt" "$INSTDIR"
   !insertmacro LogMessage "License file copied to: $INSTDIR\FChassis-License-Agreement.txt"
   Goto license_file_done
+
 license_file_missing:
   !insertmacro LogError "License file not found at source: ${FluxSDKDir}\FChassis-License-Agreement.txt"
+
 license_file_done:
   !insertmacro LogMessage "Copying third-party components..."
-  ; File "${FluxSDKDir}\thirdParty.zip"
   File "${FluxSDKDir}\7z.exe"
   File "${FluxSDKDir}\7z.dll"
   File "${FluxSDKDir}\VC_redist.x64.exe"
   File "${FluxSDKDir}\opencascade-7.7.0-vc14-64.exe"
+
   ; Check if OCCT needs to be installed
   !insertmacro LogMessage "Checking if OCCT is already installed..."
   Call CheckOCCTInstalled
   Pop $0
+  
   ${If} $0 == 0
     !insertmacro LogMessage "Installing OCCT..."
     DetailPrint "Installing OpenCASCADE 7.7.0..."
+    
     nsExec::ExecToStack '"$INSTDIR\opencascade-7.7.0-vc14-64.exe" /VERYSILENT /DIR=${OCCT_INSTALL_PATH}'
     Pop $0
     Pop $1
+    
     !insertmacro LogVar "OCCT installation result" $0
     !insertmacro LogVar "OCCT installation output" $1
    
@@ -681,52 +753,58 @@ license_file_done:
   CreateDirectory "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
     !insertmacro LogError "Failed to create directory: $LOCALAPPDATA\FChassis"
+
   IfFileExists "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" recent_file_exists recent_file_missing
+
 recent_file_exists:
   CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.RecentFiles.JSON" "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
     !insertmacro LogError "Failed to copy FChassis.User.RecentFiles.JSON to $LOCALAPPDATA\FChassis"
   Goto recent_file_done
+
 recent_file_missing:
   !insertmacro LogError "FChassis.User.RecentFiles.JSON not found at ${FluxSDKBin}"
+
 recent_file_done:
   IfFileExists "${FluxSDKBin}\FChassis.User.Settings.JSON" settings_file_exists settings_file_missing
+
 settings_file_exists:
   CopyFiles /SILENT "${FluxSDKBin}\FChassis.User.Settings.JSON" "$LOCALAPPDATA\FChassis"
   IfErrors 0 +2
     !insertmacro LogError "Failed to copy FChassis.User.Settings.JSON to $LOCALAPPDATA\FChassis"
   Goto settings_file_done
+
 settings_file_missing:
   !insertmacro LogError "FChassis.User.Settings.JSON not found at ${FluxSDKBin}"
+
 settings_file_done:
   !insertmacro LogMessage "Checking VC++ redistributable installation..."
   nsExec::ExecToStack '"$INSTDIR\VC_redist.x64.exe" /install /quiet /norestart'
   Pop $0
   !insertmacro LogVar "VC++ redistributable installation result" $0
-  !insertmacro LogMessage "Adding to PATH environment variable (only if not already present)..."
-  ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
-  !insertmacro LogVar "System PATH before modification" $0
-  ; Add application bin directory (always add - this is specific to our app)
-  !insertmacro LogMessage "Adding $INSTDIR\Bin to PATH"
-  !insertmacro AddToPathIfMissing "$INSTDIR\Bin"
 
-  ; Add OCCT directories only if they're not already in PATH
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\draco-1.4.1-vc14-64\bin"
-  !insertmacro LogMessage "Added ${OCCT_INSTALL_PATH}\draco-1.4.1-vc14-64\bin to PATH"
- 
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\opencascade-7.7.0\win64\vc14\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\ffmpeg-3.3.4-64\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\freeimage-3.17.0-vc14-64\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\tbb_2021.5-vc14-64\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\freetype-2.5.5-vc14-64\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\openvr-1.14.15-64\bin\win64"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\qt5.11.2-vc14-64\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\rapidjson-1.1.0\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\tcltk-86-64\bin"
-  !insertmacro AddToPathIfMissing "${OCCT_INSTALL_PATH}\vtk-6.1.0-vc14-64\bin"
-  ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
-  !insertmacro LogVar "System PATH after modification" $0
+  !insertmacro LogMessage "Adding to System PATH environment variable (using corrected macro)..."
+  
+  ; Add application bin directory to System PATH
+  !insertmacro LogMessage "Adding $INSTDIR\Bin to System PATH"
+  !insertmacro AddToSystemPathIfMissing "$INSTDIR\Bin"
+
+  ; Add OCCT directories to System PATH
+  !insertmacro LogMessage "Adding OCCT binaries path to System PATH..."
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\draco-1.4.1-vc14-64\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\opencascade-7.7.0\win64\vc14\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\ffmpeg-3.3.4-64\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\freeimage-3.17.0-vc14-64\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\tbb_2021.5-vc14-64\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\freetype-2.5.5-vc14-64\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\openvr-1.14.15-64\bin\win64"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\qt5.11.2-vc14-64\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\rapidjson-1.1.0\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\tcltk-86-64\bin"
+  !insertmacro AddToSystemPathIfMissing "${OCCT_INSTALL_PATH}\vtk-6.1.0-vc14-64\bin"
+  
   !insertmacro BroadcastEnvChange
+
   !insertmacro LogMessage "Writing registry entries..."
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "${APPNAME}"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayVersion" "${VERSION}"
@@ -736,22 +814,110 @@ settings_file_done:
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\Bin\Resources\FChassis.ico"
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
+
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "Installed" "1"
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "Version" "${VERSION}"
   WriteRegStr HKLM "${INSTALL_FLAG_KEY}" "InstallPath" "$INSTDIR"
+
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   !insertmacro LogMessage "=== Main Installation Section completed ==="
 SectionEnd
+
+; -----------------------------------------------------------------------------
+; Uninstaller: Remove from System PATH (Fixed)
+; -----------------------------------------------------------------------------
+Function un.RemoveFromSystemPath
+  Exch $0  ; dir to remove
+  Push $1
+  Push $2
+  Push $3
+  Push $4
+  Push $5
+  Push $6
+  
+  !insertmacro LogMessage "=== Removing $0 from System PATH ==="
+  
+  ; Ensure 64-bit registry view
+  SetRegView 64
+  
+  ; Read System PATH (only the correct key)
+  ClearErrors
+  ReadRegStr $1 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
+  ${If} ${Errors}
+    !insertmacro LogError "Failed to read System PATH during uninstall! Cannot remove $0"
+    Goto done
+  ${EndIf}
+  
+  !insertmacro LogVar "System PATH before removal" $1
+  
+  ${If} $1 != ""
+    ; Prepare for search - add semicolons for whole path matching
+    StrCpy $1 "$1;"
+    StrCpy $2 ";$0;"
+    StrLen $3 $2
+    StrCpy $6 0  ; Found flag
+    
+    loop:
+      System::Call "shlwapi::StrStrI(t r1, t r2) i .r4"
+      ${If} $4 == 0
+        Goto done_search
+      ${EndIf}
+      ; Found it, remove it
+      StrCpy $5 $1 $4  ; before the match
+      IntOp $4 $4 + $3
+      StrCpy $R0 $1 "" $4  ; after the match
+      StrCpy $1 "$5$R0"
+      StrCpy $6 1  ; Set found flag
+      Goto loop
+    
+    done_search:
+      ${If} $6 == 1
+        ; Remove trailing semicolon if present
+        StrLen $3 $1
+        IntOp $3 $3 - 1
+        StrCpy $2 $1 1 $3
+        ${If} $2 == ";"
+          StrCpy $1 $1 $3
+        ${EndIf}
+        
+        !insertmacro LogVar "System PATH after removal" $1
+        
+        ; Write back to System PATH
+        WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path" $1
+        ${If} ${Errors}
+          !insertmacro LogError "Failed to update System PATH during uninstall!"
+        ${Else}
+          !insertmacro LogMessage "Successfully removed $0 from System PATH"
+        ${EndIf}
+      ${Else}
+        !insertmacro LogMessage "$0 not found in System PATH"
+      ${EndIf}
+  ${Else}
+    !insertmacro LogMessage "System PATH is empty, nothing to remove"
+  ${EndIf}
+  
+done:
+  Pop $6
+  Pop $5
+  Pop $4
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Uninstaller Init (with logging)
 ; -----------------------------------------------------------------------------
 Function un.onInit
   SetRegView 64
+  
   ; Re-open log file for uninstaller
   ReadRegStr $LocalAppDataDir HKCU "Volatile Environment" "LOCALAPPDATA"
   ${If} $LocalAppDataDir == ""
     StrCpy $LocalAppDataDir "$PROFILE\AppData\Local"
   ${EndIf}
+  
   CreateDirectory "$LocalAppDataDir\FChassis"
   FileOpen $LogFileHandle "$LocalAppDataDir\FChassis_Install.log" a
   ${If} $LogFileHandle != ""
@@ -759,36 +925,44 @@ Function un.onInit
     FileWrite $LogFileHandle "$\r$\n=== Uninstallation Started: [$(^Time)] ===$\r$\n"
   ${EndIf}
 FunctionEnd
+
 ; -----------------------------------------------------------------------------
 ; Uninstaller Section
 ; -----------------------------------------------------------------------------
 Section "Uninstall"
   !insertmacro LogMessage "=== Starting Uninstallation ==="
+  
   SetRegView 64
+
+  ; Remove shortcuts
   SetShellVarContext all
   Delete "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
   RMDir "$SMPROGRAMS\${APPNAME}"
+  
   SetShellVarContext current
   Delete "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
   RMDir "$SMPROGRAMS\${APPNAME}"
   Delete "$DESKTOP\${APPNAME}.lnk"
-  ; Only remove our application's bin directory from PATH
-  ; Do NOT remove OCCT_INSTALL_PATH directories
-  ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
-  !insertmacro LogVar "System PATH before uninstall modification" $0
- 
-  !insertmacro LogMessage "Removing only $INSTDIR\Bin from PATH (preserving OCCT paths)"
-  Push "$INSTDIR\Bin"
-  Call un.RemoveFromPath
 
-  ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
-  !insertmacro LogVar "System PATH after uninstall modification" $0
+  ; Remove only our application's bin directory from System PATH
+  !insertmacro LogMessage "Removing $INSTDIR\Bin from System PATH..."
+  Push "$INSTDIR\Bin"
+  Call un.RemoveFromSystemPath
+
+  ; Remove registry entries
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${INSTALL_FLAG_KEY}"
+
+  ; Remove user data files
   Delete "$LOCALAPPDATA\FChassis\FChassis.User.RecentFiles.JSON"
   Delete "$LOCALAPPDATA\FChassis\FChassis.User.Settings.JSON"
   RMDir "$LOCALAPPDATA\FChassis"
+
+  ; Remove installation directory
   !insertmacro PurgeInstDirBlocking 0
+
+  ; Broadcast environment change
   !insertmacro BroadcastEnvChange
+
   !insertmacro LogMessage "=== Uninstallation completed ==="
 SectionEnd
